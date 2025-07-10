@@ -1,0 +1,4 @@
+uid,name,Area,Ixx,Iyy
+1,BeamSection,11.8, 518, 28.9
+2,ColumnSection,7.08, 18.3, 82.7
+3,BraceSection,1.37, 0.476, 0.476
