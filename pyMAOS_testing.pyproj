@@ -11,10 +11,10 @@
     <Name>pyMAOS_testing</Name>
     <RootNamespace>pyMAOS_testing</RootNamespace>
     <InterpreterId>Global|PythonCore|3.13</InterpreterId>
-    <IsWindowsApplication>False</IsWindowsApplication>
+    <IsWindowsApplication>True</IsWindowsApplication>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
-    <CommandLineArguments>-i input -o output -d</CommandLineArguments>
+    <CommandLineArguments>-i braced_frame_input -o braced_frame_output -d database -v</CommandLineArguments>
     <PublishUrl>C:\out\example_braced_frame</PublishUrl>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -38,6 +38,7 @@
     <Compile Include="pyMAOS\loadcombos.py" />
     <Compile Include="pyMAOS\loading.py" />
     <Compile Include="pyMAOS\material.py" />
+    <Compile Include="pyMAOS\database.py" />
     <Compile Include="pyMAOS\nodes.py" />
     <Compile Include="pyMAOS\plot_element.py" />
     <Compile Include="pyMAOS\plot_structure.py" />
@@ -49,9 +50,59 @@
     <InterpreterReference Include="Global|PythonCore|3.13" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="braced_frame_input\" />
+    <Folder Include="braced_frame_output_ORIG\" />
+    <Folder Include="database\" />
     <Folder Include="examples\" />
-    <Folder Include="output\" />
     <Folder Include="pyMAOS\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="braced_frame_input\beam.3dd" />
+    <Content Include="braced_frame_input\ElementLoads.csv" />
+    <Content Include="braced_frame_input\Elements.csv" />
+    <Content Include="braced_frame_input\exA.3dd" />
+    <Content Include="braced_frame_input\example_braced_frame_3dd_20250709_153533.txt" />
+    <Content Include="braced_frame_input\example_braced_frame_3dd_20250709_160330.txt" />
+    <Content Include="braced_frame_input\example_braced_frame_3dd_20250710_052742.txt" />
+    <Content Include="braced_frame_input\example_braced_frame_3dd_20250710_055739.txt" />
+    <Content Include="braced_frame_input\example_braced_frame_3dd_20250710_060738.txt" />
+    <Content Include="braced_frame_input\example_braced_frame_3dd_20250710_060930.txt" />
+    <Content Include="braced_frame_input\example_braced_frame_3dd_20250710_061226.txt" />
+    <Content Include="braced_frame_input\example_braced_frame_3dd_20250710_062145.txt" />
+    <Content Include="braced_frame_input\example_braced_frame_3dd_20250710_062307.txt" />
+    <Content Include="braced_frame_input\example_braced_frame_3dd_20250710_062639.txt" />
+    <Content Include="braced_frame_input\example_braced_frame_3dd_20250710_063838.txt" />
+    <Content Include="braced_frame_input\example_braced_frame_3dd_20250710_064740.txt" />
+    <Content Include="braced_frame_input\example_braced_frame_3dd_20250710_065951.txt" />
+    <Content Include="braced_frame_input\example_braced_frame_3dd_20250710_070434.txt" />
+    <Content Include="braced_frame_input\example_braced_frame_3dd_20250710_070634.txt" />
+    <Content Include="braced_frame_input\example_braced_frame_3dd_20250710_071013.txt" />
+    <Content Include="braced_frame_input\exB.3dd" />
+    <Content Include="braced_frame_input\exC.3dd" />
+    <Content Include="braced_frame_input\exD.3dd" />
+    <Content Include="braced_frame_input\exE.3dd" />
+    <Content Include="braced_frame_input\exF.3dd" />
+    <Content Include="braced_frame_input\exG.3dd" />
+    <Content Include="braced_frame_input\exH.3dd" />
+    <Content Include="braced_frame_input\exI.3dd" />
+    <Content Include="braced_frame_input\exJ.3dd" />
+    <Content Include="braced_frame_input\exK.3dd" />
+    <Content Include="braced_frame_input\K_new.csv" />
+    <Content Include="braced_frame_input\NodeLoads.csv" />
+    <Content Include="braced_frame_input\Nodes.csv" />
+    <Content Include="braced_frame_output_ORIG\example_braced_frame.txt" />
+    <Content Include="braced_frame_output_ORIG\example_braced_frame_3dd.png" />
+    <Content Include="braced_frame_output_ORIG\example_braced_frame_3dd.txt" />
+    <Content Include="braced_frame_output_ORIG\example_braced_frame_3dd_forces.png" />
+    <Content Include="braced_frame_output_ORIG\K_new.csv" />
+    <Content Include="braced_frame_output_ORIG\K_ORIG.csv" />
+    <Content Include="braced_frame_output_ORIG\member_1_global_stiffness.csv" />
+    <Content Include="braced_frame_output_ORIG\member_2_global_stiffness.csv" />
+    <Content Include="braced_frame_output_ORIG\member_3_global_stiffness.csv" />
+    <Content Include="braced_frame_output_ORIG\member_4_global_stiffness.csv" />
+    <Content Include="braced_frame_output_ORIG\member_5_global_stiffness.csv" />
+    <Content Include="database\MaterialsDb.csv" />
+    <Content Include="database\SectionsDb.csv" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

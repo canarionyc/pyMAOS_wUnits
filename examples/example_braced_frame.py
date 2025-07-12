@@ -1,7 +1,11 @@
-#%% setup
 import sys
 import numpy as np; from pprint import pprint;
-np.set_printoptions(suppress=True,linewidth=np.nan,threshold=sys.maxsize)
+np.set_printoptions(suppress=True,linewidth=np.nan,threshold=sys.maxsize,precision=2)
+
+# Near the top of the script, after the imports but before plotting
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
+matplotlib.rcParams['figure.max_open_warning'] = 0  # Suppress warnins about too many fi
 
 from context import pyMAOS
 
@@ -14,8 +18,8 @@ from pyMAOS.loadcombos import LoadCombo
 from pyMAOS.plot_structure import plot_structure
 
 # Open the file with line buffering (buffering=1)
-f = open('output/example_braced_frame.txt', 'w', buffering=1)
-sys.stdout = f
+# f = open(r'C:\dev\pyMAOS_testing\braced_frame_output_ORIG\example_braced_frame.txt', 'w', buffering=1)
+# sys.stdout = f
 
 # Sloped beam to test braced frame
 loadcase = "D"
@@ -59,22 +63,16 @@ RF5 = R2Truss(5,N1, N3, SteelMaterial, BraceSection)
 
 # Member List
 members = [RF1, RF2, RF3, RF4, RF5]
-# members = [RF1, RF2, RF3, RF5]
+
 
 # Member Release
 RF2.hinge_i()
 RF2.hinge_j()
 
 # Member Loads
-RF1.add_distributed_load(
-    1 / 12, 1 / 12, 0, 100, loadcase, "X", location_percent=True
-)
-RF2.add_distributed_load(
-    -1 / 12, -1 / 12, 0, 100, loadcase, "yy", location_percent=True
-)
-RF3.add_distributed_load(
-    0.5 / 12, 0.5 / 12, 0, 100, loadcase, "X", location_percent=True
-)
+RF1.add_distributed_load( 1 / 12, 1 / 12, 0, 100, loadcase, "X", location_percent=True)
+RF2.add_distributed_load( -1 / 12, -1 / 12, 0, 100, loadcase, "yy", location_percent=True)
+RF3.add_distributed_load(0.5 / 12, 0.5 / 12, 0, 100, loadcase, "X", location_percent=True)
 
 # Create the 2D Structure
 Structure = R2Struct.R2Structure(nodes, members)
@@ -132,9 +130,15 @@ scaling = {
         "displacement": 100,
     }
 
-plt=plot_structure(nodes, members, loadcombo, scaling)
-plt.show()
-plt.savefig("example_braced_frame.png", dpi=300, bbox_inches='tight')
+fig, axs = plot_structure(nodes, members, loadcombo, scaling)
+
+fig.savefig("example_braced_frame.png", dpi=300, bbox_inches='tight')
+print("Plot saved to example_braced_frame.png")
+
+# Explicitly close the figure to ensure no windows remain open
+import matplotlib.pyplot as plt
+plt.close(fig)
+plt.close('all')  # Close all figures to be extra sure
 
 # When done, restore sys.stdout and close the file
 sys.stdout = sys.__stdout__

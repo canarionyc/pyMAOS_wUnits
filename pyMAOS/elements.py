@@ -4,6 +4,16 @@ import numpy as np
 import pyMAOS.loading as loadtypes
 
 
+# In structural analysis, hinges in frame elements (like beams and columns) serve a distinct purpose from node restraints. Here's what they do:
+# Node restraints (rx, ry, rz) control whether a node can move or rotate in the global coordinate system. These apply to the node itself.
+# Member hinges, however, create a release condition at the connection between a member and a node, allowing the member to rotate independently of the node's rotation. This is useful for modeling:
+# 1.	Pin connections where moment cannot be transferred between members
+# 2.	Partially fixed connections with limited moment transfer
+# 3.	Construction details like simple beam-to-column connections
+# 4.	Plastic hinge formation in advanced analysis
+# The question mentions "node hinges" but the code actually deals with member end hinges (as seen in the debug output where it prints element.hinges). These allow accurate modeling of connection behavior, which is essential for proper force distribution in the structure.
+# The comment about redundancy with restraints suggests there might be some confusion about the distinct roles of these features - restraints control global node behavior while hinges control member-to-node connectivity.
+
 class R2Truss:
     def __init__(self, uid, inode, jnode, material, section):
         self.type = "TRUSS"

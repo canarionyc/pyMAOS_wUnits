@@ -163,3 +163,62 @@ class R2Node:
 
         if direction != 0:
             self._isNonLinear = True
+
+    def add_nodal_load(self, fx, fy, mz, loadcase="D"):
+        """
+        Add a nodal load to the node.
+
+        Parameters
+        ----------
+        fx : float
+            Force in x-direction.
+        fy : float
+            Force in y-direction.
+        mz : float
+            Moment around z-axis.
+        loadcase : str, optional
+            Load case identifier. Default is "D" (Dead Load).
+        """
+        if loadcase not in self.loads:
+            self.loads[loadcase] = [0, 0, 0]
+    
+        # Add the load components to any existing loads
+        self.loads[loadcase][0] += fx
+        self.loads[loadcase][1] += fy
+        self.loads[loadcase][2] += mz
+
+    def display_loads(self):
+        """
+        Display all loads applied to the node.
+    
+        Prints a formatted list of all loads applied to the node,
+        organized by load case.
+        """
+        if not self.loads:
+            print(f"Node:{self.uid} - No loads applied")
+            return
+    
+        print(f"Node:{self.uid} - Applied Loads")
+        print("-" * 20)
+    
+        for loadcase, forces in self.loads.items():
+            print(f"Load Case: {loadcase}")
+            print(f"  Fx: {forces[0]:.4E}, Fy: {forces[1]:.4E}, Mz: {forces[2]:.4E}")
+
+# --- Read nodes ---
+def get_nodes_from_csv(csv_file):
+    import csv
+    nodes_dict = {}
+    with open(csv_file, newline="") as csvfile:
+        reader = csv.DictReader(csvfile, skipinitialspace=True)
+        for row in reader:
+            uid = int(row["uid"])
+            x = float(row["X"])
+            y = float(row["Y"])
+            rx = int(row["rx"])
+            ry = int(row["ry"])
+            rz = int(row["rz"])
+            node = R2Node(uid, x, y)
+            node.restraints = [rx, ry, rz]
+            nodes_dict[uid] = node
+    return nodes_dict

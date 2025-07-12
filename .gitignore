@@ -185,3 +185,5 @@ cython_debug/
 *.3dd
 *.txt
 *.png
+*.csv
+/input

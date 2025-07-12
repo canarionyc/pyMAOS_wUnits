@@ -1,5 +1,16 @@
 import itertools
 
+# Load combinations (or "loadcombos") are predefined mathematical combinations of different types of loads that a structure might experience during its lifetime.
+# In structural engineering:
+# 1.	Different Load Types are considered:
+# •	D: Dead loads (permanent, self-weight)
+# •	L: Live loads (occupancy, furniture)
+# •	W: Wind loads
+# •	S: Snow loads
+# •	E: Earthquake loads
+# 2.	Load Combinations apply factors to these loads based on building code requirements:
+# •	For ultimate (strength) design: 1.2D + 1.6L + 0.5S
+# •	For serviceability: 1.0D + 1.0L
 
 class LoadCombo:
 
