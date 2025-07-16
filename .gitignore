@@ -187,3 +187,10 @@ cython_debug/
 *.png
 *.csv
 /input
+/.vs/pyMAOS_testing/v17
+/.vs
+/.vs
+*.npy
+/.vs/pyMAOS_testing
+/.vs/pyMAOS_testing/v17
+*.txt~

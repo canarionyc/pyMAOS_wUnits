@@ -1,4 +1,5 @@
 import math
+from winreg import REG_OPTION_NON_VOLATILE
 import numpy as np
 
 
@@ -677,8 +678,23 @@ class R2_Linear_Load:
         Mjz = -1 * (2 * c3 * L * L + 4 * c6 * L + 4 * c9 + 2 * c7) / L
         Riy = self.Riy + (Miz / L) + (Mjz / L)
         Rjy = self.Rjy - (Miz / L) - (Mjz / L)
+        ret_val = [0, Riy, Miz, 0, Rjy, Mjz]
+        print(f"FEF Results for Load Case {self.loadcase}: {ret_val}")
+        return ret_val
 
-        return [0, Riy, Miz, 0, Rjy, Mjz]
+    def __str__(self):
+        """
+        String representation of a linear load.
+        
+        Returns:
+        -------
+        str
+            Description of the linear load including magnitude, position, and load case.
+        """
+        return (f"Linear Load ({self.loadcase}): "
+                f"w1={self.w1:.3f}, w2={self.w2:.3f}, "
+                f"from x={self.a:.3f} to x={self.b:.3f} "
+                f"(on member of length {self.L:.3f})")
 
 
 class R2_Axial_Load:
@@ -746,6 +762,19 @@ class R2_Axial_Load:
         Rjx = (-1 * p * a) / L
 
         return [Rix, 0, 0, Rjx, 0, 0]
+
+    def __str__(self):
+        """
+        String representation of an axial point load.
+        
+        Returns:
+        -------
+        str
+            Description of the axial load including magnitude, position, and load case.
+        """
+        return (f"Axial Point Load ({self.loadcase}): "
+                f"p={self.p:.3f} at x={self.a:.3f} "
+                f"(on member of length {self.L:.3f})")
 
 
 class R2_Axial_Linear_Load:
@@ -866,3 +895,17 @@ class R2_Axial_Linear_Load:
         Rjx = -1 * (((b - a) * (2 * b * w2 + a * w2 + b * w1 + 2 * a * w1)) / (6 * L))
 
         return [Rix, 0, 0, Rjx, 0, 0]
+
+    def __str__(self):
+        """
+        String representation of an axial linear load.
+        
+        Returns:
+        -------
+        str
+            Description of the axial linear load including magnitudes, position, and load case.
+        """
+        return (f"Axial Linear Load ({self.loadcase}): "
+                f"w1={self.w1:.3f}, w2={self.w2:.3f}, "
+                f"from x={self.a:.3f} to x={self.b:.3f} "
+                f"(on member of length {self.L:.3f})")

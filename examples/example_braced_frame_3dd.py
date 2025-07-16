@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+ï»¿# -*- coding: utf-8 -*-
 import sys
 import os
 from tkinter import NO
@@ -16,7 +16,8 @@ matplotlib.use("QtAgg")
 from context import pyMAOS
 
 from pyMAOS.nodes import R2Node, get_nodes_from_csv
-from pyMAOS.elements import R2Truss, R2Frame
+from pyMAOS.Truss import R2Truss
+from pyMAOS.Frame import R2Frame
 from pyMAOS.material import LinearElasticMaterial as Material
 from pyMAOS.section import Section
 import pyMAOS.R2Structure as R2Struct
@@ -94,10 +95,10 @@ print(loadcombo)
 
 # This creates a serviceability load combination called "S1" that includes only dead load (D) with a factor of 1.0.
 # 4.	Purpose:
-# •	Ensures structures are designed for realistic worst-case scenarios
-# •	Allows analysis of multiple loading conditions in one solution
-# •	Organizes results by loading scenario
-# •	Complies with building code requirements
+# â€¢	Ensures structures are designed for realistic worst-case scenarios
+# â€¢	Allows analysis of multiple loading conditions in one solution
+# â€¢	Organizes results by loading scenario
+# â€¢	Complies with building code requirements
 # The load combination determines which loads get applied and with what factors when Structure.solve_linear_static(loadcombo) is called.
 
 # Print loadcombo information
@@ -109,7 +110,7 @@ print(loadcombo)
 # print("----------------------------\n")
 
 nodes_dict = get_nodes_from_csv(os.path.join(args.input_dir, "nodes.csv"))
-
+print(f"Number of nodes loaded: {len(nodes_dict)}")
 if args.verbose:
     print("nodes_dict contents:")
     for uid, node in nodes_dict.items():
@@ -171,6 +172,7 @@ for node in node_list:
 from pyMAOS.database import get_materials_from_csv, get_sections_from_csv
 get_materials_from_csv = pyMAOS.database.get_materials_from_csv
 get_sections_from_csv = pyMAOS.database.get_sections_from_csv   
+
 # --- Read materials and sections ---
 # Read materials and sections from CSV files
 materials_csv= os.path.join(args.database_dir, "MaterialsDb.csv")
@@ -302,34 +304,65 @@ if args.verbose:
         # fig.show()
 
 
-# Process element loads using pandas
+# Process element loads using standard csv module
+import csv
+
 element_loads_csv = os.path.join(args.input_dir, "ElementLoads.csv")
 try:
-    df_element_loads = pd.read_csv(element_loads_csv,
-                                    skipinitialspace=True,  # Skip initial whitespace around delimiters
-        skip_blank_lines=True,  # Skip blank lines
-        index_col="load_uid"    # Set elem_uid as index
-        )
+    element_loads = []
+    with open(element_loads_csv, 'r') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            # Strip whitespace from string values
+            row = {k.strip(): (v.strip() if isinstance(v, str) else v) for k, v in row.items()}
+            elem_id = int(row["elem_id"])
+            wi = eval(row["wi"])
+            wj = eval(row["wj"])
+            a = float(row["a"])
+            b = float(row["b"])
+            case = row["case"]
+            direction = row["direction"]
+            location_percent = str(row["location_percent"]).strip().lower() in (
+                "yes", "true", "1",
+            )
+            element = element_dict[elem_id]
+            element.add_distributed_load(
+                wi, wj, a, b, case, direction, location_percent=location_percent
+            )
+            element_loads.append(row)
     
-    for load_uid, row in df_element_loads.iterrows():
-        elem_id = int(row["elem_id"])
-        wi = eval(row["wi"])
-        wj = eval(row["wj"])
-        a = float(row["a"])
-        b = float(row["b"])
-        case = row["case"]
-        direction = row["direction"]
-        location_percent = str(row["location_percent"]).strip().lower() in (
-            "yes", "true", "1",
-        )
-        element = element_dict[elem_id]
-        element.add_distributed_load(
-            wi, wj, a, b, case, direction, location_percent=location_percent
-        )
+    print(f"Loaded {len(element_loads)} distributed loads from {element_loads_csv}")
     if args.verbose:
-        print(f"Loaded {len(df_element_loads)} distributed loads from {element_loads_csv}")
+        for load in element_loads:
+            print(f"  {load}")
+            
 except FileNotFoundError:
     print(f"ElementLoads.csv not found in {args.input_dir}. No element loads applied.")
+
+
+# Verification of element loads
+for element in element_list:
+    if hasattr(element, 'loads') and element.loads:
+        print(f"Element {element.uid} has distributed loads:")
+        for load in element.loads:
+            print(f"  Load: {load}")
+    else:
+        print(f"Element {element.uid} has no distributed loads.")
+
+# Verification of load combination factors
+print(f"\nLoad combination '{loadcombo.name}':")
+print(f"Cases and factors: {loadcombo.factors}")
+
+# Check which loads will be active
+for element in element_list:
+    if not hasattr(element, 'loads') or not element.loads:
+        continue
+        
+    print(f"\nElement {element.uid} loads:")
+    for load in element.loads:
+        factor = loadcombo.factors.get(load.loadcase, 0)
+        status = "âœ“ ACTIVE" if factor != 0 else "âœ— INACTIVE"
+        print(f"  {load.kind} (case '{load.loadcase}'): Factor={factor} {status}")
 
 # Create the 2D Structure
 Structure = R2Struct.R2Structure(node_list, element_list)
@@ -337,7 +370,7 @@ Structure = R2Struct.R2Structure(node_list, element_list)
 # Structure.set_member_uids()
 
 FM = Structure.freedom_map(); print(FM)
-K = Structure.Kstructure(FM)
+K = Structure.Kstructure(FM, **vars(args))
 
 U = Structure.solve_linear_static(loadcombo, **vars(args))
 Errors = Structure._ERRORS
@@ -346,34 +379,47 @@ Errors = Structure._ERRORS
 if len(Errors) > 0:
     print("Errors:")
 print(Errors)
-print("Displacements:")
-for i, node in enumerate(node_list):
-    tx = node.displacements[loadcombo.name]
-    print(f"N{node.uid} -- Ux: {tx[0]:.4E} -- Uy:{tx[1]:.4E} -- Rz:{tx[2]:.4E}")
-f.flush()
-print("-" * 100)
-print("Reactions:")
-for i, node in enumerate(node_list):
-    rx = node.reactions[loadcombo.name]
-    print(f"N{node.uid} -- Rx: {rx[0]:.4E} -- Ry:{rx[1]:.4E} -- Mz:{rx[2]:.4E}")
-f.flush()
-print("-" * 100)
-print("Member Forces:")
-for i, element in enumerate(element_list):
-    fx = element.end_forces_local[loadcombo.name]
 
-    print(f"M{element.uid}")
-    print(
-        f"    i -- Axial: {fx[0,0]:.4E} -- Shear: {fx[1,0]:.4E} -- Moment: {fx[2,0]:.4E}"
-    )
-    print(
-        f"    j -- Axial: {fx[3,0]:.4E} -- Shear: {fx[4,0]:.4E} -- Moment: {fx[5,0]:.4E}"
-    )
-f.flush()
+from pyMAOS.summary_results import print_results
+print_results(node_list, element_list, loadcombo)   
 
 # fig, ax = plot_structure(node_list, element_list, loadcombo, scaling)
 # fig.show()
 # plt.savefig(os.path.join(args.output_dir, "example_braced_frame_3dd_forces.png"), dpi=300, bbox_inches='tight')
+
+
+# Check Equilibrium
+# After analysis is complete
+total_loads = [0, 0, 0]  # Fx, Fy, Mz
+total_reactions = [0, 0, 0]  # Fx, Fy, Mz
+
+# Sum all nodal loads
+for node in node_list:
+    if loadcombo.name in node.loads:
+        for i in range(3):
+            load_factor = loadcombo.factors.get(loadcase, 0)
+            total_loads[i] += node.loads[loadcombo.name][i] * load_factor
+
+# Sum all reactions
+for node in node_list:
+    if loadcombo.name in node.reactions:
+        for i in range(3):
+            total_reactions[i] += node.reactions[loadcombo.name][i]
+
+# Print results
+print("\nEquilibrium Check:")
+print(f"Total loads: Fx={total_loads[0]:.4f}, Fy={total_loads[1]:.4f}, Mz={total_loads[2]:.4f}")
+print(f"Total reactions: Fx={total_reactions[0]:.4f}, Fy={total_reactions[1]:.4f}, Mz={total_reactions[2]:.4f}")
+print(f"Difference: Fx={total_loads[0]+total_reactions[0]:.4f}, Fy={total_loads[1]+total_reactions[1]:.4f}, Mz={total_loads[2]+total_reactions[2]:.4f}")
+
+# 4. Visualize Internal Forces
+for element in element_list:
+    if not hasattr(element, 'Mzextremes'):
+        continue
+    
+    extremes = element.Mzextremes(loadcombo)
+    print(f"Element {element.uid} - Max moment: {extremes['MaxM'][1]:.2f} at x={extremes['MaxM'][0]:.2f}")
+    print(f"Element {element.uid} - Min moment: {extremes['MinM'][1]:.2f} at x={extremes['MinM'][0]:.2f}")
 
 # --- Choose a plotting library ---
 
@@ -397,8 +443,19 @@ for key, value in scaling.items():
 # plt.savefig(os.path.join(args.output_dir, "example_braced_frame_3dd.png"), dpi=300, bbox_inches='tight')
 
 
-plot_structure_vtk(node_list, element_list, loadcombo, scaling)
-plot_structure_loadcombos_vtk(node_list, element_list, loadcombo, scaling)
+try:
+    print("Attempting VTK visualization...")
+    print(f"Node count: {len(node_list)}")
+    print(f"Element count: {len(element_list)}")
+    print(f"Scaling configuration: {scaling}")
+    
+    plot_structure_vtk(node_list, element_list, loadcombo, scaling)
+    plot_structure_loadcombos_vtk(node_list, element_list, loadcombo, scaling)
+except Exception as e:
+    import traceback
+    print(f"VTK visualization failed: {e}")
+    print(traceback.format_exc())
+
 # When done, restore sys.stdout and close the file
 sys.stdout = sys.__stdout__
 f.close()

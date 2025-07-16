@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>1bbe5831-8d79-4261-a96f-0e35f369fa5b</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>examples\example_braced_frame_3dd.py</StartupFile>
+    <StartupFile>examples\read_frame_from_text.py</StartupFile>
     <SearchPath>..\..\repos\pyMAOS\pyMAOS</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -34,7 +34,12 @@
     <Compile Include="examples\example_kassimali_6_7.py" />
     <Compile Include="examples\example_sloped_beam.py" />
     <Compile Include="examples\example_stair.py" />
+    <Compile Include="examples\compare_stiffness_matrices.py" />
+    <Compile Include="examples\read_frame_from_text.py" />
+    <Compile Include="examples\read_truss_from_text.py" />
+    <Compile Include="examples\visualize_matrix2.py" />
     <Compile Include="pyMAOS\elements.py" />
+    <Compile Include="pyMAOS\Frame.py" />
     <Compile Include="pyMAOS\loadcombos.py" />
     <Compile Include="pyMAOS\loading.py" />
     <Compile Include="pyMAOS\material.py" />
@@ -44,6 +49,8 @@
     <Compile Include="pyMAOS\plot_structure.py" />
     <Compile Include="pyMAOS\R2Structure.py" />
     <Compile Include="pyMAOS\section.py" />
+    <Compile Include="pyMAOS\summary_results.py" />
+    <Compile Include="pyMAOS\Truss.py" />
     <Compile Include="pyMAOS\__init__.py" />
   </ItemGroup>
   <ItemGroup>
@@ -51,9 +58,13 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="braced_frame_input\" />
+    <Folder Include="braced_frame_output\" />
     <Folder Include="braced_frame_output_ORIG\" />
     <Folder Include="database\" />
     <Folder Include="examples\" />
+    <Folder Include="example_4_2_input\" />
+    <Folder Include="example_6_7\" />
+    <Folder Include="figure_6_19\" />
     <Folder Include="pyMAOS\" />
   </ItemGroup>
   <ItemGroup>
@@ -90,6 +101,11 @@
     <Content Include="braced_frame_input\K_new.csv" />
     <Content Include="braced_frame_input\NodeLoads.csv" />
     <Content Include="braced_frame_input\Nodes.csv" />
+    <Content Include="braced_frame_output\member_1_global_stiffness.csv" />
+    <Content Include="braced_frame_output\member_2_global_stiffness.csv" />
+    <Content Include="braced_frame_output\member_3_global_stiffness.csv" />
+    <Content Include="braced_frame_output\member_4_global_stiffness.csv" />
+    <Content Include="braced_frame_output\member_5_global_stiffness.csv" />
     <Content Include="braced_frame_output_ORIG\example_braced_frame.txt" />
     <Content Include="braced_frame_output_ORIG\example_braced_frame_3dd.png" />
     <Content Include="braced_frame_output_ORIG\example_braced_frame_3dd.txt" />
@@ -103,6 +119,8 @@
     <Content Include="braced_frame_output_ORIG\member_5_global_stiffness.csv" />
     <Content Include="database\MaterialsDb.csv" />
     <Content Include="database\SectionsDb.csv" />
+    <Content Include="example_4_2_input\example_4_2_input.txt" />
+    <Content Include="example_6_7\example_6_7_input.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

@@ -27,7 +27,7 @@ class R2Node:
 
         # Restraints [Ux, Uy, Rz]
         self.restraints_key = ["Ux", "Uy", "Rz"]
-        self.restraints = [1, 1, 1]
+        self.restraints = [0, 0, 0]
 
         # Spring Restraint [kux, kuy, krz]
         # Spring Stiffness should be 0 for a restrained direction
@@ -68,17 +68,34 @@ class R2Node:
         self._isNonLinear = False
 
     def __str__(self):
-        str = f"Node:{self.uid}\n"
-        str += f"({self.x},{self.y})\n"
+        """Return a readable string representation of the node with complete restraint information"""
+        restraint_symbols = {0: "Free", 1: "Fixed"}
+        
+        str_repr = f"Node:{self.uid}\n"
+        str_repr += f"Coordinates: ({self.x:.4f}, {self.y:.4f})\n"
+        str_repr += "Restraints:\n"
+        str_repr += "-" * 15 + "\n"
+        
+        for i, r in enumerate(self.restraints):
+            str_repr += f"{self.restraints_key[i]}: {restraint_symbols[r]}"
+            
+            # Add spring information if applicable
+            if self._isSpring and self._spring_stiffness[i] > 0:
+                direction_info = ""
+                if self._spring_direction[i] == 1:
+                    direction_info = " (+ direction only)"
+                elif self._spring_direction[i] == -1:
+                    direction_info = " (- direction only)"
+                    
+                str_repr += f" with Spring k={self._spring_stiffness[i]}{direction_info}"
+            
+            str_repr += "\n"
+            
+        return str_repr
 
-        if sum(self.restraints) != 0:
-            str += "Restraints\n"
-            str += "-" * 11 + "\n"
-
-            for i, r in enumerate(self.restraints):
-                if r != 0:
-                    str += f"{self.restraints_key[i]}"
-        return str
+    def __repr__(self):
+        """Return a string representation of the node for debugging"""
+        return f"R2Node(uid={self.uid}, x={self.x}, y={self.y})"
 
     def x_displaced(self, load_combination, scale=1.0):
         delta = self.displacements.get(load_combination.name, [0, 0, 0])
