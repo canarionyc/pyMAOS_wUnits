@@ -28,6 +28,20 @@ class R2Frame(Element):
         # Validate hinges after initialization
         self.validate_hinges()
 
+    def __str__(self):
+        """Return string representation of the frame element including hinge status"""
+        base_str = super().__str__()
+        hinge_info = ""
+    
+        if self.hinges[0] == 1 and self.hinges[1] == 1:
+            hinge_info = ", Hinges: Both ends"
+        elif self.hinges[0] == 1:
+            hinge_info = ", Hinge: Start node"
+        elif self.hinges[1] == 1:
+            hinge_info = ", Hinge: End node"
+        
+        return base_str + hinge_info
+
     def hinge_i(self):
         """Apply a moment release (hinge) at the start node of the frame element
         

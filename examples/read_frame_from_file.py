@@ -1,0 +1,523 @@
+﻿from ast import Str
+import os
+from os import path
+import sys
+import re  # For regex parsing of unit strings
+import json
+
+# Add pint for units handling
+import pint
+# Set up a unit registry with kN as the preferred force unit
+ureg = pint.UnitRegistry()
+ureg.default_system = 'mks'  # meter-kilogram-second
+Q_ = ureg.Quantity  # Shorthand for creating quantities
+
+# Base internal units
+INTERNAL_FORCE_UNIT = 'N'  
+INTERNAL_LENGTH_UNIT = 'm'
+INTERNAL_TIME_UNIT = 's'
+
+# Derived internal units
+INTERNAL_AREA_UNIT = f"{INTERNAL_LENGTH_UNIT}^2"
+INTERNAL_VOLUME_UNIT = f"{INTERNAL_LENGTH_UNIT}^3"
+INTERNAL_MOMENT_OF_INERTIA_UNIT = f"{INTERNAL_LENGTH_UNIT}^4"
+INTERNAL_DENSITY_UNIT = f"kg/{INTERNAL_LENGTH_UNIT}^3"
+INTERNAL_MOMENT_UNIT = f"{INTERNAL_FORCE_UNIT}*{INTERNAL_LENGTH_UNIT}"
+INTERNAL_PRESSURE_UNIT = 'Pa'  # SI unit name (preferred)
+INTERNAL_PRESSURE_UNIT_EXPANDED = f"{INTERNAL_FORCE_UNIT}/{INTERNAL_LENGTH_UNIT}^2"  # Expanded form
+INTERNAL_DISTRIBUTED_LOAD_UNIT = f"{INTERNAL_FORCE_UNIT}/{INTERNAL_LENGTH_UNIT}"
+
+# Define display/input units with corresponding internal units (will be updated from JSON)
+# Format: display_unit_name = default_value
+DISPLAY_UNITS = {
+    # Base units
+    'force': 'kN',                    # Internal: N
+    'length': 'm',                    # Internal: m
+    'time': 's',                      # Internal: s
+    
+    # Derived units
+    'area': 'm^2',                    # Internal: m^2
+    'volume': 'm^3',                  # Internal: m^3
+    'moment_of_inertía': 'm^4',       # Internal: m^4
+    'density': 'kg/m^3',              # Internal: kg/m^3
+    'moment': 'kN*m',                 # Internal: N*m
+    'pressure': 'kN/m^2',             # Internal: N/m^2
+    'distributed_load': 'kN/m',       # Internal: N/m
+    'rotation': 'rad',                # Internal: rad
+    'angle': 'deg'                    # Internal: rad
+}
+
+# For backward compatibility, keep individual variables
+FORCE_UNIT = DISPLAY_UNITS['force']
+LENGTH_UNIT = DISPLAY_UNITS['length']
+MOMENT_UNIT = DISPLAY_UNITS['moment']
+PRESSURE_UNIT = DISPLAY_UNITS['pressure']
+DISTRIBUTED_LOAD_UNIT = DISPLAY_UNITS['distributed_load']
+
+# Function to update display/input unit definitions based on JSON input
+def update_units_from_json(json_string):
+    """Parse JSON unit definitions and update display/input unit variables"""
+    try:
+        # Clean up the JSON string to ensure it's valid
+        json_string = json_string.strip()
+        if not json_string.startswith('{'):
+            return False
+        
+        # Parse JSON
+        unit_dict = json.loads(json_string)
+        global DISPLAY_UNITS, FORCE_UNIT, LENGTH_UNIT, MOMENT_UNIT, PRESSURE_UNIT, DISTRIBUTED_LOAD_UNIT
+        
+        # Update display units based on JSON specification
+        if "force" in unit_dict:
+            DISPLAY_UNITS['force'] = unit_dict["force"]
+        if "length" in unit_dict:
+            DISPLAY_UNITS['length'] = unit_dict["length"]
+        if "pressure" in unit_dict:
+            DISPLAY_UNITS['pressure'] = unit_dict["pressure"]
+        
+        # Handle special case where distance differs from length
+        distance_unit = unit_dict.get("distance", DISPLAY_UNITS['length'])
+        
+        # Update derived units based on base units
+        DISPLAY_UNITS['moment'] = f"{DISPLAY_UNITS['force']}*{DISPLAY_UNITS['length']}"
+        DISPLAY_UNITS['distributed_load'] = f"{DISPLAY_UNITS['force']}/{distance_unit}"
+        DISPLAY_UNITS['area'] = f"{DISPLAY_UNITS['length']}^2"
+        DISPLAY_UNITS['volume'] = f"{DISPLAY_UNITS['length']}^3"
+        DISPLAY_UNITS['moment_of_inertía'] = f"{DISPLAY_UNITS['length']}^4"
+        
+        # Update individual variables for backward compatibility
+        FORCE_UNIT = DISPLAY_UNITS['force']
+        LENGTH_UNIT = DISPLAY_UNITS['length']
+        MOMENT_UNIT = DISPLAY_UNITS['moment']
+        PRESSURE_UNIT = DISPLAY_UNITS['pressure'] 
+        DISTRIBUTED_LOAD_UNIT = DISPLAY_UNITS['distributed_load']
+        
+        print(f"Using display units from JSON: Force={FORCE_UNIT}, Length={LENGTH_UNIT}, Moment={MOMENT_UNIT}")
+        print(f"Pressure={PRESSURE_UNIT}, Distributed Load={DISTRIBUTED_LOAD_UNIT}")
+        print(f"Note: All internal calculations will use SI units.")
+        return True
+    except Exception as e:
+        print(f"Error updating units: {e}")
+        return False
+
+# Define the standard units for the program
+FORCE_UNIT = 'kN'
+LENGTH_UNIT = 'm'
+MOMENT_UNIT = 'kN*m'
+PRESSURE_UNIT = 'kN/m^2'
+DISTRIBUTED_LOAD_UNIT = 'kN/m'
+
+import numpy as np
+np.set_printoptions(precision=4, suppress=False, floatmode='maxprec_equal')
+
+# Add custom formatters for different numeric types
+def format_with_dots(x): return '.' if abs(x) < 1e-10 else f"{x:.4g}"
+def format_double(x): return '.' if abs(x) < 1e-10 else f"{x:.8g}"  # More precision for doubles
+
+# np.set_printoptions(formatter={
+#     'float': format_with_dots,     # For float32 and generic floats
+#     'float_kind': format_with_dots,  # For all floating point types
+#     'float64': format_double       # Specifically for float64 (double precision)
+# })
+
+from pyMAOS.plot_structure import plot_structure_vtk
+ 
+from contextlib import redirect_stdout
+
+from context import pyMAOS
+
+from pyMAOS.nodes import R2Node
+
+from pyMAOS.Frame import R2Frame
+from pyMAOS.material import LinearElasticMaterial as Material
+from pyMAOS.section import Section
+import pyMAOS.R2Structure as R2Struct
+from pyMAOS.loadcombos import LoadCombo
+
+default_scaling = {
+        "axial_load": 100,
+        "normal_load": 100,
+        "point_load": 1,
+        "axial": 2,
+        "shear": 2,
+        "moment": 0.1,
+        "rotation": 5000,
+        "displacement": 100,
+    }
+
+# Update the regex pattern in parse_value_with_units function
+def parse_value_with_units(value_string):
+    """Parse a string that may contain a value with units without spaces between"""
+    # Match pattern: [numeric value][units]
+    # The numeric part can include scientific notation like 30.0e6
+    # Units part starts at the first non-numeric, non-exponent character
+    match = re.match(r'([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)(.*)', value_string.strip())
+    
+    if match:
+        value_str, unit_str = match.groups()
+        value = float(value_str)
+        
+        if unit_str and unit_str.strip():
+            try:
+                # Create quantity with units
+                value_with_units = Q_(value, unit_str)
+                return value_with_units
+            except:
+                print(f"Warning: Could not parse unit '{unit_str}', treating as dimensionless")
+                return value
+        return value
+    
+    # If no match, try to evaluate as a simple numeric expression
+    try:
+        return float(eval(value_string))
+    except:
+        raise ValueError(f"Could not parse value: {value_string}")
+
+
+
+def load_frame_from_json(filename):
+    """
+    Reads a structural model from a JSON file
+    
+    Parameters
+    ----------
+    filename : str
+        Path to the input JSON file
+        
+    Returns
+    -------
+    tuple
+        (node_list, element_list) ready for structural analysis
+    """
+    with open(filename, 'r', encoding='utf-8') as file:
+        data = json.load(file)
+    
+    # Process units if present
+    if "units" in data:
+        update_units_from_json(json.dumps(data["units"]))
+    
+    # Process nodes
+    nodes_dict = {}
+    for node_data in data.get("nodes", []):
+        node_id = node_data["id"]
+        
+        # Parse coordinates with potential units
+        x = parse_value_with_units(str(node_data["x"]))
+        y = parse_value_with_units(str(node_data["y"]))
+        
+        # Convert to meters if units are specified
+        x_meters = x.to('m').magnitude if isinstance(x, pint.Quantity) else x
+        y_meters = y.to('m').magnitude if isinstance(y, pint.Quantity) else y
+        
+        node = R2Node(node_id, x_meters, y_meters)
+        nodes_dict[node_id] = node
+    
+    print(f"Read {len(nodes_dict)} nodes."); print(nodes_dict)
+    
+    # Process supports
+    for support_data in data.get("supports", []):
+        node_id = support_data["node"]
+        rx = support_data["rx"]
+        ry = support_data["ry"]
+        rz = support_data["rz"]
+        
+        if node_id in nodes_dict:
+            nodes_dict[node_id].restraints = [rx, ry, rz]
+            print(f"Node {node_id} supports: rx={rx}, ry={ry}, rz={rz}")
+    
+    # Process materials
+    materials_dict = {}
+    for material_data in data.get("materials", []):
+        material_id = material_data["id"]
+        material_type = material_data.get("type", "linear")
+
+        # Parse E with potential units
+        e_value_with_units = parse_value_with_units(str(material_data["E"]))
+        
+        # Convert to standard pressure units
+        if isinstance(e_value_with_units, pint.Quantity):
+            try:
+                # Try converting to Pascal (SI unit) first
+                e_value = e_value_with_units.to('Pa').magnitude
+                
+                # Show both internal value and display value
+                display_value = e_value_with_units.to(PRESSURE_UNIT).magnitude
+                print(f"Converted material E from {e_value_with_units} to {e_value} Pa")
+                print(f"  (Equivalent to {display_value} {PRESSURE_UNIT} in display units)")
+            except Exception as e1:
+                try:
+                    # Try the expanded form as a fallback
+                    e_value = e_value_with_units.to(INTERNAL_PRESSURE_UNIT_EXPANDED).magnitude
+                    print(f"Converted material E to {e_value} Pa using expanded form N/m²")
+                except Exception as e2:
+                    # If all conversions fail, use raw value
+                    print(f"Warning: Could not convert {e_value_with_units} to Pa or N/m², using raw value")
+                    e_value = e_value_with_units.magnitude
+        else:
+            e_value = e_value_with_units
+            print(f"No units specified for material E, assuming {e_value} Pa")
+        
+        material = Material(uid=material_id, E=e_value)
+        materials_dict[material_id] = material
+    
+    # Process sections
+    sections_dict = {}
+    for section_data in data.get("sections", []):
+        section_id = section_data["id"]
+        
+        # Parse area and ixx with potential units
+        area_with_units = parse_value_with_units(str(section_data["area"]))
+        ixx_with_units = parse_value_with_units(str(section_data["ixx"]))
+        
+        # Convert to standard units
+        if isinstance(area_with_units, pint.Quantity):
+            try:
+                area = area_with_units.to('m^2').magnitude
+                print(f"Converted section area from {area_with_units} to {area} m²")
+            except:
+                area = area_with_units.magnitude
+                print(f"Warning: Could not convert {area_with_units} to m², using raw value")
+        else:
+            area = area_with_units
+        
+        if isinstance(ixx_with_units, pint.Quantity):
+            try:
+                ixx = ixx_with_units.to('m^4').magnitude
+                print(f"Converted section inertia from {ixx_with_units} to {ixx} m⁴")
+            except:
+                ixx = ixx_with_units.magnitude
+                print(f"Warning: Could not convert {ixx_with_units} to m⁴, using raw value")
+        else:
+            ixx = ixx_with_units
+        
+        section = Section(uid=section_id, Area=area, Ixx=ixx)
+        sections_dict[section_id] = section
+    
+    # Process members/elements
+    element_list = []
+    elements_dict = {}
+    for member_data in data.get("members", []):
+        member_id = member_data["id"]
+        i_node = member_data["i_node"]
+        j_node = member_data["j_node"]
+        mat_id = member_data["material"]
+        sec_id = member_data["section"]
+        
+        # Create frame element
+        element = R2Frame(
+            uid=member_id,
+            inode=nodes_dict[i_node],
+            jnode=nodes_dict[j_node],
+            material=materials_dict[mat_id],
+            section=sections_dict[sec_id]
+        )
+        element_list.append(element)
+        elements_dict[member_id] = element
+    
+    print(f"Read {len(element_list)} elements.")
+    
+    # Process joint loads
+    for joint_load in data.get("joint_loads", []):
+        node_id = joint_load["node"]
+        
+        # Parse forces with potential units
+        fx_with_units = parse_value_with_units(str(joint_load.get("fx", 0)))
+        fy_with_units = parse_value_with_units(str(joint_load.get("fy", 0)))
+        mz_with_units = parse_value_with_units(str(joint_load.get("mz", 0)))
+        
+        # Convert to INTERNAL units (Newtons, Newton-meters) for storage and calculation
+        fx = fx_with_units.to(INTERNAL_FORCE_UNIT).magnitude if isinstance(fx_with_units, pint.Quantity) else fx_with_units
+        fy = fy_with_units.to(INTERNAL_FORCE_UNIT).magnitude if isinstance(fy_with_units, pint.Quantity) else fy_with_units
+        mz = mz_with_units.to(INTERNAL_MOMENT_UNIT).magnitude if isinstance(mz_with_units, pint.Quantity) else mz_with_units
+        
+        # Calculate display values for reporting only
+        fx_display = fx_with_units.to(FORCE_UNIT).magnitude if isinstance(fx_with_units, pint.Quantity) else fx_with_units
+        fy_display = fy_with_units.to(FORCE_UNIT).magnitude if isinstance(fy_with_units, pint.Quantity) else fy_with_units
+        mz_display = mz_with_units.to(MOMENT_UNIT).magnitude if isinstance(mz_with_units, pint.Quantity) else mz_with_units
+        
+        if node_id in nodes_dict:
+            # Store in SI units
+            nodes_dict[node_id].add_nodal_load(fx, fy, mz, "D")
+            # Report in display units
+            print(f"Node {node_id} load: Fx={fx_display}{FORCE_UNIT} ({fx} N), "
+                  f"Fy={fy_display}{FORCE_UNIT} ({fy} N), "
+                  f"Mz={mz_display}{MOMENT_UNIT} ({mz} N*m)")
+    
+    # Import the necessary load classes
+    from pyMAOS.loading import R2_Point_Load, R2_Linear_Load, R2_Axial_Load, R2_Axial_Linear_Load, R2_Point_Moment
+    
+    print(f"\nProcessing {len(data.get('member_loads', []))} member loads:")
+    
+    # Process member loads
+    for member_load in data.get("member_loads", []):
+        element_id = member_load["member_uid"]
+        load_type = member_load["load_type"]
+        
+        if element_id not in elements_dict:
+            print(f"Warning: Member load specified for non-existent element {element_id}")
+            continue
+        
+        element = elements_dict[element_id]
+        load_case = member_load.get("case", "D")
+        direction = member_load.get("direction", "Y").upper()
+        location_percent = member_load.get("location_percent", False)
+        
+        try:
+            if load_type == 3:  # Distributed load
+                # Parse load intensity
+                w1_with_units = parse_value_with_units(str(member_load.get("wi", 0)))
+                
+                # Convert to INTERNAL units for storage/calculation
+                w1 = w1_with_units.to(INTERNAL_DISTRIBUTED_LOAD_UNIT).magnitude if isinstance(w1_with_units, pint.Quantity) else w1_with_units
+                
+                # Calculate display values for reporting only
+                w1_display = w1_with_units.to(DISTRIBUTED_LOAD_UNIT).magnitude if isinstance(w1_with_units, pint.Quantity) else w1_with_units
+                
+                # Handle non-uniform loads (wj)
+                if "wj" in member_load:
+                    w2_with_units = parse_value_with_units(str(member_load["wj"]))
+                    w2 = w2_with_units.to(INTERNAL_DISTRIBUTED_LOAD_UNIT).magnitude if isinstance(w2_with_units, pint.Quantity) else w2_with_units
+                    w2_display = w2_with_units.to(DISTRIBUTED_LOAD_UNIT).magnitude if isinstance(w2_with_units, pint.Quantity) else w2_with_units
+                else:
+                    w2 = w1  # Uniform load
+                    w2_display = w1_display
+                
+                # Parse positions
+                a = float(member_load.get("a", 0.0))
+                b = float(member_load.get("b", element.length))
+                
+                # Convert percentages to actual positions if needed
+                if location_percent:
+                    print(f"  Converting positions from percentages: a={a}%, b={b}%")
+                    a = a / 100.0 * element.length
+                    b = b / 100.0 * element.length
+                
+                print(f"  Element {element_id}: Distributed load w1={w1_display}{DISTRIBUTED_LOAD_UNIT} ({w1} N/m), " 
+                      f"w2={w2_display}{DISTRIBUTED_LOAD_UNIT} ({w2} N/m), "
+                      f"a={a}{LENGTH_UNIT}, b={b}{LENGTH_UNIT}")
+                
+                # Apply load in appropriate direction with SI units
+                if direction.upper() == "X":
+                    element.add_distributed_load(w1, w2, a, b, load_case, direction="xx")
+                else:
+                    element.add_distributed_load(w1, w2, a, b, load_case)
+                
+            elif load_type == 1:  # Point load
+                # Parse force magnitude
+                p_with_units = parse_value_with_units(str(member_load.get("p", 0)))
+                
+                # Convert to internal units for calculation
+                p = p_with_units.to(INTERNAL_FORCE_UNIT).magnitude if isinstance(p_with_units, pint.Quantity) else p_with_units
+                
+                # Get display value for reporting
+                p_display = p_with_units.to(FORCE_UNIT).magnitude if isinstance(p_with_units, pint.Quantity) else p_with_units
+                
+                # Parse position
+                a = float(member_load.get("a", 0.0))
+                
+                # Convert percentage to actual position if needed
+                if location_percent:
+                    a = a / 100.0 * element.length
+                
+                print(f"  Element {element_id}: Point load p={p_display}{FORCE_UNIT} ({p} N), "
+                      f"position={a}{LENGTH_UNIT}")
+                
+                # Apply in appropriate direction with SI units
+                if direction.upper() == "X":
+                    element.add_point_load(p, a, load_case, direction="xx")
+                else:
+                    element.add_point_load(p, a, load_case)
+        
+            elif load_type == 2:  # Point moment
+                # Parse moment magnitude
+                m_with_units = parse_value_with_units(str(member_load.get("m", 0)))
+                
+                # Convert to internal units for calculation
+                m = m_with_units.to(INTERNAL_MOMENT_UNIT).magnitude if isinstance(m_with_units, pint.Quantity) else m_with_units
+                
+                # Get display value for reporting
+                m_display = m_with_units.to(MOMENT_UNIT).magnitude if isinstance(m_with_units, pint.Quantity) else m_with_units
+                
+                # Parse position
+                a = float(member_load.get("a", 0.0))
+                
+                # Convert percentage to actual position if needed
+                if location_percent:
+                    a = a / 100.0 * element.length
+                
+                print(f"  Element {element_id}: Point moment m={m_display}{MOMENT_UNIT} ({m} N*m), "
+                      f"position={a}{LENGTH_UNIT}")
+                
+                # Apply moment with SI units
+                element.add_point_moment(m, a, load_case)
+            
+            else:
+                print(f"  Warning: Unsupported load type {load_type}")
+                
+        except Exception as e:
+            print(f"Error processing member load: {e}")
+            print(f"  Details: {type(e).__name__} - {str(e)}")
+    
+    # Create final node list in sorted order
+    node_list = [nodes_dict[uid] for uid in sorted(nodes_dict)]
+    
+    # Print node restraints
+    print("\n\n--- Node Restraints Summary ---")
+    print("Node ID  |  Ux  |  Uy  |  Rz")
+    print("-" * 30)
+    for node in node_list:
+        rx, ry, rz = node.restraints
+        rx_status = "Fixed" if rx == 1 else "Free"
+        ry_status = "Fixed" if ry == 1 else "Free"
+        rz_status = "Fixed" if rz == 1 else "Free"
+        print(f"Node {node.uid:2d}  |  {rx_status:5s} |  {ry_status:5s} |  {rz_status:5s}")
+    
+    # # Print node load information
+    # print("\n\n--- Node Load Summary ---")
+    # for node in node_list:
+    #     if node.loads:
+    #         print(f"Node {node.uid} loads:")
+    #         for case, load in node.loads.items():
+    #             print(f"  Case {case}: Fx={load[0]}, Fy={load[1]}, Mz={load[2]}")
+                
+    # Plot structure
+    plot_structure_vtk(node_list, element_list, scaling=default_scaling)
+    
+    return node_list, element_list
+
+if __name__ == "__main__":
+    working_dir='example_6_3'
+    input_File='example_6_3.json'  # Change extension as needed
+    
+    file_path = os.path.join(working_dir, input_File)
+    
+    # Choose appropriate loader based on file extension
+    if input_File.lower().endswith('.json'):
+        print(f"Loading structural model from JSON file: {file_path}")
+        node_list, element_list = load_frame_from_json(file_path)
+    else:
+        print(f"Loading structural model from text file: {file_path}")
+        node_list, element_list = load_frame_from_text(file_path)
+    
+    print(f"Total nodes: {len(node_list)}")
+    print(f"Total elements: {len(element_list)}")
+
+    # Pass all display units to the structure
+    Structure = R2Struct.R2Structure(node_list, element_list, units=DISPLAY_UNITS)
+    print(Structure)
+
+    # Fix the LoadCombo initialization with proper parameters
+    loadcombo = LoadCombo("D", {"D": 1.0}, ["D"], False, "SLS")
+    print("Solving linear static problem...")
+    U = Structure.solve_linear_static(loadcombo, output_dir=working_dir, verbose=True)
+    print(f"Displacements U:\n{U}")
+    print(Structure)
+
+    # Save displacement results
+    np.save(os.path.join(working_dir, 'U.npy'), U)
+    np.savetxt(os.path.join(working_dir, 'U.txt'), U)
+
+    Structure.plot_loadcombos_vtk(loadcombos=None, scaling=default_scaling)
+     
+    # Pause the program before exiting
+    print("\n\nAnalysis complete. Press Enter to exit...")

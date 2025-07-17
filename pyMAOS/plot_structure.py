@@ -73,7 +73,8 @@ def plot_structure_vtk(nodes, members, loadcombo=None, scaling=None):
     line_colors.SetNumberOfComponents(3)
     line_colors.SetName("Colors")
 
-    type_color_map = {"FRAME": (0, 0, 255), "TRUSS": (0, 255, 0)}
+    # Update the color mapping to use black for everything
+    type_color_map = {"FRAME": (0, 0, 0), "TRUSS": (0, 0, 0)}
     default_color = (0, 0, 0)
 
     node_uid_to_vtk_id = {node.uid: i for i, node in enumerate(nodes)}
@@ -113,7 +114,8 @@ def plot_structure_vtk(nodes, members, loadcombo=None, scaling=None):
     node_label_mapper.SetInputData(node_labels_poly)
     node_label_mapper.SetFieldDataName("NodeLabels")
     node_label_mapper.SetLabelModeToLabelFieldData()
-    node_label_mapper.GetLabelTextProperty().SetColor(0.8, 0.1, 0.1)
+    # Later in the code, update node label colors to black
+    node_label_mapper.GetLabelTextProperty().SetColor(0.0, 0.0, 0.0)  # Black text
     node_label_mapper.GetLabelTextProperty().SetFontSize(12)  # Set specific font size
     node_label_actor = vtk.vtkActor2D()
     node_label_actor.SetMapper(node_label_mapper)
@@ -138,7 +140,8 @@ def plot_structure_vtk(nodes, members, loadcombo=None, scaling=None):
     member_label_mapper.SetInputData(member_labels_poly)
     member_label_mapper.SetFieldDataName("MemberLabels")
     member_label_mapper.SetLabelModeToLabelFieldData()
-    member_label_mapper.GetLabelTextProperty().SetColor(0.0, 0.0, 0.6)  # Darker blue text
+    # Member label colors to black
+    member_label_mapper.GetLabelTextProperty().SetColor(0.0, 0.0, 0.0)  # Black text
     member_label_mapper.GetLabelTextProperty().SetFontSize(12)  # Same font size as nodes
     
     member_label_actor = vtk.vtkActor2D()
@@ -187,7 +190,8 @@ def plot_structure_vtk(nodes, members, loadcombo=None, scaling=None):
         arrow_actor = vtk.vtkActor()
         arrow_actor.SetMapper(arrow_mapper)
         arrow_actor.SetUserTransform(arrow_transform)
-        arrow_actor.GetProperty().SetColor(0.7, 0.0, 0.7)  # Purple arrows
+        # Direction arrows to black
+        arrow_actor.GetProperty().SetColor(0.0, 0.0, 0.0)  # Black arrows
         direction_arrow_actors.append(arrow_actor)
 
     # --- 3a. Create Hinge Visualizations ---
@@ -210,7 +214,8 @@ def plot_structure_vtk(nodes, members, loadcombo=None, scaling=None):
                 hinge_mapper.SetInputConnection(hinge_sphere.GetOutputPort())
                 hinge_actor = vtk.vtkActor()
                 hinge_actor.SetMapper(hinge_mapper)
-                hinge_actor.GetProperty().SetColor(1.0, 0.8, 0.0)  # Gold color
+                # Hinge actors to black
+                hinge_actor.GetProperty().SetColor(0.0, 0.0, 0.0)  # Black hinges
                 hinge_actors.append(hinge_actor)
             
             if member.hinges[1]:  # j-node hinge
@@ -224,7 +229,8 @@ def plot_structure_vtk(nodes, members, loadcombo=None, scaling=None):
                 hinge_mapper.SetInputConnection(hinge_sphere.GetOutputPort())
                 hinge_actor = vtk.vtkActor()
                 hinge_actor.SetMapper(hinge_mapper)
-                hinge_actor.GetProperty().SetColor(1.0, 0.8, 0.0)  # Gold color
+                # Hinge actors to black
+                hinge_actor.GetProperty().SetColor(0.0, 0.0, 0.0)  # Black hinges
                 hinge_actors.append(hinge_actor)
 
     # --- 3b. NEW: Add Force Arrows for node loads ---
@@ -274,7 +280,9 @@ def plot_structure_vtk(nodes, members, loadcombo=None, scaling=None):
                     arrow_actor = vtk.vtkActor()
                     arrow_actor.SetMapper(arrow_mapper)
                     arrow_actor.SetUserTransform(arrow_transform)
-                    arrow_actor.GetProperty().SetColor(1.0, 0.0, 0.0)  # Red for X-force
+                    # Force arrows to black (in the node loads section)
+                    # For X-direction force arrows
+                    arrow_actor.GetProperty().SetColor(0.0, 0.0, 0.0)  # Black for X-force
                     force_arrow_actors.append(arrow_actor)
                 
                 # Create vertical force arrow (Y direction)
@@ -303,7 +311,8 @@ def plot_structure_vtk(nodes, members, loadcombo=None, scaling=None):
                     arrow_actor = vtk.vtkActor()
                     arrow_actor.SetMapper(arrow_mapper)
                     arrow_actor.SetUserTransform(arrow_transform)
-                    arrow_actor.GetProperty().SetColor(0.0, 1.0, 0.0)  # Green for Y-force
+                    # For Y-direction force arrows
+                    arrow_actor.GetProperty().SetColor(0.0, 0.0, 0.0)  # Black for Y-force
                     force_arrow_actors.append(arrow_actor)
                 
                 # Create moment visualization (Z direction)
@@ -323,7 +332,8 @@ def plot_structure_vtk(nodes, members, loadcombo=None, scaling=None):
                     circle_mapper.SetInputConnection(circle_source.GetOutputPort())
                     circle_actor = vtk.vtkActor()
                     circle_actor.SetMapper(circle_mapper)
-                    circle_actor.GetProperty().SetColor(0.0, 0.0, 1.0)  # Blue for moment
+                    # For moment visualization
+                    circle_actor.GetProperty().SetColor(0.0, 0.0, 0.0)  # Black for moment circle
                     circle_actor.GetProperty().SetLineWidth(2)
                     circle_actor.GetProperty().SetRepresentationToWireframe()
                     force_arrow_actors.append(circle_actor)
@@ -346,7 +356,8 @@ def plot_structure_vtk(nodes, members, loadcombo=None, scaling=None):
                     arrow_actor = vtk.vtkActor()
                     arrow_actor.SetMapper(arrow_mapper)
                     arrow_actor.SetUserTransform(arrow_transform)
-                    arrow_actor.GetProperty().SetColor(0.0, 0.0, 1.0)  # Blue for moment
+                    # For moment visualization
+                    arrow_actor.GetProperty().SetColor(0.0, 0.0, 0.0)  # Black for moment arrow
                     force_arrow_actors.append(arrow_actor)
 
     # --- 4. Create Actor for Deformed Shape (if data is available) ---
@@ -369,7 +380,8 @@ def plot_structure_vtk(nodes, members, loadcombo=None, scaling=None):
         deformed_mapper.SetInputData(deformed_poly_data)
         deformed_actor = vtk.vtkActor()
         deformed_actor.SetMapper(deformed_mapper)
-        deformed_actor.GetProperty().SetColor(0.5, 0.5, 0.5)
+        # Deformed shape to gray (keep this slightly different for visibility)
+        deformed_actor.GetProperty().SetColor(0.5, 0.5, 0.5)  # Gray for deformed shape
         deformed_actor.GetProperty().SetLineStipplePattern(0xF0F0)
         deformed_actor.GetProperty().SetLineWidth(2)
 

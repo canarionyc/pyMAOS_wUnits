@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>1bbe5831-8d79-4261-a96f-0e35f369fa5b</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>examples\read_frame_from_text.py</StartupFile>
+    <StartupFile>examples\read_frame_from_file.py</StartupFile>
     <SearchPath>..\..\repos\pyMAOS\pyMAOS</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -35,7 +35,7 @@
     <Compile Include="examples\example_sloped_beam.py" />
     <Compile Include="examples\example_stair.py" />
     <Compile Include="examples\compare_stiffness_matrices.py" />
-    <Compile Include="examples\read_frame_from_text.py" />
+    <Compile Include="examples\read_frame_from_file.py" />
     <Compile Include="examples\read_truss_from_text.py" />
     <Compile Include="examples\visualize_matrix2.py" />
     <Compile Include="pyMAOS\elements.py" />
@@ -63,6 +63,7 @@
     <Folder Include="database\" />
     <Folder Include="examples\" />
     <Folder Include="example_4_2_input\" />
+    <Folder Include="example_6_3\" />
     <Folder Include="example_6_7\" />
     <Folder Include="figure_6_19\" />
     <Folder Include="pyMAOS\" />
@@ -120,7 +121,8 @@
     <Content Include="database\MaterialsDb.csv" />
     <Content Include="database\SectionsDb.csv" />
     <Content Include="example_4_2_input\example_4_2_input.txt" />
-    <Content Include="example_6_7\example_6_7_input.txt" />
+    <Content Include="example_6_3\example_6_3.json" />
+    <Content Include="example_6_3\example_6_3.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

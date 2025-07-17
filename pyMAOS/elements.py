@@ -1,5 +1,6 @@
 ﻿# -*- coding: utf-8 -*-
 import numpy as np
+from abc import ABC, abstractmethod
 
 import pyMAOS.loading as loadtypes
 
@@ -14,7 +15,7 @@ import pyMAOS.loading as loadtypes
 # The question mentions "node hinges" but the code actually deals with member end hinges (as seen in the debug output where it prints element.hinges). These allow accurate modeling of connection behavior, which is essential for proper force distribution in the structure.
 # The comment about redundancy with restraints suggests there might be some confusion about the distinct roles of these features - restraints control global node behavior while hinges control member-to-node connectivity.
 
-class Element:
+class Element(ABC):
     """Base class for structural elements"""
     
     def __init__(self, uid, inode, jnode, material, section):
@@ -26,6 +27,7 @@ class Element:
         self.end_forces_local = {}
         self.end_forces_global = {}
         self._stations = False
+        self.type = "GENERIC"  # Default type, will be overridden by derived classes
 
     def __str__(self):
         """Return string representation of the element"""
@@ -57,20 +59,24 @@ class Element:
         ])
         return T
 
-    def kglobal(self):
-        """Calculate the global stiffness matrix for the element
-        
-        Transforms the local stiffness matrix to the global coordinate system
-        using the transformation matrix.
-        
+    @abstractmethod
+    def k(self) -> np.matrix:
+        """Calculate the local stiffness matrix for the element.
+    
+        This method must be implemented by all derived classes.
+    
         Returns
         -------
         numpy.matrix
-            Element stiffness matrix in global coordinates
+            The local stiffness matrix
         """
+        pass
+        
+    def kglobal(self):
+        """Calculate the global stiffness matrix for the element"""
         k = self.k()
         T = self.T()
-        ret_val= np.matmul(np.matmul(np.transpose(T), k), T)
+        ret_val = np.matmul(np.matmul(np.transpose(T), k), T)
         return ret_val
 
     def Dglobal(self, load_combination):

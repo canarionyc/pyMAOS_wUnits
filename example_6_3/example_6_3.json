@@ -1,0 +1,106 @@
+{
+	"units": {
+		"length": "in",
+		"pressure": "ksi",
+		"distance": "ft",
+		"force": "klbf"
+	},
+	"nodes": [
+		{
+			"id": 1,
+			"x": 0.0,
+			"y": 0.0
+		},
+		{
+			"id": 2,
+			"x": 0.0,
+			"y": "24.0ft"
+		},
+		{
+			"id": 3,
+			"x": "16.0ft",
+			"y": "12.0ft"
+		},
+		{
+			"id": 4,
+			"x": "16.0ft",
+			"y": 0.0
+		}
+	],
+	"supports": [
+		{
+			"node": 1,
+			"rx": 1,
+			"ry": 1,
+			"rz": 1
+		},
+		{
+			"node": 4,
+			"rx": 1,
+			"ry": 1,
+			"rz": 1
+		}
+	],
+	"materials": [
+		{
+			"id": 1,
+			"E": "29.0e3ksi"
+		}
+	],
+	"sections": [
+		{
+			"id": 1,
+			"area": "28.2in^2",
+			"ixx": "833in^4"
+		}
+	],
+	"members": [
+		{
+			"id": 1,
+			"i_node": 1,
+			"j_node": 2,
+			"material": 1,
+			"section": 1
+		},
+		{
+			"id": 2,
+			"i_node": 2,
+			"j_node": 3,
+			"material": 1,
+			"section": 1
+		},
+		{
+			"id": 3,
+			"i_node": 4,
+			"j_node": 3,
+			"material": 1,
+			"section": 1
+		}
+	],
+	"joint_loads": [
+		{
+			"node": 2,
+			"fx": "100.0klbf",
+			"fy": 0.0,
+			"mz": 0.0
+		},
+		{
+			"node": 3,
+			"fx": "50.0klbf",
+			"fy": 0.0,
+			"mz": 0.0
+		}
+	],
+	"member_loads": [
+		{
+			"member_uid": 2,
+			"load_type": 3,
+			"wi": "-3klbf/ft",
+			"a": 0.0,
+			"b": 100.0,
+			"case": "D",
+			"direction": "Y",
+			"location_percent": true
+		}
+	]
+}

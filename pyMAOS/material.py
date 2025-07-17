@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+
 
 class LinearElasticMaterial:
     def __init__(self, uid, density=0.00028, E=29000.0, nu=0.3):
