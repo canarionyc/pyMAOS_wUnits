@@ -97,15 +97,18 @@ class R2Node:
         """Return a string representation of the node for debugging"""
         return f"R2Node(uid={self.uid}, x={self.x}, y={self.y})"
 
-    def x_displaced(self, load_combination, scale=1.0):
-        delta = self.displacements.get(load_combination.name, [0, 0, 0])
+    # In your Node class
+    def x_displaced(self, combo, scale=1.0):
+        """Return X coordinate with displacement applied"""
+        if combo.name in self.displacements:
+            return self.x + self.displacements[combo.name][0] * scale
+        return self.x
 
-        return self.x + (delta[0] * scale)
-
-    def y_displaced(self, load_combination, scale=1.0):
-        delta = self.displacements.get(load_combination.name, [0, 0, 0])
-
-        return self.y + (delta[1] * scale)
+    def y_displaced(self, combo, scale=1.0):
+        """Return Y coordinate with displacement applied"""
+        if combo.name in self.displacements:
+            return self.y + self.displacements[combo.name][1] * scale
+        return self.y
 
     def distance(self, other):
         """

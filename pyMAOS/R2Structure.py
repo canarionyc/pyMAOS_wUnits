@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 import os
-# from xml.dom import NO_DATA_ALLOWED_ERR
 import numpy as np
 np.set_printoptions(precision=4, suppress=False, floatmode='maxprec_equal',linewidth= 999)
 
 import ast
 import operator
+import importlib
 
 # Add custom formatters for different numeric types
 def format_with_dots(x): return '.'.center(9) if abs(x) < 1e-10 else f"{x:9.4g}"
-def format_double(x): return '.'.center(13) if abs(x) < 1e-10 else f"{x:13.8lg}"  # More precision for doubles
+def format_double(x): return '.'.center(13) if abs(x) < 1e-10 else f"{x:13.8g}"  # More precision for doubles
 
 np.set_printoptions( precision=4, 
     suppress=False, 
@@ -82,6 +82,11 @@ class R2Structure:
         self._Kgenerated = False
         self._ERRORS = []
 
+        # Register members with the structure for unit access
+        for member in self.members:
+            if hasattr(member, 'set_structure'):
+                member.set_structure(self)
+
     def set_node_uids(self):
         i = 1
 
@@ -95,6 +100,29 @@ class R2Structure:
         for member in self.members:
             member.uid = i
             i += 1
+    def _validate_node_uids(self):
+        """
+        Validate that all node UIDs in the structure are unique.
+        Raises ValueError if duplicate UIDs are found.
+        """
+        uids = [node.uid for node in self.nodes]
+        duplicates = set([uid for uid in uids if uids.count(uid) > 1])
+        
+        if duplicates:
+            duplicate_str = ", ".join(str(uid) for uid in duplicates)
+            raise ValueError(f"Duplicate node UIDs found: {duplicate_str}")
+    
+    def _validate_member_uids(self):
+        """
+        Validate that all member UIDs in the structure are unique.
+        Raises ValueError if duplicate UIDs are found.
+        """
+        uids = [member.uid for member in self.members]
+        duplicates = set([uid for uid in uids if uids.count(uid) > 1])
+        
+        if duplicates:
+            duplicate_str = ", ".join(str(uid) for uid in duplicates)
+            raise ValueError(f"Duplicate member UIDs found: {duplicate_str}")
 
     def spring_nodes(self):
         # loop through nodes and create a list of the nodes with springs
@@ -172,9 +200,41 @@ class R2Structure:
         print(KSTRUCT.shape, flush=True)
 
         for member in self.members:
+            # Freedom map for i and j nodes
+            imap = [ int(FM[(self.uid_to_index[member.inode.uid]) * self.NJD + r]) for r in range(self.NJD) ]
+            imap.extend([int(FM[(self.uid_to_index[member.jnode.uid]) * self.NJD + r]) for r in range(self.NJD)])
+            print(f"Freedom Map Indices for Member {member.uid}:\n{imap}", flush=True)
+
             # Member global stiffness matrix
             kmglobal = member.kglobal()
-            print(f"Member {member.uid}:\tkmglobal\n{kmglobal}\n", flush=True)
+            print(f"Member {member.uid}:\tkmglobal (Internal Units)\n{kmglobal}\n", flush=True)
+            
+            # Try to display in user units if possible
+            try:
+                from pint import UnitRegistry
+                ureg = UnitRegistry()
+                
+                # Get conversion factors from internal to display units
+                force_factor = ureg.parse_expression(f"1 N").to(self.units.get('force', 'N')).magnitude
+                length_factor = ureg.parse_expression(f"1 m").to(self.units.get('length', 'm')).magnitude
+                
+                # Create converted matrix (deep copy to avoid modifying original)
+                km_display = kmglobal.copy()
+                
+                # Apply appropriate conversion factors based on DOF type
+                for i in range(6):
+                    for j in range(6):
+                        if i < 2 and j < 2:  # Translational-Translational: F/L
+                            km_display[i,j] = kmglobal[i,j] * force_factor / length_factor
+                        elif i > 1 and j > 1:  # Rotational-Rotational: F·L/angle
+                            km_display[i,j] = kmglobal[i,j] * force_factor * length_factor
+                        else:  # Mixed terms
+                            km_display[i,j] = kmglobal[i,j] * force_factor
+                
+                print(f"Member {member.uid}:\tkmglobal (Display Units - {self.units.get('force', 'N')}, {self.units.get('length', 'm')})\n{km_display}\n", flush=True)
+            except Exception as e:
+                # Skip unit conversion if there's an error
+                pass
             # Check if the member is a truss
             if member.type == "TRUSS":
                 # For truss elements, verify that all bending/shear terms are zero
@@ -195,11 +255,6 @@ class R2Structure:
             np.savetxt(filename, kmglobal, delimiter=',', fmt='%g')
             print(f"Saved member {member.uid} global stiffness matrix to {filename}", flush=True)
 
-
-            # Freedom map for i and j nodes
-            imap = [ int(FM[(self.uid_to_index[member.inode.uid]) * self.NJD + r]) for r in range(self.NJD) ]
-            imap.extend([int(FM[(self.uid_to_index[member.jnode.uid]) * self.NJD + r]) for r in range(self.NJD)])
-            print(f"Freedom Map Indices for Member {member.uid}:\n{imap}", flush=True)
             for i in range(self.NJD):
                 for j in range(self.NJD): 
                     # print(f"i: {i}, j: {j}, imap[i]: {imap[i]}, imap[j]: {imap[j]}", flush=True)
@@ -257,29 +312,10 @@ class R2Structure:
                 Ff = member.FEFglobal(load_combination)
                 i_index = self.uid_to_index[member.inode.uid]
                 j_index = self.uid_to_index[member.jnode.uid]
-                # fmindexi = i_index * self.NJD
-                # fmindexj = j_index * self.NJD
-
-                # PF[int(FM[fmindexi])] += Ff[0]
-                # PF[int(FM[fmindexi + 1])] += Ff[1]
-                # PF[int(FM[fmindexi + 2])] += Ff[2]
-                # PF[int(FM[fmindexj])] += Ff[3]
-                # PF[int(FM[fmindexj + 1])] += Ff[4]
-                # PF[int(FM[fmindexj + 2])] += Ff[5]
 
                 PF[FM[i_index * self.NJD:(i_index+1)  * self.NJD]] += Ff[0:3]
                 PF[FM[j_index * self.NJD:(j_index+1)  * self.NJD]] += Ff[3:6]
         return PF
-
-#     How Member Loads Are Correctly Handled
-# Member loads (like distributed loads or point loads on members) don't modify the stiffness matrix. Instead, they contribute to the force vector through fixed-end forces (FEF). This is correct behavior in the matrix stiffness method:
-# 1.	Stiffness Matrix (K): Represents structural properties (geometry, material, connectivity)
-# 2.	Force Vector (F): Contains external forces, including equivalent nodal forces from member loads
-# In your code:
-# •	Kstructure(FM) builds the stiffness matrix from member geometry/properties
-# •	member_fixed_end_force_vector(FM, load_combination) processes member loads into the PF vector
-# •	The equation solved is K*u = F-PF where PF is the fixed-end forces from member loads
-# Member loads are properly handled in solve_linear_static():
 
     def solve_linear_static(self, load_combination, **kwargs):
         """
@@ -422,179 +458,23 @@ class R2Structure:
         return unstablenodes
 
     def plot_loadcombos_vtk(self, loadcombos=None, scaling=None):
-        """
-        Visualizes the structure with results from multiple load combinations using VTK.
-    
-        Parameters
-        ----------
-        loadcombos : list or single LoadCombo, optional
-            The load combinations to display.
-        scaling : dict, optional
-            Scaling factors for deformations.
-        """
-        import vtk
-        import math
-    
-        # Convert single loadcombo to list for consistent handling
-        if loadcombos and not isinstance(loadcombos, list):
-            loadcombos = [loadcombos]
-        
-        # --- Create base geometry (same for all load combinations) ---
-        points = vtk.vtkPoints()
-        lines = vtk.vtkCellArray()
-        line_colors = vtk.vtkUnsignedCharArray()
-        line_colors.SetNumberOfComponents(3)
-        line_colors.SetName("Colors")
-    
-        type_color_map = {"FRAME": (0, 0, 255), "TRUSS": (0, 255, 0)}
-        default_color = (0, 0, 0)
-    
-        # Use the class's nodes and members
-        node_uid_to_vtk_id = {node.uid: i for i, node in enumerate(self.nodes)}
-        for node in self.nodes:
-            points.InsertNextPoint(node.x, node.y, 0)
-    
-        for member in self.members:
-            line = vtk.vtkLine()
-            line.GetPointIds().SetId(0, node_uid_to_vtk_id[member.inode.uid])
-            line.GetPointIds().SetId(1, node_uid_to_vtk_id[member.jnode.uid])
-            lines.InsertNextCell(line)
-            color = type_color_map.get(member.type, default_color)
-            line_colors.InsertNextTuple3(color[0], color[1], color[2])
-    
-        poly_data = vtk.vtkPolyData()
-        poly_data.SetPoints(points)
-        poly_data.SetLines(lines)
-        poly_data.GetCellData().SetScalars(line_colors)
-    
-        # --- Create deformed actors for each load combination ---
-        deformed_actors = {}
-        if loadcombos and scaling:
-            displace_scale = scaling.get("displacement", 100)
-        
-            for combo in loadcombos:
-                deformed_points = vtk.vtkPoints()
-                for node in self.nodes:
-                    if combo.name in node.displacements:
-                        deformed_points.InsertNextPoint(
-                            node.x_displaced(combo, displace_scale),
-                            node.y_displaced(combo, displace_scale),
-                            0
-                        )
-                    else:
-                        # If no displacement data for this combo, use original position
-                        deformed_points.InsertNextPoint(node.x, node.y, 0)
+        """Visualizes the structure with results from multiple load combinations using VTK."""
+        try:
+            # Import the plotting function from R2Structure_extras
+            from pyMAOS.R2Structure_extras import plot_loadcombos_vtk, check_vtk_available
             
-                deformed_poly_data = vtk.vtkPolyData()
-                deformed_poly_data.SetPoints(deformed_points)
-                deformed_poly_data.SetLines(lines)
-            
-                deformed_mapper = vtk.vtkPolyDataMapper()
-                deformed_mapper.SetInputData(deformed_poly_data)
-                deformed_actor = vtk.vtkActor()
-                deformed_actor.SetMapper(deformed_mapper)
-                deformed_actor.GetProperty().SetColor(0.5, 0.5, 0.5)
-                deformed_actor.GetProperty().SetLineStipplePattern(0xF0F0)
-                deformed_actor.GetProperty().SetLineWidth(2)
-                deformed_actor.SetVisibility(False)  # Initially hidden
-            
-                deformed_actors[combo.name] = deformed_actor
-    
-        # --- Create renderer and add all actors ---
-        renderer = vtk.vtkRenderer()
-    
-        # Add base geometry
-        mapper = vtk.vtkPolyDataMapper()
-        mapper.SetInputData(poly_data)
-        actor = vtk.vtkActor()
-        actor.SetMapper(mapper)
-        actor.GetProperty().SetLineWidth(3)
-        renderer.AddActor(actor)
-    
-        # Add all deformed actors
-        for actor in deformed_actors.values():
-            renderer.AddActor(actor)
-    
-        # --- Set up the rendering window ---
-        renderer.SetBackground(1, 1, 1)
-        render_window = vtk.vtkRenderWindow()
-        render_window.AddRenderer(renderer)
-        render_window.SetSize(800, 600)
-
-        # --- Add combo selection interface ---
-        # Create combo selector text actors
-        combo_text_actors = {}
-        if loadcombos:
-            for i, combo in enumerate(loadcombos):
-                text_actor = vtk.vtkTextActor()
-                text_actor.SetInput(f"[{i+1}] {combo.name}")
-                text_actor.GetTextProperty().SetColor(0.2, 0.2, 0.8)
-                text_actor.GetTextProperty().SetFontSize(14)
-                text_actor.SetPosition(10, 10 + i*20)
-                combo_text_actors[combo.name] = text_actor
-                renderer.AddActor2D(text_actor)
-    
-            # Create "active combo" indicator
-            active_combo_actor = vtk.vtkTextActor()
-            active_combo_actor.SetInput("No active combination")
-            active_combo_actor.GetTextProperty().SetColor(1.0, 0.0, 0.0)
-            active_combo_actor.GetTextProperty().SetFontSize(16)
-            active_combo_actor.GetTextProperty().SetBold(True)
-            active_combo_actor.SetPosition(10, 10 + len(loadcombos)*20 + 10)
-            renderer.AddActor2D(active_combo_actor)
-    
-
-    
-        # --- Define Interactor with keyboard controls for combo selection ---
-            class MultiComboInteractorStyle(vtk.vtkInteractorStyleTrackballCamera):
-                def __init__(self, parent=None):
-                    self.parent = vtk.vtkRenderWindowInteractor()
-                    if parent is not None:
-                        self.parent = parent
-            
-                    self.deformed_actors = deformed_actors
-                    self.loadcombos = loadcombos
-                    self.active_combo = None
-                    self.active_combo_actor = active_combo_actor
-                    self.AddObserver("KeyPressEvent", self.key_press_event)
-        
-                def key_press_event(self, obj, event):
-                    key = self.parent.GetKeySym()
-            
-                    # Handle numeric keys for combo selection
-                    if key.isdigit() and int(key) > 0 and int(key) <= len(self.loadcombos):
-                        combo_idx = int(key) - 1
-                        selected_combo = self.loadcombos[combo_idx]
+            # Check if VTK is available
+            if not check_vtk_available():
+                print("Warning: VTK library is not installed. Please install VTK for visualization.")
+                return
                 
-                        # Hide all deformed actors
-                        for actor in self.deformed_actors.values():
-                            actor.SetVisibility(False)
-                
-                        # Show only the selected one
-                        if selected_combo.name in self.deformed_actors:
-                            self.deformed_actors[selected_combo.name].SetVisibility(True)
-                            self.active_combo = selected_combo
-                            self.active_combo_actor.SetInput(f"Active: {selected_combo.name}")
-            
-                    elif key == 'h':
-                        # Toggle help text
-                        pass  # Add help text toggle functionality
-            
-                    self.parent.GetRenderWindow().Render()
-    
-            interactor = vtk.vtkRenderWindowInteractor()
-            interactor.SetRenderWindow(render_window)
-            interactor.SetInteractorStyle(MultiComboInteractorStyle(parent=interactor))
-    
-        # --- Start visualization ---
-        render_window.Render()
-        if loadcombos:
-            print("\n--- VTK Interaction ---")
-            print("Press keys 1-{} to select different load combinations:".format(len(loadcombos) if loadcombos else 0))
-            for i, combo in enumerate(loadcombos or []):
-                print(f"  [{i+1}] {combo.name}")
-            print("-----------------------\n")
-            interactor.Start()
+            # Call the imported function with self as first argument
+            plot_loadcombos_vtk(self, loadcombos, scaling)
+        except ImportError as e:
+            print(f"Warning: Visualization module not found: {e}")
+            print("Make sure R2Structure_extras.py is in the pyMAOS package directory.")
+        except Exception as e:
+            print(f"Error during visualization: {e}")
 
     def __str__(self):
         """
@@ -727,76 +607,4 @@ class R2Structure:
                     disp = node.displacements[latest_combo]
                     
                     # Convert displacements to display units
-                    ux_display = Q_(disp[0], 'm').to(length_unit).magnitude if hasattr(Q_, 'to') else disp[0]
-                    uy_display = Q_(disp[1], 'm').to(length_unit).magnitude if hasattr(Q_, 'to') else disp[1]
-                    
-                    result.append(f"{node.uid:<8} {ux_display:<15.4g} {uy_display:<15.4g} {disp[2]:<15.4g}")
-    
-        has_reactions = any(hasattr(node, 'reactions') and node.reactions for node in self.nodes)
-        if has_reactions:
-            result.append("\nSUPPORT REACTIONS (most recent load combination):")
-            result.append(f"{'Node ID':8} {'Rx ('+force_unit+')':15} {'Ry ('+force_unit+')':15} {'Mz ('+moment_unit+')':15}")
-            result.append("-" * 80)
-            
-            for node in sorted(self.nodes, key=lambda n: n.uid): # type: ignore
-                if hasattr(node, 'reactions') and node.reactions and any(node.restraints):
-                    # Get the most recent load combination
-                    latest_combo = list(node.reactions.keys())[-1]
-                    reaction = node.reactions[latest_combo]
-                    
-                    # Convert reactions to display units
-                    rx_display = Q_(reaction[0], 'N').to(force_unit).magnitude if hasattr(Q_, 'to') else reaction[0]
-                    ry_display = Q_(reaction[1], 'N').to(force_unit).magnitude if hasattr(Q_, 'to') else reaction[1]
-                    mz_display = Q_(reaction[2], 'N*m').to(moment_unit).magnitude if hasattr(Q_, 'to') else reaction[2]
-                    
-                    result.append(f"{node.uid:<8} {rx_display:<15.4g} {ry_display:<15.4g} {mz_display:<15.4g}")
-    
-        # Warnings and errors
-        if self._ERRORS:
-            result.append("\nERRORS:")
-            for error in self._ERRORS:
-                result.append(f"- {error}")
-    
-        if self._unstable:
-            result.append("\nWARNING: Structure is unstable!")
-    
-        result.append("=" * 80)
-        return "\n".join(result)
-
-    def _validate_node_uids(self):
-        """
-        Validates that all node UIDs are unique.
-        Raises a ValueError if duplicate UIDs are found.
-        """
-        uid_count = {}
-        duplicates = []
-        
-        for node in self.nodes:
-            if node.uid in uid_count:
-                uid_count[node.uid] += 1
-                duplicates.append(node.uid)
-            else:
-                uid_count[node.uid] = 1
-        
-        if duplicates:
-            duplicate_list = ", ".join(str(uid) for uid in sorted(set(duplicates)))
-            raise ValueError(f"Duplicate node UIDs found: {duplicate_list}. Each node must have a unique identifier.")
-
-    def _validate_member_uids(self):
-        """
-        Validates that all member UIDs are unique.
-        Raises a ValueError if duplicate UIDs are found.
-        """
-        uid_count = {}
-        duplicates = []
-        
-        for member in self.members:
-            if member.uid in uid_count:
-                uid_count[member.uid] += 1
-                duplicates.append(member.uid)
-            else:
-                uid_count[member.uid] = 1
-        
-        if duplicates:
-            duplicate_list = ", ".join(str(uid) for uid in sorted(set(duplicates)))
-            raise ValueError(f"Duplicate member UIDs found: {duplicate_list}. Each member must have a unique identifier.")
+                    ux_display = Q_(disp[0], 'm').to(length_unit).magnitude 

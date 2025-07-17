@@ -130,6 +130,10 @@ class Element(ABC):
         self.calcstations = sorted(set(stations))
         self._stations = True
 
+    def set_structure(self, structure):
+        """Attach reference to parent structure for unit access"""
+        self.structure = structure
+
 
 
 

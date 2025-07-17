@@ -2,132 +2,30 @@
 import os
 from os import path
 import sys
-import re  # For regex parsing of unit strings
 import json
-
-# Add pint for units handling
-import pint
-# Set up a unit registry with kN as the preferred force unit
-ureg = pint.UnitRegistry()
-ureg.default_system = 'mks'  # meter-kilogram-second
-Q_ = ureg.Quantity  # Shorthand for creating quantities
-
-# Base internal units
-INTERNAL_FORCE_UNIT = 'N'  
-INTERNAL_LENGTH_UNIT = 'm'
-INTERNAL_TIME_UNIT = 's'
-
-# Derived internal units
-INTERNAL_AREA_UNIT = f"{INTERNAL_LENGTH_UNIT}^2"
-INTERNAL_VOLUME_UNIT = f"{INTERNAL_LENGTH_UNIT}^3"
-INTERNAL_MOMENT_OF_INERTIA_UNIT = f"{INTERNAL_LENGTH_UNIT}^4"
-INTERNAL_DENSITY_UNIT = f"kg/{INTERNAL_LENGTH_UNIT}^3"
-INTERNAL_MOMENT_UNIT = f"{INTERNAL_FORCE_UNIT}*{INTERNAL_LENGTH_UNIT}"
-INTERNAL_PRESSURE_UNIT = 'Pa'  # SI unit name (preferred)
-INTERNAL_PRESSURE_UNIT_EXPANDED = f"{INTERNAL_FORCE_UNIT}/{INTERNAL_LENGTH_UNIT}^2"  # Expanded form
-INTERNAL_DISTRIBUTED_LOAD_UNIT = f"{INTERNAL_FORCE_UNIT}/{INTERNAL_LENGTH_UNIT}"
-
-# Define display/input units with corresponding internal units (will be updated from JSON)
-# Format: display_unit_name = default_value
-DISPLAY_UNITS = {
-    # Base units
-    'force': 'kN',                    # Internal: N
-    'length': 'm',                    # Internal: m
-    'time': 's',                      # Internal: s
-    
-    # Derived units
-    'area': 'm^2',                    # Internal: m^2
-    'volume': 'm^3',                  # Internal: m^3
-    'moment_of_inertía': 'm^4',       # Internal: m^4
-    'density': 'kg/m^3',              # Internal: kg/m^3
-    'moment': 'kN*m',                 # Internal: N*m
-    'pressure': 'kN/m^2',             # Internal: N/m^2
-    'distributed_load': 'kN/m',       # Internal: N/m
-    'rotation': 'rad',                # Internal: rad
-    'angle': 'deg'                    # Internal: rad
-}
-
-# For backward compatibility, keep individual variables
-FORCE_UNIT = DISPLAY_UNITS['force']
-LENGTH_UNIT = DISPLAY_UNITS['length']
-MOMENT_UNIT = DISPLAY_UNITS['moment']
-PRESSURE_UNIT = DISPLAY_UNITS['pressure']
-DISTRIBUTED_LOAD_UNIT = DISPLAY_UNITS['distributed_load']
-
-# Function to update display/input unit definitions based on JSON input
-def update_units_from_json(json_string):
-    """Parse JSON unit definitions and update display/input unit variables"""
-    try:
-        # Clean up the JSON string to ensure it's valid
-        json_string = json_string.strip()
-        if not json_string.startswith('{'):
-            return False
-        
-        # Parse JSON
-        unit_dict = json.loads(json_string)
-        global DISPLAY_UNITS, FORCE_UNIT, LENGTH_UNIT, MOMENT_UNIT, PRESSURE_UNIT, DISTRIBUTED_LOAD_UNIT
-        
-        # Update display units based on JSON specification
-        if "force" in unit_dict:
-            DISPLAY_UNITS['force'] = unit_dict["force"]
-        if "length" in unit_dict:
-            DISPLAY_UNITS['length'] = unit_dict["length"]
-        if "pressure" in unit_dict:
-            DISPLAY_UNITS['pressure'] = unit_dict["pressure"]
-        
-        # Handle special case where distance differs from length
-        distance_unit = unit_dict.get("distance", DISPLAY_UNITS['length'])
-        
-        # Update derived units based on base units
-        DISPLAY_UNITS['moment'] = f"{DISPLAY_UNITS['force']}*{DISPLAY_UNITS['length']}"
-        DISPLAY_UNITS['distributed_load'] = f"{DISPLAY_UNITS['force']}/{distance_unit}"
-        DISPLAY_UNITS['area'] = f"{DISPLAY_UNITS['length']}^2"
-        DISPLAY_UNITS['volume'] = f"{DISPLAY_UNITS['length']}^3"
-        DISPLAY_UNITS['moment_of_inertía'] = f"{DISPLAY_UNITS['length']}^4"
-        
-        # Update individual variables for backward compatibility
-        FORCE_UNIT = DISPLAY_UNITS['force']
-        LENGTH_UNIT = DISPLAY_UNITS['length']
-        MOMENT_UNIT = DISPLAY_UNITS['moment']
-        PRESSURE_UNIT = DISPLAY_UNITS['pressure'] 
-        DISTRIBUTED_LOAD_UNIT = DISPLAY_UNITS['distributed_load']
-        
-        print(f"Using display units from JSON: Force={FORCE_UNIT}, Length={LENGTH_UNIT}, Moment={MOMENT_UNIT}")
-        print(f"Pressure={PRESSURE_UNIT}, Distributed Load={DISTRIBUTED_LOAD_UNIT}")
-        print(f"Note: All internal calculations will use SI units.")
-        return True
-    except Exception as e:
-        print(f"Error updating units: {e}")
-        return False
-
-# Define the standard units for the program
-FORCE_UNIT = 'kN'
-LENGTH_UNIT = 'm'
-MOMENT_UNIT = 'kN*m'
-PRESSURE_UNIT = 'kN/m^2'
-DISTRIBUTED_LOAD_UNIT = 'kN/m'
-
 import numpy as np
+from contextlib import redirect_stdout
+import pint
+
+# Import all unit-related functionality from units.py module
+from pyMAOS.units import (
+    ureg, Q_,  # Unit registry 
+    DISPLAY_UNITS, FORCE_UNIT, LENGTH_UNIT, MOMENT_UNIT, PRESSURE_UNIT, DISTRIBUTED_LOAD_UNIT,  # Display units
+    INTERNAL_FORCE_UNIT, INTERNAL_LENGTH_UNIT, INTERNAL_MOMENT_UNIT, INTERNAL_PRESSURE_UNIT,  # Internal units
+    INTERNAL_DISTRIBUTED_LOAD_UNIT, INTERNAL_PRESSURE_UNIT_EXPANDED,  # More internal units
+    update_units_from_json, parse_value_with_units  # Functions
+)
+
+# Configure numpy printing
 np.set_printoptions(precision=4, suppress=False, floatmode='maxprec_equal')
 
 # Add custom formatters for different numeric types
-def format_with_dots(x): return '.' if abs(x) < 1e-10 else f"{x:.4g}"
+def format_with_dots(x): return '.' if abs(x) < 1e-10 else f"{x:<12.4g}"
 def format_double(x): return '.' if abs(x) < 1e-10 else f"{x:.8g}"  # More precision for doubles
 
-# np.set_printoptions(formatter={
-#     'float': format_with_dots,     # For float32 and generic floats
-#     'float_kind': format_with_dots,  # For all floating point types
-#     'float64': format_double       # Specifically for float64 (double precision)
-# })
-
+# Import other modules
 from pyMAOS.plot_structure import plot_structure_vtk
- 
-from contextlib import redirect_stdout
-
-from context import pyMAOS
-
 from pyMAOS.nodes import R2Node
-
 from pyMAOS.Frame import R2Frame
 from pyMAOS.material import LinearElasticMaterial as Material
 from pyMAOS.section import Section
@@ -144,36 +42,6 @@ default_scaling = {
         "rotation": 5000,
         "displacement": 100,
     }
-
-# Update the regex pattern in parse_value_with_units function
-def parse_value_with_units(value_string):
-    """Parse a string that may contain a value with units without spaces between"""
-    # Match pattern: [numeric value][units]
-    # The numeric part can include scientific notation like 30.0e6
-    # Units part starts at the first non-numeric, non-exponent character
-    match = re.match(r'([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)(.*)', value_string.strip())
-    
-    if match:
-        value_str, unit_str = match.groups()
-        value = float(value_str)
-        
-        if unit_str and unit_str.strip():
-            try:
-                # Create quantity with units
-                value_with_units = Q_(value, unit_str)
-                return value_with_units
-            except:
-                print(f"Warning: Could not parse unit '{unit_str}', treating as dimensionless")
-                return value
-        return value
-    
-    # If no match, try to evaluate as a simple numeric expression
-    try:
-        return float(eval(value_string))
-    except:
-        raise ValueError(f"Could not parse value: {value_string}")
-
-
 
 def load_frame_from_json(filename):
     """
@@ -391,9 +259,9 @@ def load_frame_from_json(filename):
                     print(f"  Converting positions from percentages: a={a}%, b={b}%")
                     a = a / 100.0 * element.length
                     b = b / 100.0 * element.length
-                
-                print(f"  Element {element_id}: Distributed load w1={w1_display}{DISTRIBUTED_LOAD_UNIT} ({w1} N/m), " 
-                      f"w2={w2_display}{DISTRIBUTED_LOAD_UNIT} ({w2} N/m), "
+
+                print(f"  Element {element_id}: Distributed load w1={w1_display}{DISTRIBUTED_LOAD_UNIT} ({w1:.4g} N/m), "
+                      f"w2={w2_display}{DISTRIBUTED_LOAD_UNIT} ({w2:.4g} N/m), "
                       f"a={a}{LENGTH_UNIT}, b={b}{LENGTH_UNIT}")
                 
                 # Apply load in appropriate direction with SI units
@@ -471,14 +339,6 @@ def load_frame_from_json(filename):
         ry_status = "Fixed" if ry == 1 else "Free"
         rz_status = "Fixed" if rz == 1 else "Free"
         print(f"Node {node.uid:2d}  |  {rx_status:5s} |  {ry_status:5s} |  {rz_status:5s}")
-    
-    # # Print node load information
-    # print("\n\n--- Node Load Summary ---")
-    # for node in node_list:
-    #     if node.loads:
-    #         print(f"Node {node.uid} loads:")
-    #         for case, load in node.loads.items():
-    #             print(f"  Case {case}: Fx={load[0]}, Fy={load[1]}, Mz={load[2]}")
                 
     # Plot structure
     plot_structure_vtk(node_list, element_list, scaling=default_scaling)
@@ -497,27 +357,27 @@ if __name__ == "__main__":
         node_list, element_list = load_frame_from_json(file_path)
     else:
         print(f"Loading structural model from text file: {file_path}")
-        node_list, element_list = load_frame_from_text(file_path)
+        exit(1)  # Placeholder for text file loading logic 
     
     print(f"Total nodes: {len(node_list)}")
     print(f"Total elements: {len(element_list)}")
 
     # Pass all display units to the structure
-    Structure = R2Struct.R2Structure(node_list, element_list, units=DISPLAY_UNITS)
-    print(Structure)
+    model_structure = R2Struct.R2Structure(node_list, element_list, units=DISPLAY_UNITS)
+    print(model_structure)
 
     # Fix the LoadCombo initialization with proper parameters
     loadcombo = LoadCombo("D", {"D": 1.0}, ["D"], False, "SLS")
     print("Solving linear static problem...")
-    U = Structure.solve_linear_static(loadcombo, output_dir=working_dir, verbose=True)
+    U = model_structure.solve_linear_static([loadcombo], output_dir=working_dir, verbose=True)
     print(f"Displacements U:\n{U}")
-    print(Structure)
+    print(model_structure)
 
     # Save displacement results
     np.save(os.path.join(working_dir, 'U.npy'), U)
     np.savetxt(os.path.join(working_dir, 'U.txt'), U)
 
-    Structure.plot_loadcombos_vtk(loadcombos=None, scaling=default_scaling)
+    model_structure.plot_loadcombos_vtk(loadcombos=None, scaling=default_scaling)
      
     # Pause the program before exiting
     print("\n\nAnalysis complete. Press Enter to exit...")

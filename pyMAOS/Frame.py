@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 
 import pyMAOS.loading as loadtypes
@@ -369,6 +370,8 @@ class R2Frame(Element):
         print("Global fixed end forces (ret_val):", ret_val)
         return ret_val.A.flatten()
 
+
+
     def k(self):
         """Calculate the local stiffness matrix for the frame element
         
@@ -376,6 +379,13 @@ class R2Frame(Element):
         for hinges if present. The stiffness matrix includes terms for
         axial, shear, and bending behavior.
         
+              [ EA/L       0         0      -EA/L       0         0     ]
+              [   0     12EI/L³   6EI/L²      0      -12EI/L³   6EI/L² ]
+        [k] = [   0     6EI/L²    4EI/L       0      -6EI/L²    2EI/L  ]
+              [-EA/L       0         0       EA/L       0         0     ]
+              [   0    -12EI/L³  -6EI/L²      0       12EI/L³  -6EI/L² ]
+              [   0     6EI/L²    2EI/L       0      -6EI/L²    4EI/L  ]
+
         Different matrices are used depending on hinge configuration:
         - No hinges: Standard beam element
         - Hinge at i-end: Modified for released moment at i
@@ -434,8 +444,60 @@ class R2Frame(Element):
             k[2, 5] = k[5, 2] = 2 * EI_L
             k[4, 5] = k[5, 4] = -6 * EI_L2
             k[5, 5] = 4 * EI_L
-        print(f"Local stiffness matrix for element {self.uid}:\n{k}")
-        return np.matrix(k)
+     
+        ret_val= np.matrix(k)
+        print(f"Local stiffness matrix for element {self.uid}:\n{ret_val}")
+        
+        # Try to display stiffness matrix in physical units
+        try:
+            # First try to get units from element's structure
+            units_dict = None
+            
+            # Option 1: Check if element has direct reference to structure with units
+            if hasattr(self, 'structure') and hasattr(self.structure, 'units'):
+                units_dict = self.structure.units
+            
+            # Option 2: Try to get units from units module
+            if units_dict is None:
+                from pyMAOS.units import DISPLAY_UNITS
+                units_dict = DISPLAY_UNITS
+            
+            # If we found units info, convert and display the matrix
+            if units_dict:
+                # Import unit handling functions from units module
+                from pyMAOS.units import ureg
+                
+                # Get unit names
+                force_unit = units_dict.get('force', 'N')
+                length_unit = units_dict.get('length', 'm')
+                
+                # Create conversion factors
+                force_factor = ureg.parse_expression(f"1 N").to(force_unit).magnitude
+                length_factor = ureg.parse_expression(f"1 m").to(length_unit).magnitude
+                
+                # Create converted matrix
+                k_display = np.matrix(k.copy())
+                
+                # Apply appropriate conversion factors based on DOF type
+                for i in range(6):
+                    for j in range(6):
+                        if i < 2 and j < 2 or (i >= 3 and i < 5 and j >= 3 and j < 5):  
+                            # Translational-Translational: Force/Length
+                            k_display[i,j] = k[i,j] * force_factor / length_factor
+                        elif (i == 2 and j == 2) or (i == 5 and j == 5) or (i == 2 and j == 5) or (i == 5 and j == 2):  
+                            # Rotational-Rotational: Moment/Radian
+                            k_display[i,j] = k[i,j] * force_factor * length_factor
+                        else:  
+                            # Mixed terms
+                            k_display[i,j] = k[i,j] * force_factor
+                            
+                print(f"Local stiffness matrix in physical units ({force_unit}, {length_unit}):\n{k_display}")
+        except Exception as e:
+            # Print exception in verbose mode but continue
+            import sys
+            print(f"Note: Could not display stiffness matrix in physical units: {e}", file=sys.stderr)
+            pass
+        return ret_val
 
     def Flocal(self, load_combination):
         """Calculate element end forces in the local coordinate system
