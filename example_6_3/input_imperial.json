@@ -1,4 +1,5 @@
 {
+	"unit_system": "imperial",
 	"units": {
 		"length": "in",
 		"pressure": "ksi",
@@ -80,7 +81,7 @@
 	"joint_loads": [
 		{
 			"node": 2,
-			"fx": "100.0klbf",
+			"fx": "100.0 klbf",
 			"fy": 0.0,
 			"mz": 0.0
 		},
@@ -95,12 +96,11 @@
 		{
 			"member_uid": 2,
 			"load_type": 3,
-			"wi": "-3klbf/ft",
-			"a": 0.0,
-			"b": 100.0,
+			"wi": "-3 klbf/ft",
+			"a_pct": 0.0,
+			"b_pct": 100.0,
 			"case": "D",
-			"direction": "Y",
-			"location_percent": true
+			"direction": "Y"
 		}
 	]
 }

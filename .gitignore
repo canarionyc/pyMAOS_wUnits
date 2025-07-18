@@ -195,3 +195,7 @@ cython_debug/
 /.vs/pyMAOS_testing/v17
 *.txt~
 .Rproj.user
+/.vs/pyMAOS_testing/v17/DocumentLayout.backup.json
+/.vs/slnx.sqlite
+/.vs/pyMAOS_testing/v17/DocumentLayout.json
+/.vs/pyMAOS_testing/v17/.suo

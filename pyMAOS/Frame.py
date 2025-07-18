@@ -217,9 +217,12 @@ class R2Frame(Element):
                     loadtypes.R2_Axial_Linear_Load(wi, wj, a, b, self, loadcase=case)
                 )
             else:
-                self.loads.append(
-                    loadtypes.R2_Linear_Load(wi, wj, a, b, self, loadcase=case)
-                )
+                if projected:
+                    wi = (self.jnode.x - self.inode.x) * wi / self.length
+                    wj = (self.jnode.x - self.inode.x) * wj / self.length
+                load= loadtypes.R2_Linear_Load(wi, wj, a, b, self, loadcase=case)
+                load.print_detailed_analysis()
+                self.loads.append(load)
 
         self._stations = False
         self._loaded = True

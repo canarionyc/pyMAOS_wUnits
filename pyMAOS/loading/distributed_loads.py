@@ -345,3 +345,157 @@ class R2_Linear_Load:
                 f"w1={self.w1:.3f}, w2={self.w2:.3f}, "
                 f"from x={self.a:.3f} to x={self.b:.3f} "
                 f"(on member of length {self.L:.3f})")
+
+    def print_detailed_analysis(self, num_points=10, chart_width=60, chart_height=15):
+        """
+        Prints detailed analysis of beam response across all three regions with ASCII charts.
+        
+        Parameters
+        ----------
+        num_points : int
+            Number of points to sample in each region
+        chart_width : int
+            Width of ASCII charts in characters
+        chart_height : int
+            Height of ASCII charts in characters
+        """
+        from pyMAOS.units import convert_to_display_units, DISPLAY_UNITS
+        
+        print(f"\n===== DETAILED ANALYSIS FOR {self.__str__()} =====")
+        print(f"Total Load W = {self.W:.3f} N ({convert_to_display_units(self.W, 'force'):.3f} {DISPLAY_UNITS['force']})")
+        print(f"Load centroid from left: {self.a + self.cbar:.3f} m")
+        print(f"Reactions: Riy = {self.Riy:.3f} N, Rjy = {self.Rjy:.3f} N")
+        print(f"          ({convert_to_display_units(self.Riy, 'force'):.3f} {DISPLAY_UNITS['force']}, "
+              f"{convert_to_display_units(self.Rjy, 'force'):.3f} {DISPLAY_UNITS['force']})")
+        
+        # Sample points across all regions
+        regions = [(0, self.a), (self.a, self.b), (self.b, self.L)]
+        region_names = ["Before Load [0 to a]", "Loaded Region [a to b]", "After Load [b to L]"]
+        
+        # Create sampling points
+        all_x = []
+        for i, (start, end) in enumerate(regions):
+            if end > start:  # Only if region has non-zero width
+                points = [start + j*(end-start)/num_points for j in range(num_points+1)]
+                # Don't duplicate boundary points
+                if i > 0 and len(all_x) > 0:
+                    points = points[1:]
+                all_x.extend(points)
+        
+        # Calculate function values
+        wy_values = [self.Wy.evaluate(x) for x in all_x]
+        vy_values = [self.Vy.evaluate(x) for x in all_x]
+        mz_values = [self.Mz.evaluate(x) for x in all_x]
+        sz_values = [self.Sz.evaluate(x) for x in all_x]
+        dy_values = [self.Dy.evaluate(x) for x in all_x]
+        
+        # Print ASCII charts
+        self._print_ascii_chart("Distributed Load (Wy)", all_x, wy_values, regions, chart_width, chart_height)
+        self._print_ascii_chart("Shear Force (Vy)", all_x, vy_values, regions, chart_width, chart_height)
+        self._print_ascii_chart("Bending Moment (Mz)", all_x, mz_values, regions, chart_width, chart_height)
+        self._print_ascii_chart("Rotation (Sz)", all_x, sz_values, regions, chart_width, chart_height)
+        self._print_ascii_chart("Deflection (Dy)", all_x, dy_values, regions, chart_width, chart_height)
+        
+        # Print table of values at region boundaries
+        print("\n===== VALUES AT KEY POINTS =====")
+        print(f"{'Position (m)':<15} {'Load (N/m)':<15} {'Shear (N)':<15} {'Moment (N*m)':<15} {'Rotation (rad)':<15} {'Deflection (m)':<15}")
+        print("-" * 90)
+        for x in [0, self.a, self.b, self.L]:
+            print(f"{x:<15.3f} {self.Wy.evaluate(x):<15.3f} {self.Vy.evaluate(x):<15.3f} {self.Mz.evaluate(x):<15.3f} "
+                  f"{self.Sz.evaluate(x):<15.3e} {self.Dy.evaluate(x):<15.3e}")
+    
+    def _print_ascii_chart(self, title, x_values, y_values, regions, width=60, height=15):
+        """Helper method to print an ASCII chart of the data"""
+        if not y_values:
+            return
+            
+        print(f"\n--- {title} ---")
+        
+        # Find min and max values
+        min_y = min(y_values)
+        max_y = max(y_values)
+        if min_y == max_y:  # Avoid division by zero
+            min_y -= 1
+            max_y += 1
+            
+        # Create the chart grid
+        chart = [[' ' for _ in range(width)] for _ in range(height)]
+        
+        # Draw x-axis
+        axis_pos = height - int(height * (-min_y) / (max_y - min_y)) if min_y < 0 and max_y > 0 else height - 1
+        axis_pos = max(0, min(height - 1, axis_pos))
+        for i in range(width):
+            chart[axis_pos][i] = '-'
+            
+        # Draw y-axis
+        for i in range(height):
+            chart[i][0] = '|'
+            
+        # Mark region boundaries
+        region_positions = [0]
+        for start, end in regions:
+            if end not in region_positions:
+                region_positions.append(end)
+        
+        region_x_positions = []
+        for pos in region_positions:
+            if pos == 0:
+                x_pos = 0
+            else:
+                x_pos = int(width * pos / self.L)
+                x_pos = min(x_pos, width - 1)
+            region_x_positions.append(x_pos)
+            
+        for x_pos in region_x_positions:
+            for i in range(height):
+                if i != axis_pos:
+                    chart[i][x_pos] = '|'
+                else:
+                    chart[i][x_pos] = '+'
+        
+        # Plot the data
+        for i in range(len(x_values)):
+            x = x_values[i]
+            y = y_values[i]
+            
+            # Convert to chart coordinates
+            chart_x = int(width * x / self.L)
+            chart_y = height - 1 - int((height - 1) * (y - min_y) / (max_y - min_y))
+            
+            chart_x = max(0, min(width - 1, chart_x))
+            chart_y = max(0, min(height - 1, chart_y))
+            
+            # Draw data point
+            chart[chart_y][chart_x] = '*'
+            
+            # Connect with previous point
+            if i > 0:
+                prev_x = int(width * x_values[i-1] / self.L)
+                prev_y = height - 1 - int((height - 1) * (y_values[i-1] - min_y) / (max_y - min_y))
+                
+                prev_x = max(0, min(width - 1, prev_x))
+                prev_y = max(0, min(height - 1, prev_y))
+                
+                # Simple line drawing
+                if prev_x != chart_x or prev_y != chart_y:
+                    # Draw a connecting line (very simple algorithm)
+                    steps = max(abs(chart_x - prev_x), abs(chart_y - prev_y))
+                    if steps > 0:
+                        for j in range(1, steps):
+                            connect_x = prev_x + int(j * (chart_x - prev_x) / steps)
+                            connect_y = prev_y + int(j * (chart_y - prev_y) / steps)
+                            if 0 <= connect_x < width and 0 <= connect_y < height and chart[connect_y][connect_x] == ' ':
+                                chart[connect_y][connect_x] = '.'
+        
+        # Draw chart
+        print("+" + "-" * (width + 2) + "+")
+        print(f"| {title.center(width)} |")
+        print("+" + "-" * (width + 2) + "+")
+        for row in chart:
+            print("|", ''.join(row), "|")
+        print("+" + "-" * (width + 2) + "+")
+        
+        # Print legend
+        print(f"Min value: {min_y:.3e}, Max value: {max_y:.3e}")
+        print(f"x-axis: 0 to {self.L:.3f} m")
+        print(f"Region boundaries: [0, {self.a:.3f}, {self.b:.3f}, {self.L:.3f}]")

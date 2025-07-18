@@ -108,10 +108,11 @@ def load_frame_from_json(filename):
             print(f"Node {node_id} supports: rx={rx}, ry={ry}, rz={rz}")
     
     # Process materials
-    materials_dict = {}
-    for material_data in data.get("materials", []):
-        material_id = material_data["id"]
-        material_type = material_data.get("type", "linear")
+    def process_materials(materials_data) -> dict:
+        materials_dict = {}
+        for material_data in materials_data:
+            material_id = material_data["id"]
+            material_type = material_data.get("type", "linear")
 
         # Parse E with potential units
         e_value_with_units = parse_value_with_units(str(material_data["E"]))
@@ -142,6 +143,8 @@ def load_frame_from_json(filename):
         material = Material(uid=material_id, E=float(e_value))  # Explicitly cast to float
         materials_dict[material_id] = material
     
+    materials_dict=process_materials(data.get("materials", []))
+
     # Process sections
     sections_dict = {}
     for section_data in data.get("sections", []):
@@ -278,11 +281,7 @@ def load_frame_from_json(filename):
                       f"w2={w2_display}{DISTRIBUTED_LOAD_UNIT} ({w2:.4g} N/m), "
                       f"a={a}{LENGTH_UNIT}, b={b}{LENGTH_UNIT}")
                 
-                # Apply load in appropriate direction with SI units
-                if direction.upper() == "X":
-                    element.add_distributed_load(w1, w2, a, b, load_case, direction="xx")
-                else:
-                    element.add_distributed_load(w1, w2, a, b, load_case, direction=direction)
+                element.add_distributed_load(w1, w2, a, b, load_case, direction=direction)
                 
             elif load_type == 1:  # Point load
                 # Parse force magnitude
@@ -294,12 +293,13 @@ def load_frame_from_json(filename):
                 # Get display value for reporting
                 p_display = p_with_units.to(FORCE_UNIT).magnitude if isinstance(p_with_units, pint.Quantity) else p_with_units
                 
-                # Parse position
-                a = float(member_load.get("a", 0.0))
-                
-                # Convert percentage to actual position if needed
-                if location_percent:
-                    a = a / 100.0 * element.length
+                # Parse position - use percentage value if available
+                if "a_pct" in member_load:
+                    a_pct = float(member_load["a_pct"])
+                    a = a_pct / 100.0 * element.length
+                    print(f"  Converting a_pct={a_pct}% to position a={a:.4f}{LENGTH_UNIT}")
+                else:
+                    a = float(member_load.get("a", 0.0))
                 
                 print(f"  Element {element_id}: Point load p={p_display}{FORCE_UNIT} ({p} N), "
                       f"position={a}{LENGTH_UNIT}")
@@ -320,12 +320,13 @@ def load_frame_from_json(filename):
                 # Get display value for reporting
                 m_display = m_with_units.to(MOMENT_UNIT).magnitude if isinstance(m_with_units, pint.Quantity) else m_with_units
                 
-                # Parse position
-                a = float(member_load.get("a", 0.0))
-                
-                # Convert percentage to actual position if needed
-                if location_percent:
-                    a = a / 100.0 * element.length
+                # Parse position - use percentage value if available
+                if "a_pct" in member_load:
+                    a_pct = float(member_load["a_pct"])
+                    a = a_pct / 100.0 * element.length
+                    print(f"  Converting a_pct={a_pct}% to position a={a:.4f}{LENGTH_UNIT}")
+                else:
+                    a = float(member_load.get("a", 0.0))
                 
                 print(f"  Element {element_id}: Point moment m={m_display}{MOMENT_UNIT} ({m} N*m), "
                       f"position={a}{LENGTH_UNIT}")
@@ -359,40 +360,109 @@ def load_frame_from_json(filename):
     
     return node_list, element_list
 
-if __name__ == "__main__":
-    working_dir='example_6_3'
-    input_File='example_6_3.json'  # Change extension as needed
+def load_frame_from_json_new(filename):
+    """
+    Reads a structural model from a JSON file, first converting it to SI units
     
-    # Load imperial units from file
-    imperial_units_file = 'imperial_units.json'
-    print(f"\nLoading unit settings from: {imperial_units_file}")
+    Parameters
+    ----------
+    filename : str
+        Path to the input JSON file
+        
+    Returns
+    -------
+    tuple
+        (node_list, element_list) ready for structural analysis
+    """
+    import os
+    from pathlib import Path
+    import json
+    
     try:
-        with open(imperial_units_file, 'r', encoding='utf-8') as unit_file:
-            imperial_units = json.load(unit_file)
-            # Update the units using the imported function
-            update_units_from_json(json.dumps(imperial_units))
-            
-            # Re-import the global unit variables to get the updated values
-            from pyMAOS.units import (
-                DISPLAY_UNITS, FORCE_UNIT, LENGTH_UNIT, MOMENT_UNIT, 
-                PRESSURE_UNIT, DISTRIBUTED_LOAD_UNIT
-            )
-            
-            print(f"Successfully loaded imperial units: {imperial_units}")
-            print(f"Updated display units: Force={FORCE_UNIT}, Length={LENGTH_UNIT}, Pressure={PRESSURE_UNIT}, Moment={MOMENT_UNIT}")
-    except FileNotFoundError:
-        print(f"Warning: Imperial units file '{imperial_units_file}' not found. Using default units.")
-    except json.JSONDecodeError:
-        print(f"Warning: Invalid JSON in '{imperial_units_file}'. Using default units.")
+        # Import the conversion utility
+        sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), "examples"))
+        from convert_units import convert_json_to_si
+        
+        # Create output filename with _SI suffix
+        input_path = Path(filename)
+        si_filename = input_path.with_stem(f"{input_path.stem}_SI").with_suffix('.json')
+        
+        print(f"Converting {filename} to SI units...")
+        
+        # Load the original JSON
+        with open(filename, 'r') as file:
+            data = json.load(file)
+        
+        # Convert to SI units and save
+        convert_json_to_si(data, si_filename)
+        print(f"Converted data saved to {si_filename}")
+        
+        # Load the SI version using the original function
+        print(f"Loading SI converted model from {si_filename}...")
+        return load_frame_from_json(si_filename)
+        
+    except ImportError:
+        print("Warning: Could not import convert_units.py. Falling back to standard loader.")
+        return load_frame_from_json(filename)
     except Exception as e:
-        print(f"Warning: Error loading imperial units: {str(e)}. Using default units.")
+        print(f"Error in unit conversion: {str(e)}")
+        print("Falling back to standard loader with unit conversions.")
+        return load_frame_from_json(filename)
+
+# Example usage
+if __name__ == "__main__":
+    status=0
+    import argparse
+    """Command line interface for unit conversion."""
+    parser = argparse.ArgumentParser(description="Convert JSON structural model to SI units")
+    parser.add_argument("input_file", help="Input JSON file path")
+    parser.add_argument("-o", "--output", default=None, help="Output JSON file path")
+    args = parser.parse_args()
+
+    working_dir=os.path.curdir
+    input_file=args.__contains__('input_file') and args.input_file or "input.json"
+    DATADIR=os.environ.get('DATADIR', working_dir)
+    import jsonschema
+    from pyMAOS.units import validate_input_with_schema
+    try:
+        schema_file=os.path.join(DATADIR,"myschema.json")
+        validate_input_with_schema(input_file, schema_file=schema_file)
+        print("Validation passed!")
+    except jsonschema.exceptions.ValidationError as e:
+        print(f"Validation error: {e}")
+    except Exception as e:
+        print(f"Error during validation: {e}")    
+        
+    # Load imperial units from file
+    # imperial_units_file = os.path.join(DATADIR, 'imperial_units.json')
+    # print(f"\nLoading unit settings from: {imperial_units_file}")
+    # try:
+    #     with open(imperial_units_file, 'r') as unit_file:
+    #         imperial_units = json.load(unit_file)
+    #         # Update the units using the imported function
+    #         update_units_from_json(json.dumps(imperial_units))
+            
+    #         # Re-import the global unit variables to get the updated values
+    #         from pyMAOS.units import (
+    #             DISPLAY_UNITS, FORCE_UNIT, LENGTH_UNIT, MOMENT_UNIT, 
+    #             PRESSURE_UNIT, DISTRIBUTED_LOAD_UNIT
+    #         )
+            
+    #         print(f"Successfully loaded imperial units: {imperial_units}")
+    #         print(f"Updated display units: Force={FORCE_UNIT}, Length={LENGTH_UNIT}, Pressure={PRESSURE_UNIT}, Moment={MOMENT_UNIT}")
+    # except FileNotFoundError:
+    #     print(f"Warning: Imperial units file '{imperial_units_file}' not found. Using default units.")
+    # except json.JSONDecodeError:
+    #     print(f"Warning: Invalid JSON in '{imperial_units_file}'. Using default units.")
+    # except Exception as e:
+    #     print(f"Warning: Error loading imperial units: {str(e)}. Using default units.")
     
-    file_path = os.path.join(working_dir, input_File)
+    file_path = os.path.join(working_dir, input_file)
     
     # Choose appropriate loader based on file extension
-    if input_File.lower().endswith('.json'):
+    if input_file.lower().endswith('.json'):
         print(f"Loading structural model from JSON file: {file_path}")
-        node_list, element_list = load_frame_from_json(file_path)
+        node_list, element_list = load_frame_from_json_new(file_path)
     else:
         print(f"Loading structural model from text file: {file_path}")
         exit(1)  # Placeholder for text file loading logic 
@@ -402,7 +472,7 @@ if __name__ == "__main__":
 
     # Pass all display units to the structure
     model_structure = R2Struct.R2Structure(node_list, element_list, units=DISPLAY_UNITS)
-    print(model_structure)
+    # print(model_structure)
 
     # Fix the LoadCombo initialization with proper parameters
     loadcombo = LoadCombo("D", {"D": 1.0}, ["D"], False, "SLS")
