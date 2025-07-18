@@ -1,4 +1,5 @@
-﻿from pyMAOS.loading.polynomial import Piecewise_Polynomial
+﻿from pyMAOS.display_utils import display_node_load_vector_in_units
+from pyMAOS.loading.polynomial import Piecewise_Polynomial
 
 class R2_Linear_Load:
     def __init__(self, w1, w2, a, b, member, loadcase="D"):
@@ -295,6 +296,7 @@ class R2_Linear_Load:
 
     def FEF(self):
         L = self.L
+
         c3 = self.c3
         c6 = self.c6
         c7 = self.c7
@@ -304,8 +306,30 @@ class R2_Linear_Load:
         Mjz = -1 * (2 * c3 * L * L + 4 * c6 * L + 4 * c9 + 2 * c7) / L
         Riy = self.Riy + (Miz / L) + (Mjz / L)
         Rjy = self.Rjy - (Miz / L) - (Mjz / L)
+        
+        # Print forces and moments in both SI and display units
+        from pyMAOS.units import convert_to_display_units, DISPLAY_UNITS
+        Riy_display = convert_to_display_units(Riy, 'force')
+        Rjy_display = convert_to_display_units(Rjy, 'force')
+        Miz_display = convert_to_display_units(Miz, 'moment')
+        Mjz_display = convert_to_display_units(Mjz, 'moment')
+        
+        print(f"Vertical reactions - SI: Riy={Riy:.3f} N, Rjy={Rjy:.3f} N")
+        print(f"Vertical reactions - Display: Riy={Riy_display:.3f} {DISPLAY_UNITS['force']}, "
+              f"Rjy={Rjy_display:.3f} {DISPLAY_UNITS['force']}")
+        print(f"Moments - SI: Miz={Miz:.3f} N*m, Mjz={Mjz:.3f} N*m")
+        print(f"Moments - Display: Miz={Miz_display:.3f} {DISPLAY_UNITS['moment']}, "
+              f"Mjz={Mjz_display:.3f} {DISPLAY_UNITS['moment']}")
+        
         ret_val = [0, Riy, Miz, 0, Rjy, Mjz]
-        print(f"FEF Results for Load Case {self.loadcase}: {ret_val}")
+        print(f"FEF distributed load results for Load Case {self.loadcase}:\n", ret_val)
+        display_node_load_vector_in_units(ret_val[0:3], 
+                                          force_unit='klbf', 
+                                          length_unit='in')
+        display_node_load_vector_in_units(ret_val[3:6], 
+                                          force_unit='klbf', 
+                                          length_unit='in')
+
         return ret_val
 
     def __str__(self):

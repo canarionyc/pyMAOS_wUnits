@@ -44,8 +44,15 @@ class Element(ABC):
         """Calculate member length from the i and j nodes"""
         return self.inode.distance(self.jnode)
         
-    def T(self):
-        """Create transformation matrix from local to global coordinates"""
+    def T(self) -> np.matrix:
+        """Create transformation matrix from local to global coordinates
+    
+        Returns
+        -------
+        np.matrix
+            6x6 transformation matrix of float type for converting between 
+            local and global coordinate systems
+        """
         c = (self.jnode.x - self.inode.x) / self.length
         s = (self.jnode.y - self.inode.y) / self.length
 
@@ -56,7 +63,7 @@ class Element(ABC):
             [0, 0, 0, c, s, 0],
             [0, 0, 0, -s, c, 0],
             [0, 0, 0, 0, 0, 1],
-        ])
+        ], dtype=float)
         return T
 
     @abstractmethod
@@ -75,44 +82,71 @@ class Element(ABC):
     def kglobal(self):
         """Calculate the global stiffness matrix for the element"""
         k = self.k()
-        T = self.T()
-        ret_val = np.matmul(np.matmul(np.transpose(T), k), T)
-        return ret_val
+        T = self.T(); print("T:\n", T)
+        global_stiffness_matrix = np.matmul(np.matmul(np.transpose(T), k), T); print("kglobal:", global_stiffness_matrix)
+        return global_stiffness_matrix
 
     def Dglobal(self, load_combination):
-        """Get global nodal displacement vector for the element
-        
-        Extracts the displacements for the element's nodes from the solution
-        and organizes them into a 6-element vector.
-        
-        Parameters
-        ----------
-        load_combination : LoadCombo
-            The load combination for which to get displacements
-            
-        Returns
-        -------
-        numpy.ndarray
-            6-element vector of nodal displacements in global coordinates:
-            [ui_x, ui_y, θi_z, uj_x, uj_y, θj_z]
-        """
+        """Get global nodal displacement vector for the element"""
         D = np.zeros(6)
         iD = self.inode.displacements[load_combination.name]
         jD = self.jnode.displacements[load_combination.name]
 
         # Populate Displacement Vector
-        ret_val= np.array([*iD, *jD])
-        print("Dglobal ret_val:", ret_val)
-        print(ret_val.shape)
-        return ret_val
-       
+        displacement_vector_global = np.array([*iD, *jD])
+        
+        # Import and use the display function if it's available
+        try:
+            from pyMAOS.display_utils import display_member_displacement_in_units
+            if hasattr(self, 'structure') and hasattr(self.structure, 'units'):
+                force_unit = self.structure.units.get('force', 'N')
+                length_unit = self.structure.units.get('length', 'm')
+            else:
+                # Default units if structure reference not available
+                force_unit = 'N'
+                length_unit = 'm'
+            
+            display_member_displacement_in_units(
+                displacement_vector_global,
+                force_unit=force_unit,
+                length_unit=length_unit,
+                is_local=False,
+                element_uid=self.uid,
+                load_combo_name=load_combination.name
+            )
+        except ImportError:
+            print(f"Global displacements for element {self.uid} under load combination '{load_combination.name}':\n{displacement_vector_global}")
+
+        return displacement_vector_global
 
     def Dlocal(self, load_combination):
         """Calculate local displacement vector"""
         Dglobal = self.Dglobal(load_combination)
-        ret_val= np.matmul(self.T(), Dglobal)
-        print("Dlocal ret_val:", ret_val)
-        return ret_val
+        displacement_vector_local = np.matmul(self.T(), Dglobal)
+        
+        # Import and use the display function if it's available
+        try:
+            from pyMAOS.display_utils import display_member_displacement_in_units
+            if hasattr(self, 'structure') and hasattr(self.structure, 'units'):
+                force_unit = self.structure.units.get('force', 'N')
+                length_unit = self.structure.units.get('length', 'm')
+            else:
+                # Default units if structure reference not available
+                force_unit = 'N'
+                length_unit = 'm'
+            
+            display_member_displacement_in_units(
+                displacement_vector_local,
+                force_unit=force_unit,
+                length_unit=length_unit,
+                is_local=True,
+                element_uid=self.uid,
+                load_combo_name=load_combination.name
+            )
+        except ImportError:
+            print(f"Local displacements for element {self.uid} under load combination '{load_combination.name}':\n{displacement_vector_local}")
+
+        return displacement_vector_local
 
     def stations(self, num_stations=10):
         """Define calculation points along the element"""
@@ -133,7 +167,6 @@ class Element(ABC):
     def set_structure(self, structure):
         """Attach reference to parent structure for unit access"""
         self.structure = structure
-
 
 
 

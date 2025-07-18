@@ -1,4 +1,4 @@
-﻿from ast import Str
+﻿from ast import Constant
 import os
 from os import path
 import sys
@@ -6,6 +6,16 @@ import json
 import numpy as np
 from contextlib import redirect_stdout
 import pint
+
+# Print module search paths and loading information
+print("\n=== Python Module Search Paths ===")
+print(f"Current working directory: {os.getcwd()}")
+print(f"Python executable: {sys.executable}")
+print(f"Python version: {sys.version}")
+print("\nModule search paths (sys.path):")
+for i, p in enumerate(sys.path):
+    print(f"  {i}: {p}")
+print("=" * 40 + "\n")
 
 # Import all unit-related functionality from units.py module
 from pyMAOS.units import (
@@ -20,8 +30,12 @@ from pyMAOS.units import (
 np.set_printoptions(precision=4, suppress=False, floatmode='maxprec_equal')
 
 # Add custom formatters for different numeric types
-def format_with_dots(x): return '.' if abs(x) < 1e-10 else f"{x:<12.4g}"
-def format_double(x): return '.' if abs(x) < 1e-10 else f"{x:.8g}"  # More precision for doubles
+def format_with_dots(x) -> str: return '.'.center(12) if abs(x) < 1e-10 else f"{x:<12.4g}"
+def format_double(x) -> str: return '.'.center(16) if abs(x) < 1e-10 else f"{x:<16.8g}"  # More precision for doubles
+np.set_printoptions(formatter={
+    np.float64: format_double,
+    np.float32: format_with_dots
+}) # type: ignore
 
 # Import other modules
 from pyMAOS.plot_structure import plot_structure_vtk
@@ -125,7 +139,7 @@ def load_frame_from_json(filename):
             e_value = e_value_with_units
             print(f"No units specified for material E, assuming {e_value} Pa")
         
-        material = Material(uid=material_id, E=e_value)
+        material = Material(uid=material_id, E=float(e_value))  # Explicitly cast to float
         materials_dict[material_id] = material
     
     # Process sections
@@ -140,23 +154,23 @@ def load_frame_from_json(filename):
         # Convert to standard units
         if isinstance(area_with_units, pint.Quantity):
             try:
-                area = area_with_units.to('m^2').magnitude
+                area = float(area_with_units.to('m^2').magnitude)  # Explicitly cast to float
                 print(f"Converted section area from {area_with_units} to {area} m²")
             except:
-                area = area_with_units.magnitude
+                area = float(area_with_units.magnitude)  # Explicitly cast to float
                 print(f"Warning: Could not convert {area_with_units} to m², using raw value")
         else:
-            area = area_with_units
+            area = float(area_with_units)  # Explicitly cast to float
         
         if isinstance(ixx_with_units, pint.Quantity):
             try:
-                ixx = ixx_with_units.to('m^4').magnitude
+                ixx = float(ixx_with_units.to('m^4').magnitude)  # Explicitly cast to float
                 print(f"Converted section inertia from {ixx_with_units} to {ixx} m⁴")
             except:
-                ixx = ixx_with_units.magnitude
+                ixx = float(ixx_with_units.magnitude)  # Explicitly cast to float
                 print(f"Warning: Could not convert {ixx_with_units} to m⁴, using raw value")
         else:
-            ixx = ixx_with_units
+            ixx = float(ixx_with_units)  # Explicitly cast to float
         
         section = Section(uid=section_id, Area=area, Ixx=ixx)
         sections_dict[section_id] = section
@@ -207,10 +221,10 @@ def load_frame_from_json(filename):
             # Store in SI units
             nodes_dict[node_id].add_nodal_load(fx, fy, mz, "D")
             # Report in display units
-            print(f"Node {node_id} load: Fx={fx_display}{FORCE_UNIT} ({fx} N), "
-                  f"Fy={fy_display}{FORCE_UNIT} ({fy} N), "
-                  f"Mz={mz_display}{MOMENT_UNIT} ({mz} N*m)")
-    
+            print(f"Node {node_id} load: Fx={fx_display}{FORCE_UNIT} ({fx:.4g} N), "
+                  f"Fy={fy_display}{FORCE_UNIT} ({fy:.4g} N), "
+                  f"Mz={mz_display}{MOMENT_UNIT} ({mz:.4g} N*m)")   
+
     # Import the necessary load classes
     from pyMAOS.loading import R2_Point_Load, R2_Linear_Load, R2_Axial_Load, R2_Axial_Linear_Load, R2_Point_Moment
     
@@ -268,7 +282,7 @@ def load_frame_from_json(filename):
                 if direction.upper() == "X":
                     element.add_distributed_load(w1, w2, a, b, load_case, direction="xx")
                 else:
-                    element.add_distributed_load(w1, w2, a, b, load_case)
+                    element.add_distributed_load(w1, w2, a, b, load_case, direction=direction)
                 
             elif load_type == 1:  # Point load
                 # Parse force magnitude
@@ -349,6 +363,30 @@ if __name__ == "__main__":
     working_dir='example_6_3'
     input_File='example_6_3.json'  # Change extension as needed
     
+    # Load imperial units from file
+    imperial_units_file = 'imperial_units.json'
+    print(f"\nLoading unit settings from: {imperial_units_file}")
+    try:
+        with open(imperial_units_file, 'r', encoding='utf-8') as unit_file:
+            imperial_units = json.load(unit_file)
+            # Update the units using the imported function
+            update_units_from_json(json.dumps(imperial_units))
+            
+            # Re-import the global unit variables to get the updated values
+            from pyMAOS.units import (
+                DISPLAY_UNITS, FORCE_UNIT, LENGTH_UNIT, MOMENT_UNIT, 
+                PRESSURE_UNIT, DISTRIBUTED_LOAD_UNIT
+            )
+            
+            print(f"Successfully loaded imperial units: {imperial_units}")
+            print(f"Updated display units: Force={FORCE_UNIT}, Length={LENGTH_UNIT}, Pressure={PRESSURE_UNIT}, Moment={MOMENT_UNIT}")
+    except FileNotFoundError:
+        print(f"Warning: Imperial units file '{imperial_units_file}' not found. Using default units.")
+    except json.JSONDecodeError:
+        print(f"Warning: Invalid JSON in '{imperial_units_file}'. Using default units.")
+    except Exception as e:
+        print(f"Warning: Error loading imperial units: {str(e)}. Using default units.")
+    
     file_path = os.path.join(working_dir, input_File)
     
     # Choose appropriate loader based on file extension
@@ -369,7 +407,7 @@ if __name__ == "__main__":
     # Fix the LoadCombo initialization with proper parameters
     loadcombo = LoadCombo("D", {"D": 1.0}, ["D"], False, "SLS")
     print("Solving linear static problem...")
-    U = model_structure.solve_linear_static([loadcombo], output_dir=working_dir, verbose=True)
+    U = model_structure.solve_linear_static(loadcombo, output_dir=working_dir, verbose=True)
     print(f"Displacements U:\n{U}")
     print(model_structure)
 

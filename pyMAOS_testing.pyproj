@@ -35,6 +35,7 @@
     <Compile Include="examples\example_sloped_beam.py" />
     <Compile Include="examples\example_stair.py" />
     <Compile Include="examples\compare_stiffness_matrices.py" />
+    <Compile Include="pyMAOS\display_utils.py" />
     <Compile Include="pyMAOS\loading\__init__.py" />
     <Compile Include="pyMAOS\R2structure_extras.py" />
     <Compile Include="pyMAOS\read_frame_from_file.py" />

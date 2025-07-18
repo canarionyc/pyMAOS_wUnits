@@ -194,3 +194,4 @@ cython_debug/
 /.vs/pyMAOS_testing
 /.vs/pyMAOS_testing/v17
 *.txt~
+.Rproj.user

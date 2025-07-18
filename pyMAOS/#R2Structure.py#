@@ -1,8 +1,5 @@
 import os
 import numpy as np
-
-from pyMAOS import units
-from pyMAOS.display_utils import display_node_load_vector_in_units, display_node_displacement_in_units, display_stiffness_matrix_in_units
 np.set_printoptions(precision=4, suppress=False, floatmode='maxprec_equal',linewidth= 999)
 
 import ast
@@ -284,22 +281,13 @@ class R2Structure:
 
         for node_index,node in enumerate(self.nodes):
             for load_case, load in node.loads.items():
-                display_node_load_vector_in_units(
-                    load_vector=load,
-                    node_uid=node.uid,
-                    force_unit=self.units.get('force', 'N'),
-                    length_unit=self.units.get('length', 'm'),
-                    load_combo_name=load_combination.name
-                )
                 load_factor = load_combination.factors.get(load_case, 0)
                 factored_load = [load_factor * l for l in load]
 
                 for i, f in enumerate(factored_load):
                     fmindex = node_index * self.NJD + i
-                    FG[int(FM[fmindex])] += f
 
-        print("Nodal Force Vector:\n", FG)
-        
+                    FG[int(FM[fmindex])] += f
         return FG
 
     def member_fixed_end_force_vector(self, FM, load_combination):
@@ -336,7 +324,7 @@ class R2Structure:
         print("Freedom Map:\n",FM)
 
         # Generate Full Structure Stiffness Matrix
-        KSTRUCT = self.Kstructure(FM, **kwargs)
+        KSTRUCT = self.Kstructure(FM)
 
         self._verify_stable(FM, KSTRUCT)
 
@@ -345,14 +333,14 @@ class R2Structure:
         else:
             # Build Nodal Force Vector
             FG = self.nodal_force_vector(FM, load_combination)
-            
+            print("Nodal Force Vector:\n", FG)
             # Build Member Fixed-end-Force vector
             PF = self.member_fixed_end_force_vector(FM, load_combination)
             print("Member Fixed End Force Vector:\n", PF); print(PF.shape)
             # Slice out the Kff partition from the global structure stiffness
             # Matrix
             self.Kff = KSTRUCT[0 : self.NDOF, 0 : self.NDOF]
-            print("Kff Partition:\n", self.Kff); print(self.Kff.shape); # display_stiffness_matrix_in_units(self.Kff)
+            print("Kff Partition:\n", self.Kff); print(self.Kff.shape)
             # Slice out the FGf partition from the global nodal force vector
             self.FGf = FG[0 : self.NDOF]
             print("FGf Partition:\n", self.FGf); print(self.FGf.shape)
@@ -366,6 +354,7 @@ class R2Structure:
             # Full Displacement Vector
             # Result is still mapped to DOF via FM
             USTRUCT = np.zeros(self.NJD * self.NJ)
+
             # Add the resulting free displacements to the appropriate spots in
             # the Full displacement vector
             USTRUCT += np.pad(U, (0, self.NJD * self.NJ - np.shape(U)[0]))
@@ -373,23 +362,9 @@ class R2Structure:
             # store displacement results to the current case to the nodes
             for node_index,node in enumerate(self.nodes):
                 node_displacements=USTRUCT[FM[node_index * self.NJD : (node_index + 1) * self.NJD]].tolist()
-                print(f"node {node.uid}    Ux: {node_displacements[0]:.4E} -- Uy: {node_displacements[1]:.4E} -- Rz: {node_displacements[2]:.4E}")
+                print(f"    Ux: {node_displacements[0]:.4E} -- Uy: {node_displacements[1]:.4E} -- Rz: {node_displacements[2]:.4E}")
                 node.displacements[load_combination.name] = node_displacements
-                if node.uid==2:
-                    display_node_displacement_in_units(
-                        node_displacements,
-                        node_uid=node.uid,          
-                        length_unit=self.units['length'],              
-                        load_combo_name=load_combination.name
-                    )
-
-            # In the solve_linear_static method, after computing U:
-            print(f"DEBUG: Member 2 nodal displacements:")
-            for node in [node for member in self.members if member.uid == 2 for node in [member.inode, member.jnode]]:
-                node_index = self.uid_to_index[node.uid]
-                dof_indices = FM[node_index * self.NJD:(node_index+1) * self.NJD]
-                print(f"  Node {node.uid}: {[USTRUCT[int(i)] for i in dof_indices]}")
-
+                
             # compute reactions
             self.compute_reactions(load_combination)
 
