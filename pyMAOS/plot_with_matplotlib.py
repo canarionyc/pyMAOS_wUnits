@@ -1,3 +1,5 @@
+import numpy as np
+
 def plot_element(element, loadcombo, scaling={
         "axial": 2,
         "displacement": 100,
@@ -79,6 +81,7 @@ def plot_structure(
     },
 ):
     # Plot the structure
+    from matplotlib import pyplot as plt
     fig, axs = plt.subplots(2, 3, figsize=(12, 8)) # Increased figure size for clarity
 
     axial_loading_scale = scaling.get("axial_load", 1)
@@ -213,6 +216,7 @@ def plot_structure_matplotlib(
     },
 ):
     # Plot the structure
+    from matplotlib import pyplot as plt
     fig, ax = plt.subplots(figsize=(10, 8))
 
     # Plot nodes and their labels

@@ -308,7 +308,7 @@ class R2_Linear_Load:
         Rjy = self.Rjy - (Miz / L) - (Mjz / L)
         
         # Print forces and moments in both SI and display units
-        from pyMAOS.units import convert_to_display_units, DISPLAY_UNITS
+        from pyMAOS.units_mod import convert_to_display_units, DISPLAY_UNITS
         Riy_display = convert_to_display_units(Riy, 'force')
         Rjy_display = convert_to_display_units(Rjy, 'force')
         Miz_display = convert_to_display_units(Miz, 'moment')
@@ -323,11 +323,11 @@ class R2_Linear_Load:
         
         ret_val = [0, Riy, Miz, 0, Rjy, Mjz]
         print(f"FEF distributed load results for Load Case {self.loadcase}:\n", ret_val)
-        display_node_load_vector_in_units(ret_val[0:3], 
+        display_node_load_vector_in_units(ret_val[0:3], "node_i",
                                           force_unit='klbf', 
                                           length_unit='in')
-        display_node_load_vector_in_units(ret_val[3:6], 
-                                          force_unit='klbf', 
+        display_node_load_vector_in_units(ret_val[3:6], "node_j",
+                                          force_unit='klbf',
                                           length_unit='in')
 
         return ret_val
@@ -359,7 +359,7 @@ class R2_Linear_Load:
         chart_height : int
             Height of ASCII charts in characters
         """
-        from pyMAOS.units import convert_to_display_units, DISPLAY_UNITS
+        from pyMAOS.units_mod import convert_to_display_units, DISPLAY_UNITS
         
         print(f"\n===== DETAILED ANALYSIS FOR {self.__str__()} =====")
         print(f"Total Load W = {self.W:.3f} N ({convert_to_display_units(self.W, 'force'):.3f} {DISPLAY_UNITS['force']})")

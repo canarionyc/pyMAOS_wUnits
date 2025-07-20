@@ -1,5 +1,5 @@
 from pyMAOS.loading.polynomial import Piecewise_Polynomial
-from pyMAOS.units import DISPLAY_UNITS
+from pyMAOS.units_mod import DISPLAY_UNITS
 
 class R2_Axial_Load:
     def __init__(self, p, a, member, loadcase="D"):
@@ -67,7 +67,7 @@ class R2_Axial_Load:
         Rjx = (-1 * p * a) / L
 
         # Print forces in both SI and display units
-        from pyMAOS.units import convert_to_display_units
+        from pyMAOS.units_mod import convert_to_display_units
         Rix_display = convert_to_display_units(Rix, 'force')
         Rjx_display = convert_to_display_units(Rjx, 'force')
         

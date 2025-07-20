@@ -45,7 +45,7 @@ IMPERIAL_DISPLAY_UNITS = {
     'angle': 'deg'
 }
 
-# Base internal units (all calculations use SI units internally)
+# Base internal units (all calculations use SI units)
 INTERNAL_FORCE_UNIT = 'N'  
 INTERNAL_LENGTH_UNIT = 'm'
 INTERNAL_TIME_UNIT = 's'
@@ -283,11 +283,11 @@ def extend_with_dimension_validator(validator_class):
                                         # Try converting - will fail if dimensions don't match
                                         parsed.to(expected_unit)
                                     except pint.DimensionalityError as e:
-                                        yield jsonschema.exceptions.ValidationError(
+                                        yield jsonschema.ValidationError(
                                             f"Value '{value}' has incorrect dimension for '{property}'. "
                                             f"Expected {dimension} ({expected_unit}), got {parsed.units}")
                         except Exception as e:
-                            yield jsonschema.exceptions.ValidationError(
+                            yield jsonschema.ValidationError(
                                 f"Failed to parse unit dimensions for '{property}': {str(e)}")
     
     return validators.extend(validator_class, {"properties": set_dimensions})
@@ -353,7 +353,140 @@ def validate_input_with_schema(input_file, schema_file=None):
             print(f"{i}. Error at '{path}': {error.message}")
         
         # Raise the first error to stop execution if needed
-        raise jsonschema.exceptions.ValidationError(f"Validation failed: {errors[0].message}")
+        raise jsonschema.ValidationError(f"Validation failed: {errors[0].message}")
     
     print("Input file successfully validated against schema!")
     return True
+
+# Predefined unit systems
+SI_UNITS = {
+    "force": "N", 
+    "length": "m",
+    "pressure": "Pa",
+    "distance": "m",
+    "moment": "N*m",
+    "distributed_load": "N/m"   
+}
+
+IMPERIAL_UNITS = {
+    "force": "klbf", 
+    "length": "in",
+    "pressure": "ksi",
+    "distance": "ft",
+    "moment": "klbf*in",
+    "distributed_load": "klbf/in"
+}
+
+METRIC_KN_UNITS = {
+    "force": "kN", 
+    "length": "m",
+    "pressure": "kN/m^2",
+    "distance": "m",
+    "moment": "kN*m",
+    "distributed_load": "kN/m"
+}
+
+class UnitManager:
+    """
+    Central manager for unit system handling throughout pyMAOS
+    
+    This singleton class provides a consistent interface for all unit operations
+    and ensures that unit settings are synchronized across the package.
+    """
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(UnitManager, cls).__new__(cls)
+            cls._instance._initialize()
+        return cls._instance
+    
+    def _initialize(self):
+        # Default to SI units
+        self.current_system = SI_UNITS
+        self.system_name = "SI"
+        
+        # Initialize registry once
+        self.ureg = pint.UnitRegistry()
+        
+        # Keep track of all registered modules that need unit updates
+        self.registered_modules = []
+    
+    def set_unit_system(self, system_dict, system_name=None):
+        """
+        Set the active unit system for the entire package
+        
+        Parameters
+        ----------
+        system_dict : dict
+            Dictionary mapping dimension names to unit strings
+        system_name : str, optional
+            Name of the unit system (e.g., "SI", "imperial", "metric_kn")
+        """
+        self.current_system = system_dict
+        self.system_name = system_name or "custom"
+        
+        # Update global unit variables
+        global DISPLAY_UNITS, FORCE_UNIT, LENGTH_UNIT, MOMENT_UNIT, PRESSURE_UNIT, DISTRIBUTED_LOAD_UNIT
+        
+        DISPLAY_UNITS = system_dict
+        FORCE_UNIT = system_dict.get("force", "N")
+        LENGTH_UNIT = system_dict.get("length", "m")
+        MOMENT_UNIT = system_dict.get("moment", "N*m")
+        PRESSURE_UNIT = system_dict.get("pressure", "Pa")
+        DISTRIBUTED_LOAD_UNIT = system_dict.get("distributed_load", "N/m")
+        
+        # Notify all registered modules of unit change
+        for module_update_func in self.registered_modules:
+            try:
+                module_update_func(system_dict)
+            except Exception as e:
+                print(f"Error updating module with new units: {e}")
+    
+    def register_for_unit_updates(self, update_function):
+        """Register a module to receive unit system updates"""
+        self.registered_modules.append(update_function)
+    
+    def get_current_units(self):
+        """Get the current unit system dictionary"""
+        return self.current_system
+        
+    def get_system_name(self):
+        """Get the name of the current unit system"""
+        return self.system_name
+    
+    def convert_value(self, value, from_unit, to_unit):
+        """
+        Convert a value from one unit to another
+        
+        Parameters
+        ----------
+        value : float
+            Value to convert
+        from_unit : str
+            Source unit (e.g., "N")
+        to_unit : str
+            Target unit (e.g., "lbf")
+            
+        Returns
+        -------
+        float
+            Converted value
+        """
+        if from_unit == to_unit:
+            return value
+            
+        try:
+            quantity = self.ureg.Quantity(float(value), from_unit)
+            return quantity.to(to_unit).magnitude
+        except Exception as e:
+            print(f"Warning: Unit conversion failed from {from_unit} to {to_unit}: {e}")
+            return value
+
+# Create the singleton instance
+unit_manager = UnitManager()
+
+# Replace existing set_unit_system function to use the manager
+def set_unit_system(system_dict, system_name=None):
+    """Set the unit system throughout the package"""
+    unit_manager.set_unit_system(system_dict, system_name)

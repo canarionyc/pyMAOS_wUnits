@@ -1,0 +1,2323 @@
+
+=== Python Module Search Paths ===
+Current working directory: C:\dev\pyMAOS_testing
+Python executable: C:\Python313\pythonw.exe
+Python version: 3.13.5 (tags/v3.13.5:6cb20a2, Jun 11 2025, 16:15:46) [MSC v.1943 64 bit (AMD64)]
+
+Module search paths (sys.path):
+  0: C:\dev\pyMAOS_testing\pyMAOS
+  1: C:\dev\pyMAOS_testing
+  2: C:\repos\pyMAOS\pyMAOS
+  3: C:\Python313
+  4: C:\Python313\Scripts
+  5: C:\Python313\Dlls
+  6: C:\Python313\python313.zip
+  7: C:\Python313\Lib
+  8: C:\Python313\Lib\site-packages
+========================================
+
+Loaded 'pyMAOS.loading.distributed_loads'
+Loaded 'pyMAOS.loading'
+Loaded 'pyMAOS.Frame'
+Loaded '__main__'
+Loaded 'runpy'
+Backend qtagg is interactive backend. Turning interactive mode on.
+
+Loading unit settings from: imperial_units.json
+Using display units from JSON: Force=klbf, Length=in, Moment=klbf*in
+Pressure=ksi, Distributed Load=klbf/ft
+Note: All internal calculations will use SI units.
+Successfully loaded imperial units: {'length': 'in', 'pressure': 'ksi', 'distance': 'ft', 'force': 'klbf'}
+Updated display units: Force=klbf, Length=in, Pressure=ksi, Moment=klbf*in
+Loading structural model from JSON file: example_6_3\example_6_3.json
+Using display units from JSON: Force=klbf, Length=in, Moment=klbf*in
+Pressure=ksi, Distributed Load=klbf/ft
+Note: All internal calculations will use SI units.
+Read 4 nodes.
+{1: R2Node(uid=1, x=0.0, y=0.0), 2: R2Node(uid=2, x=0.0, y=7.315199999999999), 3: R2Node(uid=3, x=4.876799999999999, y=3.6575999999999995), 4: R2Node(uid=4, x=4.876799999999999, y=0.0)}
+Node 1 supports: rx=1, ry=1, rz=1
+Node 4 supports: rx=1, ry=1, rz=1
+Converted material E from 29000.0 kip_per_square_inch to 199947961501.8826 Pa
+  (Equivalent to 29000.0 ksi in display units)
+LinearElasticMaterial uid 1 initialized with density=0.00028, E=199947961501.8826, nu=0.3
+Converted section area from 28.2 inch ** 2 to 0.018193512 m²
+Converted section inertia from 833.0 inch ** 4 to 0.0003467207775248 m⁴
+Read 3 elements.
+Node 2 load: Fx=100.0klbf (4.448e+05 N), Fy=0.0klbf (0 N), Mz=0.0klbf*in (0 N*m)
+Node 3 load: Fx=50.0klbf (2.224e+05 N), Fy=0.0klbf (0 N), Mz=0.0klbf*in (0 N*m)
+
+Processing 1 member loads:
+  Converting positions from percentages: a=0.0%, b=100.0%
+  Element 2: Distributed load w1=-3.0klbf/ft (-4.378e+04 N/m), w2=-3.0klbf/ft (-4.378e+04 N/m), a=0.0in, b=6.095999999999999in
+
+
+--- Node Restraints Summary ---
+Node ID  |  Ux  |  Uy  |  Rz
+------------------------------
+Node  1  |  Fixed |  Fixed |  Fixed
+Node  2  |  Free  |  Free  |  Free 
+Node  3  |  Free  |  Free  |  Free 
+Node  4  |  Fixed |  Fixed |  Fixed
+
+--- VTK Interaction ---
+Press 'd' to toggle deformed shape.
+Press 'l' to toggle node labels.
+Press 'm' to toggle member labels.
+Press 'h' to toggle hinge visualizations.
+-----------------------
+
+Total nodes: 4
+Total elements: 3
+================================================================================
+STRUCTURAL MODEL SUMMARY
+Display units: Force=klbf, Length=in, Pressure=ksi
+--------------------------------------------------------------------------------
+Number of nodes: 4
+Number of members: 3
+Degrees of freedom: 6
+Number of restraints: 6
+
+NODE INFORMATION:
+Node ID  X (in)          Y (in)          Restraints     
+--------------------------------------------------------------------------------
+1        0               0               Rx Ry Rz       
+2        0               288             -- -- --       
+3        192             144             -- -- --       
+4        192             0               Rx Ry Rz       
+
+MEMBER INFORMATION:
+Member ID  Type     i-node   j-node   Length (in)    
+--------------------------------------------------------------------------------
+1          FRAME    1        2        288            
+2          FRAME    2        3        240            
+3          FRAME    4        3        144            
+
+MATERIAL PROPERTIES:
+Material   E (ksi)        
+--------------------------------------------------------------------------------
+1          2.9e+04        
+
+SECTION PROPERTIES:
+Section    Area (in^2)        Ixx (in^4)        
+--------------------------------------------------------------------------------
+1          28.2               833               
+
+NODAL LOADS:
+Node ID  Load Case  Fx (klbf)       Fy (klbf)       Mz (klbf*in)   
+--------------------------------------------------------------------------------
+2        D          100             0               0              
+3        D          50              0               0              
+Solving linear static problem...
+--- Running in Verbose Mode ---
+Freedom Map:
+ [ 6  7  8  0  1  2  3  4  5  9 10 11]
+(12, 12)
+Freedom Map Indices for Member 1:
+[6, 7, 8, 0, 1, 2]
+Local stiffness matrix in units for element 1:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          2840            0            0        -2840            0            0
+             0        12.14         1747            0       -12.14         1747
+             0         1747    3.355e+05            0        -1747    1.678e+05
+         -2840            0            0         2840            0            0
+             0       -12.14        -1747            0        12.14        -1747
+             0         1747    1.678e+05            0        -1747    3.355e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+T:
+ [[     .                  1      .            .            .            .      ]
+ [          -1      .            .            .            .            .      ]
+ [     .            .                  1      .            .            .      ]
+ [     .            .            .            .                  1      .      ]
+ [     .            .            .                 -1      .            .      ]
+ [     .            .            .            .            .                  1]]
+kglobal: [[   2.125e+06      .         -7.773e+06   -2.125e+06      .         -7.773e+06]
+ [     .          4.973e+08      .            .         -4.973e+08      .      ]
+ [  -7.773e+06      .          3.791e+07    7.773e+06      .          1.895e+07]
+ [  -2.125e+06      .          7.773e+06    2.125e+06      .          7.773e+06]
+ [     .         -4.973e+08      .            .          4.973e+08      .      ]
+ [  -7.773e+06      .          1.895e+07    7.773e+06      .          3.791e+07]]
+Saved member 1 global stiffness matrix to example_6_3\member_1_global_stiffness_SI.csv
+Freedom Map Indices for Member 2:
+[0, 1, 2, 3, 4, 5]
+Calculating local stiffness matrix for element 2 with length 6.095999999999999, E=199947961501.8826, Ixx=0.0003467207775248, A=0.018193512, hinges=[0, 0]
+Local stiffness matrix in units for element 2:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          3408            0            0        -3408            0            0
+             0        20.97         2516            0       -20.97         2516
+             0         2516    4.026e+05            0        -2516    2.013e+05
+         -3408            0            0         3408            0            0
+             0       -20.97        -2516            0        20.97        -2516
+             0         2516    2.013e+05            0        -2516    4.026e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+T:
+ [[         0.8         -0.6      .            .            .            .      ]
+ [         0.6          0.8      .            .            .            .      ]
+ [     .            .                  1      .            .            .      ]
+ [     .            .            .                0.8         -0.6      .      ]
+ [     .            .            .                0.6          0.8      .      ]
+ [     .            .            .            .            .                  1]]
+kglobal: [[   3.832e+08   -2.847e+08    6.716e+06   -3.832e+08    2.847e+08    6.716e+06]
+ [  -2.847e+08    2.172e+08    8.955e+06    2.847e+08   -2.172e+08    8.955e+06]
+ [   6.716e+06    8.955e+06    4.549e+07   -6.716e+06   -8.955e+06    2.274e+07]
+ [  -3.832e+08    2.847e+08   -6.716e+06    3.832e+08   -2.847e+08   -6.716e+06]
+ [   2.847e+08   -2.172e+08   -8.955e+06   -2.847e+08    2.172e+08   -8.955e+06]
+ [   6.716e+06    8.955e+06    2.274e+07   -6.716e+06   -8.955e+06    4.549e+07]]
+Saved member 2 global stiffness matrix to example_6_3\member_2_global_stiffness_SI.csv
+Freedom Map Indices for Member 3:
+[9, 10, 11, 3, 4, 5]
+Local stiffness matrix in units for element 3:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          5679            0            0        -5679            0            0
+             0        97.08         6990            0       -97.08         6990
+             0         6990     6.71e+05            0        -6990    3.355e+05
+         -5679            0            0         5679            0            0
+             0       -97.08        -6990            0        97.08        -6990
+             0         6990    3.355e+05            0        -6990     6.71e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+T:
+ [[     .                  1      .            .            .            .      ]
+ [          -1      .            .            .            .            .      ]
+ [     .            .                  1      .            .            .      ]
+ [     .            .            .            .                  1      .      ]
+ [     .            .            .                 -1      .            .      ]
+ [     .            .            .            .            .                  1]]
+kglobal: [[     1.7e+07      .         -3.109e+07     -1.7e+07      .         -3.109e+07]
+ [     .          9.946e+08      .            .         -9.946e+08      .      ]
+ [  -3.109e+07      .          7.582e+07    3.109e+07      .          3.791e+07]
+ [    -1.7e+07      .          3.109e+07      1.7e+07      .          3.109e+07]
+ [     .         -9.946e+08      .            .          9.946e+08      .      ]
+ [  -3.109e+07      .          3.791e+07    3.109e+07      .          7.582e+07]]
+Saved member 3 global stiffness matrix to example_6_3\member_3_global_stiffness_SI.csv
+K:
+ [[   3.854e+08   -2.847e+08    1.449e+07   -3.832e+08    2.847e+08    6.716e+06   -2.125e+06      .          7.773e+06
+       .            .            .      ]
+ [  -2.847e+08    7.145e+08    8.955e+06    2.847e+08   -2.172e+08    8.955e+06      .         -4.973e+08      .
+       .            .            .      ]
+ [   1.449e+07    8.955e+06     8.34e+07   -6.716e+06   -8.955e+06    2.274e+07   -7.773e+06      .          1.895e+07
+       .            .            .      ]
+ [  -3.832e+08    2.847e+08   -6.716e+06    4.002e+08   -2.847e+08    2.438e+07      .            .            .
+      -1.7e+07      .          3.109e+07]
+ [   2.847e+08   -2.172e+08   -8.955e+06   -2.847e+08    1.212e+09   -8.955e+06      .            .            .
+       .         -9.946e+08      .      ]
+ [   6.716e+06    8.955e+06    2.274e+07    2.438e+07   -8.955e+06    1.213e+08      .            .            .
+    -3.109e+07      .          3.791e+07]
+ [  -2.125e+06      .         -7.773e+06      .            .            .          2.125e+06      .         -7.773e+06
+       .            .            .      ]
+ [     .         -4.973e+08      .            .            .            .            .          4.973e+08      .
+       .            .            .      ]
+ [   7.773e+06      .          1.895e+07      .            .            .         -7.773e+06      .          3.791e+07
+       .            .            .      ]
+ [     .            .            .           -1.7e+07      .         -3.109e+07      .            .            .
+       1.7e+07      .         -3.109e+07]
+ [     .            .            .            .         -9.946e+08      .            .            .            .
+       .          9.946e+08      .      ]
+ [     .            .            .          3.109e+07      .          3.791e+07      .            .            .
+    -3.109e+07      .          7.582e+07]]
+(12, 12)
+Saved KSTRUCT to example_6_3\KSTRUCT.csv
+
+Nodal Force Vector for Node 2 under 'D'
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         100             klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector for Node 3 under 'D'
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         50              klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Nodal Force Vector:
+ [   4.448e+05      .            .          2.224e+05      .            .            .            .            .
+      .            .            .      ]
+Processing 0 loads on element 1:
+  Final FEF for element 1: [     .            .            .            .            .            .      ]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Global fixed end forces (ret_val): [[     .            .            .            .            .            .      ]]
+Processing 2 loads on element 2:
+Element 2 load 0: AXIAL_LINE (case 'D', factor=1.0)
+    Raw FEF: [-80067.98907468903, 0, 0, -80067.98907468903, 0, 0]
+    Factored: [  -8.007e+04      .            .         -8.007e+04      .            .      ]
+Vertical reactions - SI: Riy=106757.319 N, Rjy=106757.319 N
+Vertical reactions - Display: Riy=24.000 klbf, Rjy=24.000 klbf
+Moments - SI: Miz=108465.436 N*m, Mjz=-108465.436 N*m
+Moments - Display: Miz=960.000 klbf*in, Mjz=-960.000 klbf*in
+FEF distributed load results for Load Case D:
+ [0, 106757.31876625221, 108465.43586651243, 0, 106757.31876625189, -108465.43586651146]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         960             klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         -960            klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Element 2 load 1: LINE (case 'D', factor=1.0)
+    Raw FEF: [0, 106757.31876625221, 108465.43586651243, 0, 106757.31876625189, -108465.43586651146]
+    Factored: [     .          1.068e+05    1.085e+05      .          1.068e+05   -1.085e+05]
+  Final FEF for element 2: [  -8.007e+04    1.068e+05    1.085e+05   -8.007e+04    1.068e+05   -1.085e+05]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         -18             klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         960             klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         -18             klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         -960            klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Global fixed end forces (ret_val): [[   1.019e-10    1.334e+05    1.085e+05      .          1.334e+05   -1.085e+05]]
+Processing 0 loads on element 3:
+  Final FEF for element 3: [     .            .            .            .            .            .      ]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Global fixed end forces (ret_val): [[     .            .            .            .            .            .      ]]
+Member Fixed End Force Vector:
+ [   1.019e-10    1.334e+05    1.085e+05      .          1.334e+05   -1.085e+05      .            .            .
+      .            .            .      ]
+(12,)
+Kff Partition:
+ [[   3.854e+08   -2.847e+08    1.449e+07   -3.832e+08    2.847e+08    6.716e+06]
+ [  -2.847e+08    7.145e+08    8.955e+06    2.847e+08   -2.172e+08    8.955e+06]
+ [   1.449e+07    8.955e+06     8.34e+07   -6.716e+06   -8.955e+06    2.274e+07]
+ [  -3.832e+08    2.847e+08   -6.716e+06    4.002e+08   -2.847e+08    2.438e+07]
+ [   2.847e+08   -2.172e+08   -8.955e+06   -2.847e+08    1.212e+09   -8.955e+06]
+ [   6.716e+06    8.955e+06    2.274e+07    2.438e+07   -8.955e+06    1.213e+08]]
+(6, 6)
+FGf Partition:
+ [   4.448e+05      .            .          2.224e+05      .            .      ]
+(6,)
+PFf Partition:
+ [   1.019e-10    1.334e+05    1.085e+05      .          1.334e+05   -1.085e+05]
+(6,)
+Displacement Vector U:
+ [     0.06031      0.00071    -0.003543      0.05812   -0.0006233     -0.01356]
+(6,)
+node 1    Ux: 0.0000E+00 -- Uy: 0.0000E+00 -- Rz: 0.0000E+00
+node 2    Ux: 6.0311E-02 -- Uy: 7.0998E-04 -- Rz: -3.5434E-03
+
+Node Displacement Vector for Node 2 under 'D'
+DOF        Value           Unit     Description         
+-------------------------------------------------------
+Ux         2.37445         in       X-Translation       
+Uy         0.0279519       in       Y-Translation       
+θz         -0.00354344     rad      Z-Rotation          
+-------------------------------------------------------
+node 3    Ux: 5.8123E-02 -- Uy: -6.2334E-04 -- Rz: -1.3559E-02
+node 4    Ux: 0.0000E+00 -- Uy: 0.0000E+00 -- Rz: 0.0000E+00
+DEBUG: Member 2 nodal displacements:
+  Node 2: [np.float64(0.06031115082551146), np.float64(0.0007099783245785851), np.float64(-0.0035434382303957427)]
+  Node 3: [np.float64(0.058122924900669976), np.float64(-0.0006233383919297892), np.float64(-0.013558841203440667)]
+Global displacements for element 1 under load combination 'D':
+[     .            .            .            0.06031      0.00071    -0.003543]
+Processing 0 loads on element 1:
+  Final FEF for element 1: [     .            .            .            .            .            .      ]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Global fixed end forces (ret_val): [[     .            .            .            .            .            .      ]]
+Global fixed end forces for element 1 under load combination 'D':
+[     .            .            .            .            .            .      ]
+Calculating global displacements for element 1 under load combination 'D'
+Local stiffness matrix in units for element 1:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          2840            0            0        -2840            0            0
+             0        12.14         1747            0       -12.14         1747
+             0         1747    3.355e+05            0        -1747    1.678e+05
+         -2840            0            0         2840            0            0
+             0       -12.14        -1747            0        12.14        -1747
+             0         1747    1.678e+05            0        -1747    3.355e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+T:
+ [[     .                  1      .            .            .            .      ]
+ [          -1      .            .            .            .            .      ]
+ [     .            .                  1      .            .            .      ]
+ [     .            .            .            .                  1      .      ]
+ [     .            .            .                 -1      .            .      ]
+ [     .            .            .            .            .                  1]]
+kglobal: [[   2.125e+06      .         -7.773e+06   -2.125e+06      .         -7.773e+06]
+ [     .          4.973e+08      .            .         -4.973e+08      .      ]
+ [  -7.773e+06      .          3.791e+07    7.773e+06      .          1.895e+07]
+ [  -2.125e+06      .          7.773e+06    2.125e+06      .          7.773e+06]
+ [     .         -4.973e+08      .            .          4.973e+08      .      ]
+ [  -7.773e+06      .          1.895e+07    7.773e+06      .          3.791e+07]]
+Global stiffness matrix for element 1:
+[[   2.125e+06      .         -7.773e+06   -2.125e+06      .         -7.773e+06]
+ [     .          4.973e+08      .            .         -4.973e+08      .      ]
+ [  -7.773e+06      .          3.791e+07    7.773e+06      .          1.895e+07]
+ [  -2.125e+06      .          7.773e+06    2.125e+06      .          7.773e+06]
+ [     .         -4.973e+08      .            .          4.973e+08      .      ]
+ [  -7.773e+06      .          1.895e+07    7.773e+06      .          3.791e+07]]
+
+Stiffness matrix in N, m units:
+
+NUMERIC VALUES:
+     2.125e+06            0   -7.773e+06   -2.125e+06            0   -7.773e+06
+             0    4.973e+08            0            0   -4.973e+08            0
+    -7.773e+06            0    3.791e+07    7.773e+06            0    1.895e+07
+    -2.125e+06            0    7.773e+06    2.125e+06            0    7.773e+06
+             0   -4.973e+08            0            0    4.973e+08            0
+    -7.773e+06            0    1.895e+07    7.773e+06            0    3.791e+07
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    N/m         -           -           N/m         -           -           
+Fy_i    -           N/m         N           -           N/m         N           
+Mz_i    -           N           N·m         -           N           N·m         
+Fx_j    N/m         -           -           N/m         -           -           
+Fy_j    -           N/m         N           -           N/m         N           
+Mz_j    -           N           N·m         -           N           N·m         
+Global end forces for element 1 under load combination 'D':
+[  -1.006e+05   -3.531e+05    4.016e+05    1.006e+05    3.531e+05    3.345e+05]
+End forces in local coordinates for element 1 under load combination 'D':
+Not calculated
+Global displacements for element 1 under load combination 'D':
+[     .            .            .            0.06031      0.00071    -0.003543]
+Local displacements for element 1 under load combination 'D':
+[[     .            .            .            0.00071     -0.06031    -0.003543]]Processing 0 loads on element 1:
+
+  Final FEF for element 1: [     .            .            .            .            .            .      ]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Local stiffness matrix in units for element 1:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          2840            0            0        -2840            0            0
+             0        12.14         1747            0       -12.14         1747
+             0         1747    3.355e+05            0        -1747    1.678e+05
+         -2840            0            0         2840            0            0
+             0       -12.14        -1747            0        12.14        -1747
+             0         1747    1.678e+05            0        -1747    3.355e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+Member 1 Fixed End Forces:
+[  -1.006e+05   -3.531e+05    4.016e+05    1.006e+05    3.531e+05    3.345e+05]
+Global displacements for element 2 under load combination 'D':
+[     0.06031      0.00071    -0.003543      0.05812   -0.0006233     -0.01356]Processing 2 loads on element 2:
+
+Element 2 load 0: AXIAL_LINE (case 'D', factor=1.0)
+    Raw FEF: [-80067.98907468903, 0, 0, -80067.98907468903, 0, 0]
+    Factored: [  -8.007e+04      .            .         -8.007e+04      .            .      ]
+Vertical reactions - SI: Riy=106757.319 N, Rjy=106757.319 N
+Vertical reactions - Display: Riy=24.000 klbf, Rjy=24.000 klbf
+Moments - SI: Miz=108465.436 N*m, Mjz=-108465.436 N*m
+Moments - Display: Miz=960.000 klbf*in, Mjz=-960.000 klbf*in
+FEF distributed load results for Load Case D:
+ [0, 106757.31876625221, 108465.43586651243, 0, 106757.31876625189, -108465.43586651146]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         960             klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         -960            klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Element 2 load 1: LINE (case 'D', factor=1.0)
+    Raw FEF: [0, 106757.31876625221, 108465.43586651243, 0, 106757.31876625189, -108465.43586651146]
+    Factored: [     .          1.068e+05    1.085e+05      .          1.068e+05   -1.085e+05]
+  Final FEF for element 2: [  -8.007e+04    1.068e+05    1.085e+05   -8.007e+04    1.068e+05   -1.085e+05]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         -18             klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         960             klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         -18             klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         -960            klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Global fixed end forces (ret_val): [[   1.019e-10    1.334e+05    1.085e+05      .          1.334e+05   -1.085e+05]]
+Global fixed end forces for element 2 under load combination 'D':
+[   1.019e-10    1.334e+05    1.085e+05      .          1.334e+05   -1.085e+05]
+Calculating global displacements for element 2 under load combination 'D'
+Calculating local stiffness matrix for element 2 with length 6.095999999999999, E=199947961501.8826, Ixx=0.0003467207775248, A=0.018193512, hinges=[0, 0]
+Local stiffness matrix in units for element 2:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          3408            0            0        -3408            0            0
+             0        20.97         2516            0       -20.97         2516
+             0         2516    4.026e+05            0        -2516    2.013e+05
+         -3408            0            0         3408            0            0
+             0       -20.97        -2516            0        20.97        -2516
+             0         2516    2.013e+05            0        -2516    4.026e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+T:
+ [[         0.8         -0.6      .            .            .            .      ]
+ [         0.6          0.8      .            .            .            .      ]
+ [     .            .                  1      .            .            .      ]
+ [     .            .            .                0.8         -0.6      .      ]
+ [     .            .            .                0.6          0.8      .      ]
+ [     .            .            .            .            .                  1]]
+kglobal: [[   3.832e+08   -2.847e+08    6.716e+06   -3.832e+08    2.847e+08    6.716e+06]
+ [  -2.847e+08    2.172e+08    8.955e+06    2.847e+08   -2.172e+08    8.955e+06]
+ [   6.716e+06    8.955e+06    4.549e+07   -6.716e+06   -8.955e+06    2.274e+07]
+ [  -3.832e+08    2.847e+08   -6.716e+06    3.832e+08   -2.847e+08   -6.716e+06]
+ [   2.847e+08   -2.172e+08   -8.955e+06   -2.847e+08    2.172e+08   -8.955e+06]
+ [   6.716e+06    8.955e+06    2.274e+07   -6.716e+06   -8.955e+06    4.549e+07]]
+Global stiffness matrix for element 2:
+[[   3.832e+08   -2.847e+08    6.716e+06   -3.832e+08    2.847e+08    6.716e+06]
+ [  -2.847e+08    2.172e+08    8.955e+06    2.847e+08   -2.172e+08    8.955e+06]
+ [   6.716e+06    8.955e+06    4.549e+07   -6.716e+06   -8.955e+06    2.274e+07]
+ [  -3.832e+08    2.847e+08   -6.716e+06    3.832e+08   -2.847e+08   -6.716e+06]
+ [   2.847e+08   -2.172e+08   -8.955e+06   -2.847e+08    2.172e+08   -8.955e+06]
+ [   6.716e+06    8.955e+06    2.274e+07   -6.716e+06   -8.955e+06    4.549e+07]]
+
+Stiffness matrix in N, m units:
+
+NUMERIC VALUES:
+     3.832e+08   -2.847e+08    6.716e+06   -3.832e+08    2.847e+08    6.716e+06
+    -2.847e+08    2.172e+08    8.955e+06    2.847e+08   -2.172e+08    8.955e+06
+     6.716e+06    8.955e+06    4.549e+07   -6.716e+06   -8.955e+06    2.274e+07
+    -3.832e+08    2.847e+08   -6.716e+06    3.832e+08   -2.847e+08   -6.716e+06
+     2.847e+08   -2.172e+08   -8.955e+06   -2.847e+08    2.172e+08   -8.955e+06
+     6.716e+06    8.955e+06    2.274e+07   -6.716e+06   -8.955e+06    4.549e+07
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    N/m         -           -           N/m         -           -           
+Fy_i    -           N/m         N           -           N/m         N           
+Mz_i    -           N           N·m         -           N           N·m         
+Fx_j    N/m         -           -           N/m         -           -           
+Fy_j    -           N/m         N           -           N/m         N           
+Mz_j    -           N           N·m         -           N           N·m         
+Global end forces for element 2 under load combination 'D':
+[   3.442e+05   -4.865e+05   -4.429e+05   -3.442e+05    4.865e+05   -6.707e+05]
+End forces in local coordinates for element 2 under load combination 'D':
+Not calculated
+Global displacements for element 2 under load combination 'D':
+[     0.06031      0.00071    -0.003543      0.05812   -0.0006233     -0.01356]
+Local displacements for element 2 under load combination 'D':
+[[     0.04782      0.03675    -0.003543      0.04687      0.03438     -0.01356]]Processing 2 loads on element 2:
+
+Element 2 load 0: AXIAL_LINE (case 'D', factor=1.0)
+    Raw FEF: [-80067.98907468903, 0, 0, -80067.98907468903, 0, 0]
+    Factored: [  -8.007e+04      .            .         -8.007e+04      .            .      ]
+Vertical reactions - SI: Riy=106757.319 N, Rjy=106757.319 N
+Vertical reactions - Display: Riy=24.000 klbf, Rjy=24.000 klbf
+Moments - SI: Miz=108465.436 N*m, Mjz=-108465.436 N*m
+Moments - Display: Miz=960.000 klbf*in, Mjz=-960.000 klbf*in
+FEF distributed load results for Load Case D:
+ [0, 106757.31876625221, 108465.43586651243, 0, 106757.31876625189, -108465.43586651146]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         960             klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         -960            klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Element 2 load 1: LINE (case 'D', factor=1.0)
+    Raw FEF: [0, 106757.31876625221, 108465.43586651243, 0, 106757.31876625189, -108465.43586651146]
+    Factored: [     .          1.068e+05    1.085e+05      .          1.068e+05   -1.085e+05]
+  Final FEF for element 2: [  -8.007e+04    1.068e+05    1.085e+05   -8.007e+04    1.068e+05   -1.085e+05]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         -18             klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         960             klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         -18             klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         -960            klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Calculating local stiffness matrix for element 2 with length 6.095999999999999, E=199947961501.8826, Ixx=0.0003467207775248, A=0.018193512, hinges=[0, 0]
+Local stiffness matrix in units for element 2:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          3408            0            0        -3408            0            0
+             0        20.97         2516            0       -20.97         2516
+             0         2516    4.026e+05            0        -2516    2.013e+05
+         -3408            0            0         3408            0            0
+             0       -20.97        -2516            0        20.97        -2516
+             0         2516    2.013e+05            0        -2516    4.026e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+Member 2 Fixed End Forces:
+[   3.442e+05   -3.531e+05   -3.345e+05   -3.442e+05      6.2e+05   -7.792e+05]
+Global displacements for element 3 under load combination 'D':
+[     .            .            .            0.05812   -0.0006233     -0.01356]Processing 0 loads on element 3:
+
+  Final FEF for element 3: [     .            .            .            .            .            .      ]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Global fixed end forces (ret_val): [[     .            .            .            .            .            .      ]]
+Global fixed end forces for element 3 under load combination 'D':
+[     .            .            .            .            .            .      ]
+Calculating global displacements for element 3 under load combination 'D'
+Local stiffness matrix in units for element 3:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          5679            0            0        -5679            0            0
+             0        97.08         6990            0       -97.08         6990
+             0         6990     6.71e+05            0        -6990    3.355e+05
+         -5679            0            0         5679            0            0
+             0       -97.08        -6990            0        97.08        -6990
+             0         6990    3.355e+05            0        -6990     6.71e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+T:
+ [[     .                  1      .            .            .            .      ]
+ [          -1      .            .            .            .            .      ]
+ [     .            .                  1      .            .            .      ]
+ [     .            .            .            .                  1      .      ]
+ [     .            .            .                 -1      .            .      ]
+ [     .            .            .            .            .                  1]]
+kglobal: [[     1.7e+07      .         -3.109e+07     -1.7e+07      .         -3.109e+07]
+ [     .          9.946e+08      .            .         -9.946e+08      .      ]
+ [  -3.109e+07      .          7.582e+07    3.109e+07      .          3.791e+07]
+ [    -1.7e+07      .          3.109e+07      1.7e+07      .          3.109e+07]
+ [     .         -9.946e+08      .            .          9.946e+08      .      ]
+ [  -3.109e+07      .          3.791e+07    3.109e+07      .          7.582e+07]]
+Global stiffness matrix for element 3:
+[[     1.7e+07      .         -3.109e+07     -1.7e+07      .         -3.109e+07]
+ [     .          9.946e+08      .            .         -9.946e+08      .      ]
+ [  -3.109e+07      .          7.582e+07    3.109e+07      .          3.791e+07]
+ [    -1.7e+07      .          3.109e+07      1.7e+07      .          3.109e+07]
+ [     .         -9.946e+08      .            .          9.946e+08      .      ]
+ [  -3.109e+07      .          3.791e+07    3.109e+07      .          7.582e+07]]
+
+Stiffness matrix in N, m units:
+
+NUMERIC VALUES:
+       1.7e+07            0   -3.109e+07     -1.7e+07            0   -3.109e+07
+             0    9.946e+08            0            0   -9.946e+08            0
+    -3.109e+07            0    7.582e+07    3.109e+07            0    3.791e+07
+      -1.7e+07            0    3.109e+07      1.7e+07            0    3.109e+07
+             0   -9.946e+08            0            0    9.946e+08            0
+    -3.109e+07            0    3.791e+07    3.109e+07            0    7.582e+07
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    N/m         -           -           N/m         -           -           
+Fy_i    -           N/m         N           -           N/m         N           
+Mz_i    -           N           N·m         -           N           N·m         
+Fx_j    N/m         -           -           N/m         -           -           
+Fy_j    -           N/m         N           -           N/m         N           
+Mz_j    -           N           N·m         -           N           N·m         
+Global end forces for element 3 under load combination 'D':
+[  -5.666e+05      6.2e+05    1.293e+06    5.666e+05     -6.2e+05    7.792e+05]
+End forces in local coordinates for element 3 under load combination 'D':
+Not calculated
+Global displacements for element 3 under load combination 'D':
+[     .            .            .            0.05812   -0.0006233     -0.01356]
+Local displacements for element 3 under load combination 'D':
+[[     .            .            .         -0.0006233     -0.05812     -0.01356]]Processing 0 loads on element 3:
+
+  Final FEF for element 3: [     .            .            .            .            .            .      ]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Local stiffness matrix in units for element 3:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          5679            0            0        -5679            0            0
+             0        97.08         6990            0       -97.08         6990
+             0         6990     6.71e+05            0        -6990    3.355e+05
+         -5679            0            0         5679            0            0
+             0       -97.08        -6990            0        97.08        -6990
+             0         6990    3.355e+05            0        -6990     6.71e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+Member 3 Fixed End Forces:
+[  -5.666e+05      6.2e+05    1.293e+06    5.666e+05     -6.2e+05    7.792e+05]
+Node 1 reactions: Rx=-1.0063E+05, Ry=-3.5306E+05, Mz=4.0164E+05
+Global displacements for element 1 under load combination 'D':
+[     .            .            .            0.06031      0.00071    -0.003543]
+Processing 0 loads on element 1:
+  Final FEF for element 1: [     .            .            .            .            .            .      ]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Global fixed end forces (ret_val): [[     .            .            .            .            .            .      ]]
+Global fixed end forces for element 1 under load combination 'D':
+[     .            .            .            .            .            .      ]
+Calculating global displacements for element 1 under load combination 'D'
+Local stiffness matrix in units for element 1:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          2840            0            0        -2840            0            0
+             0        12.14         1747            0       -12.14         1747
+             0         1747    3.355e+05            0        -1747    1.678e+05
+         -2840            0            0         2840            0            0
+             0       -12.14        -1747            0        12.14        -1747
+             0         1747    1.678e+05            0        -1747    3.355e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+T:
+ [[     .                  1      .            .            .            .      ]
+ [          -1      .            .            .            .            .      ]
+ [     .            .                  1      .            .            .      ]
+ [     .            .            .            .                  1      .      ]
+ [     .            .            .                 -1      .            .      ]
+ [     .            .            .            .            .                  1]]
+kglobal: [[   2.125e+06      .         -7.773e+06   -2.125e+06      .         -7.773e+06]
+ [     .          4.973e+08      .            .         -4.973e+08      .      ]
+ [  -7.773e+06      .          3.791e+07    7.773e+06      .          1.895e+07]
+ [  -2.125e+06      .          7.773e+06    2.125e+06      .          7.773e+06]
+ [     .         -4.973e+08      .            .          4.973e+08      .      ]
+ [  -7.773e+06      .          1.895e+07    7.773e+06      .          3.791e+07]]
+Global stiffness matrix for element 1:
+[[   2.125e+06      .         -7.773e+06   -2.125e+06      .         -7.773e+06]
+ [     .          4.973e+08      .            .         -4.973e+08      .      ]
+ [  -7.773e+06      .          3.791e+07    7.773e+06      .          1.895e+07]
+ [  -2.125e+06      .          7.773e+06    2.125e+06      .          7.773e+06]
+ [     .         -4.973e+08      .            .          4.973e+08      .      ]
+ [  -7.773e+06      .          1.895e+07    7.773e+06      .          3.791e+07]]
+
+Stiffness matrix in N, m units:
+
+NUMERIC VALUES:
+     2.125e+06            0   -7.773e+06   -2.125e+06            0   -7.773e+06
+             0    4.973e+08            0            0   -4.973e+08            0
+    -7.773e+06            0    3.791e+07    7.773e+06            0    1.895e+07
+    -2.125e+06            0    7.773e+06    2.125e+06            0    7.773e+06
+             0   -4.973e+08            0            0    4.973e+08            0
+    -7.773e+06            0    1.895e+07    7.773e+06            0    3.791e+07
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    N/m         -           -           N/m         -           -           
+Fy_i    -           N/m         N           -           N/m         N           
+Mz_i    -           N           N·m         -           N           N·m         
+Fx_j    N/m         -           -           N/m         -           -           
+Fy_j    -           N/m         N           -           N/m         N           
+Mz_j    -           N           N·m         -           N           N·m         
+Global end forces for element 1 under load combination 'D':
+[  -1.006e+05   -3.531e+05    4.016e+05    1.006e+05    3.531e+05    3.345e+05]
+End forces in local coordinates for element 1 under load combination 'D':
+[[  -3.531e+05]
+ [   1.006e+05]
+ [   4.016e+05]
+ [   3.531e+05]
+ [  -1.006e+05]
+ [   3.345e+05]]
+Global displacements for element 1 under load combination 'D':
+[     .            .            .            0.06031      0.00071    -0.003543]
+Local displacements for element 1 under load combination 'D':
+[[     .            .            .            0.00071     -0.06031    -0.003543]]
+Processing 0 loads on element 1:
+  Final FEF for element 1: [     .            .            .            .            .            .      ]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Local stiffness matrix in units for element 1:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          2840            0            0        -2840            0            0
+             0        12.14         1747            0       -12.14         1747
+             0         1747    3.355e+05            0        -1747    1.678e+05
+         -2840            0            0         2840            0            0
+             0       -12.14        -1747            0        12.14        -1747
+             0         1747    1.678e+05            0        -1747    3.355e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+Member 1 Fixed End Forces:
+[  -1.006e+05   -3.531e+05    4.016e+05    1.006e+05    3.531e+05    3.345e+05]Processing 2 loads on element 2:
+Global displacements for element 2 under load combination 'D':
+[     0.06031      0.00071    -0.003543      0.05812   -0.0006233     -0.01356]
+
+Element 2 load 0: AXIAL_LINE (case 'D', factor=1.0)
+    Raw FEF: [-80067.98907468903, 0, 0, -80067.98907468903, 0, 0]
+    Factored: [  -8.007e+04      .            .         -8.007e+04      .            .      ]
+Vertical reactions - SI: Riy=106757.319 N, Rjy=106757.319 N
+Vertical reactions - Display: Riy=24.000 klbf, Rjy=24.000 klbf
+Moments - SI: Miz=108465.436 N*m, Mjz=-108465.436 N*m
+Moments - Display: Miz=960.000 klbf*in, Mjz=-960.000 klbf*in
+FEF distributed load results for Load Case D:
+ [0, 106757.31876625221, 108465.43586651243, 0, 106757.31876625189, -108465.43586651146]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         960             klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force VectorElement 2 load 1: LINE (case 'D', factor=1.0)
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         -960            klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+    Raw FEF: [0, 106757.31876625221, 108465.43586651243, 0, 106757.31876625189, -108465.43586651146]
+    Factored: [     .          1.068e+05    1.085e+05      .          1.068e+05   -1.085e+05]
+  Final FEF for element 2: [  -8.007e+04    1.068e+05    1.085e+05   -8.007e+04    1.068e+05   -1.085e+05]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         -18             klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         960             klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         -18             klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         -960            klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Global fixed end forces (ret_val): [[   1.019e-10    1.334e+05    1.085e+05      .          1.334e+05   -1.085e+05]]
+Global fixed end forces for element 2 under load combination 'D':
+[   1.019e-10    1.334e+05    1.085e+05      .          1.334e+05   -1.085e+05]
+Calculating global displacements for element 2 under load combination 'D'
+Calculating local stiffness matrix for element 2 with length 6.095999999999999, E=199947961501.8826, Ixx=0.0003467207775248, A=0.018193512, hinges=[0, 0]
+Local stiffness matrix in units for element 2:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          3408            0            0        -3408            0            0
+             0        20.97         2516            0       -20.97         2516
+             0         2516    4.026e+05            0        -2516    2.013e+05
+         -3408            0            0         3408            0            0
+             0       -20.97        -2516            0        20.97        -2516
+             0         2516    2.013e+05            0        -2516    4.026e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+T:
+ [[         0.8         -0.6      .            .            .            .      ]
+ [         0.6          0.8      .            .            .            .      ]
+ [     .            .                  1      .            .            .      ]
+ [     .            .            .                0.8         -0.6      .      ]
+ [     .            .            .                0.6          0.8      .      ]
+ [     .            .            .            .            .                  1]]
+kglobal: [[   3.832e+08   -2.847e+08    6.716e+06   -3.832e+08    2.847e+08    6.716e+06]
+ [  -2.847e+08    2.172e+08    8.955e+06    2.847e+08   -2.172e+08    8.955e+06]
+ [   6.716e+06    8.955e+06    4.549e+07   -6.716e+06   -8.955e+06    2.274e+07]
+ [  -3.832e+08    2.847e+08   -6.716e+06    3.832e+08   -2.847e+08   -6.716e+06]
+ [   2.847e+08   -2.172e+08   -8.955e+06   -2.847e+08    2.172e+08   -8.955e+06]
+ [   6.716e+06    8.955e+06    2.274e+07   -6.716e+06   -8.955e+06    4.549e+07]]
+Global stiffness matrix for element 2:
+[[   3.832e+08   -2.847e+08    6.716e+06   -3.832e+08    2.847e+08    6.716e+06]
+ [  -2.847e+08    2.172e+08    8.955e+06    2.847e+08   -2.172e+08    8.955e+06]
+ [   6.716e+06    8.955e+06    4.549e+07   -6.716e+06   -8.955e+06    2.274e+07]
+ [  -3.832e+08    2.847e+08   -6.716e+06    3.832e+08   -2.847e+08   -6.716e+06]
+ [   2.847e+08   -2.172e+08   -8.955e+06   -2.847e+08    2.172e+08   -8.955e+06]
+ [   6.716e+06    8.955e+06    2.274e+07   -6.716e+06   -8.955e+06    4.549e+07]]
+
+Stiffness matrix in N, m units:
+
+NUMERIC VALUES:
+     3.832e+08   -2.847e+08    6.716e+06   -3.832e+08    2.847e+08    6.716e+06
+    -2.847e+08    2.172e+08    8.955e+06    2.847e+08   -2.172e+08    8.955e+06
+     6.716e+06    8.955e+06    4.549e+07   -6.716e+06   -8.955e+06    2.274e+07
+    -3.832e+08    2.847e+08   -6.716e+06    3.832e+08   -2.847e+08   -6.716e+06
+     2.847e+08   -2.172e+08   -8.955e+06   -2.847e+08    2.172e+08   -8.955e+06
+     6.716e+06    8.955e+06    2.274e+07   -6.716e+06   -8.955e+06    4.549e+07
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    N/m         -           -           N/m         -           -           
+Fy_i    -           N/m         N           -           N/m         N           
+Mz_i    -           N           N·m         -           N           N·m         
+Fx_j    N/m         -           -           N/m         -           -           
+Fy_j    -           N/m         N           -           N/m         N           
+Mz_j    -           N           N·m         -           N           N·m         
+Global end forces for element 2 under load combination 'D':
+[   3.442e+05   -4.865e+05   -4.429e+05   -3.442e+05    4.865e+05   -6.707e+05]
+End forces in local coordinates for element 2 under load combination 'D':
+[[   4.872e+05]
+ [  -7.593e+04]
+ [  -3.345e+05]
+ [  -6.473e+05]
+ [   2.894e+05]
+ [  -7.792e+05]]
+Global displacements for element 2 under load combination 'D':
+[     0.06031      0.00071    -0.003543      0.05812   -0.0006233     -0.01356]
+Local displacements for element 2 under load combination 'D':
+[[     0.04782      0.03675    -0.003543      0.04687      0.03438     -0.01356]]Processing 2 loads on element 2:
+
+Element 2 load 0: AXIAL_LINE (case 'D', factor=1.0)
+    Raw FEF: [-80067.98907468903, 0, 0, -80067.98907468903, 0, 0]
+    Factored: [  -8.007e+04      .            .         -8.007e+04      .            .      ]
+Vertical reactions - SI: Riy=106757.319 N, Rjy=106757.319 N
+Vertical reactions - Display: Riy=24.000 klbf, Rjy=24.000 klbf
+Moments - SI: Miz=108465.436 N*m, Mjz=-108465.436 N*m
+Moments - Display: Miz=960.000 klbf*in, Mjz=-960.000 klbf*in
+FEF distributed load results for Load Case D:
+ [0, 106757.31876625221, 108465.43586651243, 0, 106757.31876625189, -108465.43586651146]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         960             klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force VectorElement 2 load 1: LINE (case 'D', factor=1.0)
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         -960            klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+    Raw FEF: [0, 106757.31876625221, 108465.43586651243, 0, 106757.31876625189, -108465.43586651146]
+    Factored: [     .          1.068e+05    1.085e+05      .          1.068e+05   -1.085e+05]
+  Final FEF for element 2: [  -8.007e+04    1.068e+05    1.085e+05   -8.007e+04    1.068e+05   -1.085e+05]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         -18             klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         960             klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         -18             klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         -960            klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Calculating local stiffness matrix for element 2 with length 6.095999999999999, E=199947961501.8826, Ixx=0.0003467207775248, A=0.018193512, hinges=[0, 0]
+Local stiffness matrix in units for element 2:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          3408            0            0        -3408            0            0
+             0        20.97         2516            0       -20.97         2516
+             0         2516    4.026e+05            0        -2516    2.013e+05
+         -3408            0            0         3408            0            0
+             0       -20.97        -2516            0        20.97        -2516
+             0         2516    2.013e+05            0        -2516    4.026e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+Member 2 Fixed End Forces:
+[   3.442e+05   -3.531e+05   -3.345e+05   -3.442e+05      6.2e+05   -7.792e+05]
+Global displacements for element 3 under load combination 'D':
+[     .            .            .            0.05812   -0.0006233     -0.01356]
+Processing 0 loads on element 3:
+  Final FEF for element 3: [     .            .            .            .            .            .      ]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Global fixed end forces (ret_val): [[     .            .            .            .            .            .      ]]
+Global fixed end forces for element 3 under load combination 'D':
+[     .            .            .            .            .            .      ]
+Calculating global displacements for element 3 under load combination 'D'
+Local stiffness matrix in units for element 3:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          5679            0            0        -5679            0            0
+             0        97.08         6990            0       -97.08         6990
+             0         6990     6.71e+05            0        -6990    3.355e+05
+         -5679            0            0         5679            0            0
+             0       -97.08        -6990            0        97.08        -6990
+             0         6990    3.355e+05            0        -6990     6.71e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+T:
+ [[     .                  1      .            .            .            .      ]
+ [          -1      .            .            .            .            .      ]
+ [     .            .                  1      .            .            .      ]
+ [     .            .            .            .                  1      .      ]
+ [     .            .            .                 -1      .            .      ]
+ [     .            .            .            .            .                  1]]
+kglobal: [[     1.7e+07      .         -3.109e+07     -1.7e+07      .         -3.109e+07]
+ [     .          9.946e+08      .            .         -9.946e+08      .      ]
+ [  -3.109e+07      .          7.582e+07    3.109e+07      .          3.791e+07]
+ [    -1.7e+07      .          3.109e+07      1.7e+07      .          3.109e+07]
+ [     .         -9.946e+08      .            .          9.946e+08      .      ]
+ [  -3.109e+07      .          3.791e+07    3.109e+07      .          7.582e+07]]
+Global stiffness matrix for element 3:
+[[     1.7e+07      .         -3.109e+07     -1.7e+07      .         -3.109e+07]
+ [     .          9.946e+08      .            .         -9.946e+08      .      ]
+ [  -3.109e+07      .          7.582e+07    3.109e+07      .          3.791e+07]
+ [    -1.7e+07      .          3.109e+07      1.7e+07      .          3.109e+07]
+ [     .         -9.946e+08      .            .          9.946e+08      .      ]
+ [  -3.109e+07      .          3.791e+07    3.109e+07      .          7.582e+07]]
+
+Stiffness matrix in N, m units:
+
+NUMERIC VALUES:
+       1.7e+07            0   -3.109e+07     -1.7e+07            0   -3.109e+07
+             0    9.946e+08            0            0   -9.946e+08            0
+    -3.109e+07            0    7.582e+07    3.109e+07            0    3.791e+07
+      -1.7e+07            0    3.109e+07      1.7e+07            0    3.109e+07
+             0   -9.946e+08            0            0    9.946e+08            0
+    -3.109e+07            0    3.791e+07    3.109e+07            0    7.582e+07
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    N/m         -           -           N/m         -           -           
+Fy_i    -           N/m         N           -           N/m         N           
+Mz_i    -           N           N·m         -           N           N·m         
+Fx_j    N/m         -           -           N/m         -           -           
+Fy_j    -           N/m         N           -           N/m         N           
+Mz_j    -           N           N·m         -           N           N·m         
+Global end forces for element 3 under load combination 'D':
+[  -5.666e+05      6.2e+05    1.293e+06    5.666e+05     -6.2e+05    7.792e+05]
+End forces in local coordinates for element 3 under load combination 'D':
+[[     6.2e+05]
+ [   5.666e+05]
+ [   1.293e+06]
+ [    -6.2e+05]
+ [  -5.666e+05]
+ [   7.792e+05]]
+Global displacements for element 3 under load combination 'D':
+[     .            .            .            0.05812   -0.0006233     -0.01356]
+Local displacements for element 3 under load combination 'D':
+[[     .            .            .         -0.0006233     -0.05812     -0.01356]]Processing 0 loads on element 3:
+
+  Final FEF for element 3: [     .            .            .            .            .            .      ]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Local stiffness matrix in units for element 3:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          5679            0            0        -5679            0            0
+             0        97.08         6990            0       -97.08         6990
+             0         6990     6.71e+05            0        -6990    3.355e+05
+         -5679            0            0         5679            0            0
+             0       -97.08        -6990            0        97.08        -6990
+             0         6990    3.355e+05            0        -6990     6.71e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+Member 3 Fixed End Forces:
+[  -5.666e+05      6.2e+05    1.293e+06    5.666e+05     -6.2e+05    7.792e+05]
+Node 2 reactions: Rx=-1.8626E-09, Ry=3.2596E-09, Mz=-1.7462E-10
+Processing 0 loads on element 1:Global displacements for element 1 under load combination 'D':
+[     .            .            .            0.06031      0.00071    -0.003543]
+
+  Final FEF for element 1: [     .            .            .            .            .            .      ]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Global fixed end forces (ret_val): [[     .            .            .            .            .            .      ]]
+Global fixed end forces for element 1 under load combination 'D':
+[     .            .            .            .            .            .      ]
+Calculating global displacements for element 1 under load combination 'D'
+Local stiffness matrix in units for element 1:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          2840            0            0        -2840            0            0
+             0        12.14         1747            0       -12.14         1747
+             0         1747    3.355e+05            0        -1747    1.678e+05
+         -2840            0            0         2840            0            0
+             0       -12.14        -1747            0        12.14        -1747
+             0         1747    1.678e+05            0        -1747    3.355e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+T:
+ [[     .                  1      .            .            .            .      ]
+ [          -1      .            .            .            .            .      ]
+ [     .            .                  1      .            .            .      ]
+ [     .            .            .            .                  1      .      ]
+ [     .            .            .                 -1      .            .      ]
+ [     .            .            .            .            .                  1]]
+kglobal: [[   2.125e+06      .         -7.773e+06   -2.125e+06      .         -7.773e+06]
+ [     .          4.973e+08      .            .         -4.973e+08      .      ]
+ [  -7.773e+06      .          3.791e+07    7.773e+06      .          1.895e+07]
+ [  -2.125e+06      .          7.773e+06    2.125e+06      .          7.773e+06]
+ [     .         -4.973e+08      .            .          4.973e+08      .      ]
+ [  -7.773e+06      .          1.895e+07    7.773e+06      .          3.791e+07]]
+Global stiffness matrix for element 1:
+[[   2.125e+06      .         -7.773e+06   -2.125e+06      .         -7.773e+06]
+ [     .          4.973e+08      .            .         -4.973e+08      .      ]
+ [  -7.773e+06      .          3.791e+07    7.773e+06      .          1.895e+07]
+ [  -2.125e+06      .          7.773e+06    2.125e+06      .          7.773e+06]
+ [     .         -4.973e+08      .            .          4.973e+08      .      ]
+ [  -7.773e+06      .          1.895e+07    7.773e+06      .          3.791e+07]]
+
+Stiffness matrix in N, m units:
+
+NUMERIC VALUES:
+     2.125e+06            0   -7.773e+06   -2.125e+06            0   -7.773e+06
+             0    4.973e+08            0            0   -4.973e+08            0
+    -7.773e+06            0    3.791e+07    7.773e+06            0    1.895e+07
+    -2.125e+06            0    7.773e+06    2.125e+06            0    7.773e+06
+             0   -4.973e+08            0            0    4.973e+08            0
+    -7.773e+06            0    1.895e+07    7.773e+06            0    3.791e+07
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    N/m         -           -           N/m         -           -           
+Fy_i    -           N/m         N           -           N/m         N           
+Mz_i    -           N           N·m         -           N           N·m         
+Fx_j    N/m         -           -           N/m         -           -           
+Fy_j    -           N/m         N           -           N/m         N           
+Mz_j    -           N           N·m         -           N           N·m         
+Global end forces for element 1 under load combination 'D':
+[  -1.006e+05   -3.531e+05    4.016e+05    1.006e+05    3.531e+05    3.345e+05]
+End forces in local coordinates for element 1 under load combination 'D':
+[[  -3.531e+05]
+ [   1.006e+05]
+ [   4.016e+05]
+ [   3.531e+05]
+ [  -1.006e+05]
+ [   3.345e+05]]
+Global displacements for element 1 under load combination 'D':
+[     .            .            .            0.06031      0.00071    -0.003543]
+Local displacements for element 1 under load combination 'D':
+[[     .            .            .            0.00071     -0.06031    -0.003543]]
+Processing 0 loads on element 1:
+  Final FEF for element 1: [     .            .            .            .            .            .      ]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Local stiffness matrix in units for element 1:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          2840            0            0        -2840            0            0
+             0        12.14         1747            0       -12.14         1747
+             0         1747    3.355e+05            0        -1747    1.678e+05
+         -2840            0            0         2840            0            0
+             0       -12.14        -1747            0        12.14        -1747
+             0         1747    1.678e+05            0        -1747    3.355e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+Member 1 Fixed End Forces:
+[  -1.006e+05   -3.531e+05    4.016e+05    1.006e+05    3.531e+05    3.345e+05]
+Processing 2 loads on element 2:Global displacements for element 2 under load combination 'D':
+[     0.06031      0.00071    -0.003543      0.05812   -0.0006233     -0.01356]
+
+Element 2 load 0: AXIAL_LINE (case 'D', factor=1.0)
+    Raw FEF: [-80067.98907468903, 0, 0, -80067.98907468903, 0, 0]
+    Factored: [  -8.007e+04      .            .         -8.007e+04      .            .      ]
+Vertical reactions - SI: Riy=106757.319 N, Rjy=106757.319 N
+Vertical reactions - Display: Riy=24.000 klbf, Rjy=24.000 klbf
+Moments - SI: Miz=108465.436 N*m, Mjz=-108465.436 N*m
+Moments - Display: Miz=960.000 klbf*in, Mjz=-960.000 klbf*in
+FEF distributed load results for Load Case D:
+ [0, 106757.31876625221, 108465.43586651243, 0, 106757.31876625189, -108465.43586651146]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         960             klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         -960            klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Element 2 load 1: LINE (case 'D', factor=1.0)
+    Raw FEF: [0, 106757.31876625221, 108465.43586651243, 0, 106757.31876625189, -108465.43586651146]
+    Factored: [     .          1.068e+05    1.085e+05      .          1.068e+05   -1.085e+05]
+  Final FEF for element 2: [  -8.007e+04    1.068e+05    1.085e+05   -8.007e+04    1.068e+05   -1.085e+05]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         -18             klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         960             klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         -18             klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         -960            klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Global fixed end forces (ret_val): [[   1.019e-10    1.334e+05    1.085e+05      .          1.334e+05   -1.085e+05]]
+Global fixed end forces for element 2 under load combination 'D':
+[   1.019e-10    1.334e+05    1.085e+05      .          1.334e+05   -1.085e+05]
+Calculating global displacements for element 2 under load combination 'D'
+Calculating local stiffness matrix for element 2 with length 6.095999999999999, E=199947961501.8826, Ixx=0.0003467207775248, A=0.018193512, hinges=[0, 0]
+Local stiffness matrix in units for element 2:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          3408            0            0        -3408            0            0
+             0        20.97         2516            0       -20.97         2516
+             0         2516    4.026e+05            0        -2516    2.013e+05
+         -3408            0            0         3408            0            0
+             0       -20.97        -2516            0        20.97        -2516
+             0         2516    2.013e+05            0        -2516    4.026e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+T:
+ [[         0.8         -0.6      .            .            .            .      ]
+ [         0.6          0.8      .            .            .            .      ]
+ [     .            .                  1      .            .            .      ]
+ [     .            .            .                0.8         -0.6      .      ]
+ [     .            .            .                0.6          0.8      .      ]
+ [     .            .            .            .            .                  1]]
+kglobal: [[   3.832e+08   -2.847e+08    6.716e+06   -3.832e+08    2.847e+08    6.716e+06]
+ [  -2.847e+08    2.172e+08    8.955e+06    2.847e+08   -2.172e+08    8.955e+06]
+ [   6.716e+06    8.955e+06    4.549e+07   -6.716e+06   -8.955e+06    2.274e+07]
+ [  -3.832e+08    2.847e+08   -6.716e+06    3.832e+08   -2.847e+08   -6.716e+06]
+ [   2.847e+08   -2.172e+08   -8.955e+06   -2.847e+08    2.172e+08   -8.955e+06]
+ [   6.716e+06    8.955e+06    2.274e+07   -6.716e+06   -8.955e+06    4.549e+07]]
+Global stiffness matrix for element 2:
+[[   3.832e+08   -2.847e+08    6.716e+06   -3.832e+08    2.847e+08    6.716e+06]
+ [  -2.847e+08    2.172e+08    8.955e+06    2.847e+08   -2.172e+08    8.955e+06]
+ [   6.716e+06    8.955e+06    4.549e+07   -6.716e+06   -8.955e+06    2.274e+07]
+ [  -3.832e+08    2.847e+08   -6.716e+06    3.832e+08   -2.847e+08   -6.716e+06]
+ [   2.847e+08   -2.172e+08   -8.955e+06   -2.847e+08    2.172e+08   -8.955e+06]
+ [   6.716e+06    8.955e+06    2.274e+07   -6.716e+06   -8.955e+06    4.549e+07]]
+
+Stiffness matrix in N, m units:
+
+NUMERIC VALUES:
+     3.832e+08   -2.847e+08    6.716e+06   -3.832e+08    2.847e+08    6.716e+06
+    -2.847e+08    2.172e+08    8.955e+06    2.847e+08   -2.172e+08    8.955e+06
+     6.716e+06    8.955e+06    4.549e+07   -6.716e+06   -8.955e+06    2.274e+07
+    -3.832e+08    2.847e+08   -6.716e+06    3.832e+08   -2.847e+08   -6.716e+06
+     2.847e+08   -2.172e+08   -8.955e+06   -2.847e+08    2.172e+08   -8.955e+06
+     6.716e+06    8.955e+06    2.274e+07   -6.716e+06   -8.955e+06    4.549e+07
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    N/m         -           -           N/m         -           -           
+Fy_i    -           N/m         N           -           N/m         N           
+Mz_i    -           N           N·m         -           N           N·m         
+Fx_j    N/m         -           -           N/m         -           -           
+Fy_j    -           N/m         N           -           N/m         N           
+Mz_j    -           N           N·m         -           N           N·m         
+Global end forces for element 2 under load combination 'D':
+[   3.442e+05   -4.865e+05   -4.429e+05   -3.442e+05    4.865e+05   -6.707e+05]
+End forces in local coordinates for element 2 under load combination 'D':
+[[   4.872e+05]
+ [  -7.593e+04]
+ [  -3.345e+05]
+ [  -6.473e+05]
+ [   2.894e+05]
+ [  -7.792e+05]]
+Global displacements for element 2 under load combination 'D':
+[     0.06031      0.00071    -0.003543      0.05812   -0.0006233     -0.01356]
+Local displacements for element 2 under load combination 'D':
+[[     0.04782      0.03675    -0.003543      0.04687      0.03438     -0.01356]]Processing 2 loads on element 2:
+
+Element 2 load 0: AXIAL_LINE (case 'D', factor=1.0)
+    Raw FEF: [-80067.98907468903, 0, 0, -80067.98907468903, 0, 0]
+    Factored: [  -8.007e+04      .            .         -8.007e+04      .            .      ]
+Vertical reactions - SI: Riy=106757.319 N, Rjy=106757.319 N
+Vertical reactions - Display: Riy=24.000 klbf, Rjy=24.000 klbf
+Moments - SI: Miz=108465.436 N*m, Mjz=-108465.436 N*m
+Moments - Display: Miz=960.000 klbf*in, Mjz=-960.000 klbf*in
+FEF distributed load results for Load Case D:
+ [0, 106757.31876625221, 108465.43586651243, 0, 106757.31876625189, -108465.43586651146]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         960             klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         -960            klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Element 2 load 1: LINE (case 'D', factor=1.0)
+    Raw FEF: [0, 106757.31876625221, 108465.43586651243, 0, 106757.31876625189, -108465.43586651146]
+    Factored: [     .          1.068e+05    1.085e+05      .          1.068e+05   -1.085e+05]
+  Final FEF for element 2: [  -8.007e+04    1.068e+05    1.085e+05   -8.007e+04    1.068e+05   -1.085e+05]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         -18             klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         960             klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         -18             klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         -960            klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Calculating local stiffness matrix for element 2 with length 6.095999999999999, E=199947961501.8826, Ixx=0.0003467207775248, A=0.018193512, hinges=[0, 0]
+Local stiffness matrix in units for element 2:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          3408            0            0        -3408            0            0
+             0        20.97         2516            0       -20.97         2516
+             0         2516    4.026e+05            0        -2516    2.013e+05
+         -3408            0            0         3408            0            0
+             0       -20.97        -2516            0        20.97        -2516
+             0         2516    2.013e+05            0        -2516    4.026e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+Member 2 Fixed End Forces:
+[   3.442e+05   -3.531e+05   -3.345e+05   -3.442e+05      6.2e+05   -7.792e+05]
+Global displacements for element 3 under load combination 'D':
+[     .            .            .            0.05812   -0.0006233     -0.01356]
+Processing 0 loads on element 3:
+  Final FEF for element 3: [     .            .            .            .            .            .      ]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Global fixed end forces (ret_val): [[     .            .            .            .            .            .      ]]
+Global fixed end forces for element 3 under load combination 'D':
+[     .            .            .            .            .            .      ]
+Calculating global displacements for element 3 under load combination 'D'
+Local stiffness matrix in units for element 3:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          5679            0            0        -5679            0            0
+             0        97.08         6990            0       -97.08         6990
+             0         6990     6.71e+05            0        -6990    3.355e+05
+         -5679            0            0         5679            0            0
+             0       -97.08        -6990            0        97.08        -6990
+             0         6990    3.355e+05            0        -6990     6.71e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+T:
+ [[     .                  1      .            .            .            .      ]
+ [          -1      .            .            .            .            .      ]
+ [     .            .                  1      .            .            .      ]
+ [     .            .            .            .                  1      .      ]
+ [     .            .            .                 -1      .            .      ]
+ [     .            .            .            .            .                  1]]
+kglobal: [[     1.7e+07      .         -3.109e+07     -1.7e+07      .         -3.109e+07]
+ [     .          9.946e+08      .            .         -9.946e+08      .      ]
+ [  -3.109e+07      .          7.582e+07    3.109e+07      .          3.791e+07]
+ [    -1.7e+07      .          3.109e+07      1.7e+07      .          3.109e+07]
+ [     .         -9.946e+08      .            .          9.946e+08      .      ]
+ [  -3.109e+07      .          3.791e+07    3.109e+07      .          7.582e+07]]
+Global stiffness matrix for element 3:
+[[     1.7e+07      .         -3.109e+07     -1.7e+07      .         -3.109e+07]
+ [     .          9.946e+08      .            .         -9.946e+08      .      ]
+ [  -3.109e+07      .          7.582e+07    3.109e+07      .          3.791e+07]
+ [    -1.7e+07      .          3.109e+07      1.7e+07      .          3.109e+07]
+ [     .         -9.946e+08      .            .          9.946e+08      .      ]
+ [  -3.109e+07      .          3.791e+07    3.109e+07      .          7.582e+07]]
+
+Stiffness matrix in N, m units:
+
+NUMERIC VALUES:
+       1.7e+07            0   -3.109e+07     -1.7e+07            0   -3.109e+07
+             0    9.946e+08            0            0   -9.946e+08            0
+    -3.109e+07            0    7.582e+07    3.109e+07            0    3.791e+07
+      -1.7e+07            0    3.109e+07      1.7e+07            0    3.109e+07
+             0   -9.946e+08            0            0    9.946e+08            0
+    -3.109e+07            0    3.791e+07    3.109e+07            0    7.582e+07
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    N/m         -           -           N/m         -           -           
+Fy_i    -           N/m         N           -           N/m         N           
+Mz_i    -           N           N·m         -           N           N·m         
+Fx_j    N/m         -           -           N/m         -           -           
+Fy_j    -           N/m         N           -           N/m         N           
+Mz_j    -           N           N·m         -           N           N·m         
+Global end forces for element 3 under load combination 'D':
+[  -5.666e+05      6.2e+05    1.293e+06    5.666e+05     -6.2e+05    7.792e+05]
+End forces in local coordinates for element 3 under load combination 'D':
+[[     6.2e+05]
+ [   5.666e+05]
+ [   1.293e+06]
+ [    -6.2e+05]
+ [  -5.666e+05]
+ [   7.792e+05]]
+Global displacements for element 3 under load combination 'D':
+[     .            .            .            0.05812   -0.0006233     -0.01356]
+Local displacements for element 3 under load combination 'D':
+[[     .            .            .         -0.0006233     -0.05812     -0.01356]]
+Processing 0 loads on element 3:
+  Final FEF for element 3: [     .            .            .            .            .            .      ]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Local stiffness matrix in units for element 3:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          5679            0            0        -5679            0            0
+             0        97.08         6990            0       -97.08         6990
+             0         6990     6.71e+05            0        -6990    3.355e+05
+         -5679            0            0         5679            0            0
+             0       -97.08        -6990            0        97.08        -6990
+             0         6990    3.355e+05            0        -6990     6.71e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+Member 3 Fixed End Forces:
+[  -5.666e+05      6.2e+05    1.293e+06    5.666e+05     -6.2e+05    7.792e+05]
+Node 3 reactions: Rx=5.8208E-10, Ry=-1.0477E-09, Mz=-3.4925E-10
+Global displacements for element 1 under load combination 'D':
+[     .            .            .            0.06031      0.00071    -0.003543]
+Processing 0 loads on element 1:
+  Final FEF for element 1: [     .            .            .            .            .            .      ]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Global fixed end forces (ret_val): [[     .            .            .            .            .            .      ]]
+Global fixed end forces for element 1 under load combination 'D':
+[     .            .            .            .            .            .      ]
+Calculating global displacements for element 1 under load combination 'D'
+Local stiffness matrix in units for element 1:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          2840            0            0        -2840            0            0
+             0        12.14         1747            0       -12.14         1747
+             0         1747    3.355e+05            0        -1747    1.678e+05
+         -2840            0            0         2840            0            0
+             0       -12.14        -1747            0        12.14        -1747
+             0         1747    1.678e+05            0        -1747    3.355e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+T:
+ [[     .                  1      .            .            .            .      ]
+ [          -1      .            .            .            .            .      ]
+ [     .            .                  1      .            .            .      ]
+ [     .            .            .            .                  1      .      ]
+ [     .            .            .                 -1      .            .      ]
+ [     .            .            .            .            .                  1]]
+kglobal: [[   2.125e+06      .         -7.773e+06   -2.125e+06      .         -7.773e+06]
+ [     .          4.973e+08      .            .         -4.973e+08      .      ]
+ [  -7.773e+06      .          3.791e+07    7.773e+06      .          1.895e+07]
+ [  -2.125e+06      .          7.773e+06    2.125e+06      .          7.773e+06]
+ [     .         -4.973e+08      .            .          4.973e+08      .      ]
+ [  -7.773e+06      .          1.895e+07    7.773e+06      .          3.791e+07]]
+Global stiffness matrix for element 1:
+[[   2.125e+06      .         -7.773e+06   -2.125e+06      .         -7.773e+06]
+ [     .          4.973e+08      .            .         -4.973e+08      .      ]
+ [  -7.773e+06      .          3.791e+07    7.773e+06      .          1.895e+07]
+ [  -2.125e+06      .          7.773e+06    2.125e+06      .          7.773e+06]
+ [     .         -4.973e+08      .            .          4.973e+08      .      ]
+ [  -7.773e+06      .          1.895e+07    7.773e+06      .          3.791e+07]]
+
+Stiffness matrix in N, m units:
+
+NUMERIC VALUES:
+     2.125e+06            0   -7.773e+06   -2.125e+06            0   -7.773e+06
+             0    4.973e+08            0            0   -4.973e+08            0
+    -7.773e+06            0    3.791e+07    7.773e+06            0    1.895e+07
+    -2.125e+06            0    7.773e+06    2.125e+06            0    7.773e+06
+             0   -4.973e+08            0            0    4.973e+08            0
+    -7.773e+06            0    1.895e+07    7.773e+06            0    3.791e+07
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    N/m         -           -           N/m         -           -           
+Fy_i    -           N/m         N           -           N/m         N           
+Mz_i    -           N           N·m         -           N           N·m         
+Fx_j    N/m         -           -           N/m         -           -           
+Fy_j    -           N/m         N           -           N/m         N           
+Mz_j    -           N           N·m         -           N           N·m         
+Global end forces for element 1 under load combination 'D':
+[  -1.006e+05   -3.531e+05    4.016e+05    1.006e+05    3.531e+05    3.345e+05]
+End forces in local coordinates for element 1 under load combination 'D':
+[[  -3.531e+05]
+ [   1.006e+05]
+ [   4.016e+05]
+ [   3.531e+05]
+ [  -1.006e+05]
+ [   3.345e+05]]
+Global displacements for element 1 under load combination 'D':
+[     .            .            .            0.06031      0.00071    -0.003543]
+Local displacements for element 1 under load combination 'D':
+[[     .            .            .            0.00071     -0.06031    -0.003543]]Processing 0 loads on element 1:
+
+  Final FEF for element 1: [     .            .            .            .            .            .      ]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Local stiffness matrix in units for element 1:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          2840            0            0        -2840            0            0
+             0        12.14         1747            0       -12.14         1747
+             0         1747    3.355e+05            0        -1747    1.678e+05
+         -2840            0            0         2840            0            0
+             0       -12.14        -1747            0        12.14        -1747
+             0         1747    1.678e+05            0        -1747    3.355e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+Member 1 Fixed End Forces:
+[  -1.006e+05   -3.531e+05    4.016e+05    1.006e+05    3.531e+05    3.345e+05]
+Global displacements for element 2 under load combination 'D':
+[     0.06031      0.00071    -0.003543      0.05812   -0.0006233     -0.01356]
+Processing 2 loads on element 2:
+Element 2 load 0: AXIAL_LINE (case 'D', factor=1.0)
+    Raw FEF: [-80067.98907468903, 0, 0, -80067.98907468903, 0, 0]
+    Factored: [  -8.007e+04      .            .         -8.007e+04      .            .      ]
+Vertical reactions - SI: Riy=106757.319 N, Rjy=106757.319 N
+Vertical reactions - Display: Riy=24.000 klbf, Rjy=24.000 klbf
+Moments - SI: Miz=108465.436 N*m, Mjz=-108465.436 N*m
+Moments - Display: Miz=960.000 klbf*in, Mjz=-960.000 klbf*in
+FEF distributed load results for Load Case D:
+ [0, 106757.31876625221, 108465.43586651243, 0, 106757.31876625189, -108465.43586651146]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         960             klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force VectorElement 2 load 1: LINE (case 'D', factor=1.0)
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         -960            klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+    Raw FEF: [0, 106757.31876625221, 108465.43586651243, 0, 106757.31876625189, -108465.43586651146]
+    Factored: [     .          1.068e+05    1.085e+05      .          1.068e+05   -1.085e+05]
+  Final FEF for element 2: [  -8.007e+04    1.068e+05    1.085e+05   -8.007e+04    1.068e+05   -1.085e+05]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         -18             klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         960             klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         -18             klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         -960            klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Global fixed end forces (ret_val): [[   1.019e-10    1.334e+05    1.085e+05      .          1.334e+05   -1.085e+05]]
+Global fixed end forces for element 2 under load combination 'D':
+[   1.019e-10    1.334e+05    1.085e+05      .          1.334e+05   -1.085e+05]
+Calculating global displacements for element 2 under load combination 'D'
+Calculating local stiffness matrix for element 2 with length 6.095999999999999, E=199947961501.8826, Ixx=0.0003467207775248, A=0.018193512, hinges=[0, 0]
+Local stiffness matrix in units for element 2:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          3408            0            0        -3408            0            0
+             0        20.97         2516            0       -20.97         2516
+             0         2516    4.026e+05            0        -2516    2.013e+05
+         -3408            0            0         3408            0            0
+             0       -20.97        -2516            0        20.97        -2516
+             0         2516    2.013e+05            0        -2516    4.026e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+T:
+ [[         0.8         -0.6      .            .            .            .      ]
+ [         0.6          0.8      .            .            .            .      ]
+ [     .            .                  1      .            .            .      ]
+ [     .            .            .                0.8         -0.6      .      ]
+ [     .            .            .                0.6          0.8      .      ]
+ [     .            .            .            .            .                  1]]
+kglobal: [[   3.832e+08   -2.847e+08    6.716e+06   -3.832e+08    2.847e+08    6.716e+06]
+ [  -2.847e+08    2.172e+08    8.955e+06    2.847e+08   -2.172e+08    8.955e+06]
+ [   6.716e+06    8.955e+06    4.549e+07   -6.716e+06   -8.955e+06    2.274e+07]
+ [  -3.832e+08    2.847e+08   -6.716e+06    3.832e+08   -2.847e+08   -6.716e+06]
+ [   2.847e+08   -2.172e+08   -8.955e+06   -2.847e+08    2.172e+08   -8.955e+06]
+ [   6.716e+06    8.955e+06    2.274e+07   -6.716e+06   -8.955e+06    4.549e+07]]
+Global stiffness matrix for element 2:
+[[   3.832e+08   -2.847e+08    6.716e+06   -3.832e+08    2.847e+08    6.716e+06]
+ [  -2.847e+08    2.172e+08    8.955e+06    2.847e+08   -2.172e+08    8.955e+06]
+ [   6.716e+06    8.955e+06    4.549e+07   -6.716e+06   -8.955e+06    2.274e+07]
+ [  -3.832e+08    2.847e+08   -6.716e+06    3.832e+08   -2.847e+08   -6.716e+06]
+ [   2.847e+08   -2.172e+08   -8.955e+06   -2.847e+08    2.172e+08   -8.955e+06]
+ [   6.716e+06    8.955e+06    2.274e+07   -6.716e+06   -8.955e+06    4.549e+07]]
+
+Stiffness matrix in N, m units:
+
+NUMERIC VALUES:
+     3.832e+08   -2.847e+08    6.716e+06   -3.832e+08    2.847e+08    6.716e+06
+    -2.847e+08    2.172e+08    8.955e+06    2.847e+08   -2.172e+08    8.955e+06
+     6.716e+06    8.955e+06    4.549e+07   -6.716e+06   -8.955e+06    2.274e+07
+    -3.832e+08    2.847e+08   -6.716e+06    3.832e+08   -2.847e+08   -6.716e+06
+     2.847e+08   -2.172e+08   -8.955e+06   -2.847e+08    2.172e+08   -8.955e+06
+     6.716e+06    8.955e+06    2.274e+07   -6.716e+06   -8.955e+06    4.549e+07
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    N/m         -           -           N/m         -           -           
+Fy_i    -           N/m         N           -           N/m         N           
+Mz_i    -           N           N·m         -           N           N·m         
+Fx_j    N/m         -           -           N/m         -           -           
+Fy_j    -           N/m         N           -           N/m         N           
+Mz_j    -           N           N·m         -           N           N·m         
+Global end forces for element 2 under load combination 'D':
+[   3.442e+05   -4.865e+05   -4.429e+05   -3.442e+05    4.865e+05   -6.707e+05]
+End forces in local coordinates for element 2 under load combination 'D':
+[[   4.872e+05]
+ [  -7.593e+04]
+ [  -3.345e+05]
+ [  -6.473e+05]
+ [   2.894e+05]
+ [  -7.792e+05]]
+Global displacements for element 2 under load combination 'D':
+[     0.06031      0.00071    -0.003543      0.05812   -0.0006233     -0.01356]
+Local displacements for element 2 under load combination 'D':
+[[     0.04782      0.03675    -0.003543      0.04687      0.03438     -0.01356]]Processing 2 loads on element 2:
+
+Element 2 load 0: AXIAL_LINE (case 'D', factor=1.0)
+    Raw FEF: [-80067.98907468903, 0, 0, -80067.98907468903, 0, 0]
+    Factored: [  -8.007e+04      .            .         -8.007e+04      .            .      ]
+Vertical reactions - SI: Riy=106757.319 N, Rjy=106757.319 N
+Vertical reactions - Display: Riy=24.000 klbf, Rjy=24.000 klbf
+Moments - SI: Miz=108465.436 N*m, Mjz=-108465.436 N*m
+Moments - Display: Miz=960.000 klbf*in, Mjz=-960.000 klbf*in
+FEF distributed load results for Load Case D:
+ [0, 106757.31876625221, 108465.43586651243, 0, 106757.31876625189, -108465.43586651146]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         960             klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force VectorElement 2 load 1: LINE (case 'D', factor=1.0)
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         -960            klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+    Raw FEF: [0, 106757.31876625221, 108465.43586651243, 0, 106757.31876625189, -108465.43586651146]
+    Factored: [     .          1.068e+05    1.085e+05      .          1.068e+05   -1.085e+05]
+  Final FEF for element 2: [  -8.007e+04    1.068e+05    1.085e+05   -8.007e+04    1.068e+05   -1.085e+05]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         -18             klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         960             klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         -18             klbf         X-Direction Force   
+Fy         24              klbf         Y-Direction Force   
+Mz         -960            klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Calculating local stiffness matrix for element 2 with length 6.095999999999999, E=199947961501.8826, Ixx=0.0003467207775248, A=0.018193512, hinges=[0, 0]
+Local stiffness matrix in units for element 2:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          3408            0            0        -3408            0            0
+             0        20.97         2516            0       -20.97         2516
+             0         2516    4.026e+05            0        -2516    2.013e+05
+         -3408            0            0         3408            0            0
+             0       -20.97        -2516            0        20.97        -2516
+             0         2516    2.013e+05            0        -2516    4.026e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+Member 2 Fixed End Forces:
+[   3.442e+05   -3.531e+05   -3.345e+05   -3.442e+05      6.2e+05   -7.792e+05]
+Global displacements for element 3 under load combination 'D':
+[     .            .            .            0.05812   -0.0006233     -0.01356]
+Processing 0 loads on element 3:
+  Final FEF for element 3: [     .            .            .            .            .            .      ]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Global fixed end forces (ret_val): [[     .            .            .            .            .            .      ]]
+Global fixed end forces for element 3 under load combination 'D':
+[     .            .            .            .            .            .      ]
+Calculating global displacements for element 3 under load combination 'D'
+Local stiffness matrix in units for element 3:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          5679            0            0        -5679            0            0
+             0        97.08         6990            0       -97.08         6990
+             0         6990     6.71e+05            0        -6990    3.355e+05
+         -5679            0            0         5679            0            0
+             0       -97.08        -6990            0        97.08        -6990
+             0         6990    3.355e+05            0        -6990     6.71e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+T:
+ [[     .                  1      .            .            .            .      ]
+ [          -1      .            .            .            .            .      ]
+ [     .            .                  1      .            .            .      ]
+ [     .            .            .            .                  1      .      ]
+ [     .            .            .                 -1      .            .      ]
+ [     .            .            .            .            .                  1]]
+kglobal: [[     1.7e+07      .         -3.109e+07     -1.7e+07      .         -3.109e+07]
+ [     .          9.946e+08      .            .         -9.946e+08      .      ]
+ [  -3.109e+07      .          7.582e+07    3.109e+07      .          3.791e+07]
+ [    -1.7e+07      .          3.109e+07      1.7e+07      .          3.109e+07]
+ [     .         -9.946e+08      .            .          9.946e+08      .      ]
+ [  -3.109e+07      .          3.791e+07    3.109e+07      .          7.582e+07]]
+Global stiffness matrix for element 3:
+[[     1.7e+07      .         -3.109e+07     -1.7e+07      .         -3.109e+07]
+ [     .          9.946e+08      .            .         -9.946e+08      .      ]
+ [  -3.109e+07      .          7.582e+07    3.109e+07      .          3.791e+07]
+ [    -1.7e+07      .          3.109e+07      1.7e+07      .          3.109e+07]
+ [     .         -9.946e+08      .            .          9.946e+08      .      ]
+ [  -3.109e+07      .          3.791e+07    3.109e+07      .          7.582e+07]]
+
+Stiffness matrix in N, m units:
+
+NUMERIC VALUES:
+       1.7e+07            0   -3.109e+07     -1.7e+07            0   -3.109e+07
+             0    9.946e+08            0            0   -9.946e+08            0
+    -3.109e+07            0    7.582e+07    3.109e+07            0    3.791e+07
+      -1.7e+07            0    3.109e+07      1.7e+07            0    3.109e+07
+             0   -9.946e+08            0            0    9.946e+08            0
+    -3.109e+07            0    3.791e+07    3.109e+07            0    7.582e+07
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    N/m         -           -           N/m         -           -           
+Fy_i    -           N/m         N           -           N/m         N           
+Mz_i    -           N           N·m         -           N           N·m         
+Fx_j    N/m         -           -           N/m         -           -           
+Fy_j    -           N/m         N           -           N/m         N           
+Mz_j    -           N           N·m         -           N           N·m         
+Global end forces for element 3 under load combination 'D':
+[  -5.666e+05      6.2e+05    1.293e+06    5.666e+05     -6.2e+05    7.792e+05]
+End forces in local coordinates for element 3 under load combination 'D':
+[[     6.2e+05]
+ [   5.666e+05]
+ [   1.293e+06]
+ [    -6.2e+05]
+ [  -5.666e+05]
+ [   7.792e+05]]
+Global displacements for element 3 under load combination 'D':
+[     .            .            .            0.05812   -0.0006233     -0.01356]
+Local displacements for element 3 under load combination 'D':
+[[     .            .            .         -0.0006233     -0.05812     -0.01356]]Processing 0 loads on element 3:
+
+  Final FEF for element 3: [     .            .            .            .            .            .      ]
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+
+Nodal Force Vector
+DOF        Value           Unit         Description         
+------------------------------------------------------------
+Fx         0               klbf         X-Direction Force   
+Fy         0               klbf         Y-Direction Force   
+Mz         0               klbf·in      Z-Direction Moment  
+------------------------------------------------------------
+Local stiffness matrix in units for element 3:
+
+
+Stiffness matrix in klbf, in units:
+
+NUMERIC VALUES:
+          5679            0            0        -5679            0            0
+             0        97.08         6990            0       -97.08         6990
+             0         6990     6.71e+05            0        -6990    3.355e+05
+         -5679            0            0         5679            0            0
+             0       -97.08        -6990            0        97.08        -6990
+             0         6990    3.355e+05            0        -6990     6.71e+05
+
+UNITS FOR EACH CELL:
+        Fx_i        Fy_i        Mz_i        Fx_j        Fy_j        Mz_j        
+Fx_i    klbf/in     -           -           klbf/in     -           -           
+Fy_i    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_i    -           klbf        klbf·in     -           klbf        klbf·in     
+Fx_j    klbf/in     -           -           klbf/in     -           -           
+Fy_j    -           klbf/in     klbf        -           klbf/in     klbf        
+Mz_j    -           klbf        klbf·in     -           klbf        klbf·in     
+Member 3 Fixed End Forces:
+[  -5.666e+05      6.2e+05    1.293e+06    5.666e+05     -6.2e+05    7.792e+05]
+Node 4 reactions: Rx=-5.6660E+05, Ry=6.1996E+05, Mz=1.2932E+06
+Displacements U:
+[     0.06031      0.00071    -0.003543      0.05812   -0.0006233     -0.01356]
+================================================================================
+STRUCTURAL MODEL SUMMARY
+Display units: Force=klbf, Length=in, Pressure=ksi
+--------------------------------------------------------------------------------
+Number of nodes: 4
+Number of members: 3
+Degrees of freedom: 6
+Number of restraints: 6
+
+NODE INFORMATION:
+Node ID  X (in)          Y (in)          Restraints     
+--------------------------------------------------------------------------------
+1        0               0               Rx Ry Rz       
+2        0               288             -- -- --       
+3        192             144             -- -- --       
+4        192             0               Rx Ry Rz       
+
+MEMBER INFORMATION:
+Member ID  Type     i-node   j-node   Length (in)    
+--------------------------------------------------------------------------------
+1          FRAME    1        2        288            
+2          FRAME    2        3        240            
+3          FRAME    4        3        144            
+
+MATERIAL PROPERTIES:
+Material   E (ksi)        
+--------------------------------------------------------------------------------
+1          2.9e+04        
+
+SECTION PROPERTIES:
+Section    Area (in^2)        Ixx (in^4)        
+--------------------------------------------------------------------------------
+1          28.2               833               
+
+NODAL LOADS:
+Node ID  Load Case  Fx (klbf)       Fy (klbf)       Mz (klbf*in)   
+--------------------------------------------------------------------------------
+2        D          100             0               0              
+3        D          50              0               0              
+
+NODAL DISPLACEMENTS (most recent load combination):
+Node ID  Ux (in)         Uy (in)         Rz (rad)       
+--------------------------------------------------------------------------------
+1        0               0               0              
+2        2.37445         0.0279519       -0.00354344    
+3        2.2883          -0.0245409      -0.0135588     
+4        0               0               0              
+
+
+Analysis complete. Press Enter to exit...
+The program 'pythonw.exe' has exited with code 0 (0x0).

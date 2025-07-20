@@ -5,6 +5,7 @@ import numpy as np
 from pyMAOS.display_utils import display_node_load_vector_in_units, display_stiffness_matrix_in_units
 import pyMAOS.loading as loadtypes
 from pyMAOS.elements import Element
+from pyMAOS.globals import SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS
 
 class R2Frame(Element):
     def __init__(self, uid, inode, jnode, material, section):
@@ -343,11 +344,11 @@ class R2Frame(Element):
             fef[5] = 0  # Zero moment at hinge
 
         print(f"  Final FEF for element {self.uid}: {fef}", file=sys.stderr)
-        display_node_load_vector_in_units(fef[0:3], 
+        display_node_load_vector_in_units(fef[0:3], self.uid,
                                           force_unit=self.structure.units['force'], 
                                           length_unit=self.structure.units['length'], 
                                           load_combo_name=None)
-        display_node_load_vector_in_units(fef[3:6], 
+        display_node_load_vector_in_units(fef[3:6], self.uid,   
                                           force_unit=self.structure.units['force'], 
                                           length_unit=self.structure.units['length'], 
                                           load_combo_name=None)
@@ -472,16 +473,15 @@ class R2Frame(Element):
         # Option 2: Try to get units from units module
         if units_dict is None:
             try:
-                from pyMAOS.units import DISPLAY_UNITS
+                from pyMAOS.units_mod import DISPLAY_UNITS
                 units_dict = DISPLAY_UNITS
             except ImportError:
                 # Default to SI units if import fails
                 units_dict = {'force': 'N', 'length': 'm'}
 
         from pyMAOS.display_utils import display_stiffness_matrix_in_units; print(f"Local stiffness matrix in units for element {self.uid}:\n")
-        k_converted=display_stiffness_matrix_in_units(k, force_unit=units_dict.get('force', 'N'), length_unit=units_dict.get('length', 'm'), return_matrix=True)
-        k_converted_csv=os.path.join(os.getcwd(), f"local_stiffness_matrix_{self.uid}.txt")
-        np.savetxt(k_converted_csv, k_converted, fmt='%.6f')
+        display_stiffness_matrix_in_units(k, units_dict)
+       
         return local_stiffness_matrix
 
     def Flocal(self, load_combination):
@@ -503,7 +503,7 @@ class R2Frame(Element):
         This method calculates internal member forces in the element's local 
         coordinate system, which is oriented along the member's axis.
         """
-        Dlocal = self.Dlocal(load_combination)
+        Dlocal = self.Dlocal(load_combination.name)
         Qf = np.reshape(self.FEF(load_combination), (-1, 1))
 
         FL = np.matmul(self.k(), Dlocal.T)
@@ -532,8 +532,8 @@ class R2Frame(Element):
             [Fi_x, Fi_y, Mi_z, Fj_x, Fj_y, Mj_z]
             where i = start node, j = end node
         """
-        Dglobal = self.Dglobal(load_combination)
-        
+        Dglobal = self.Dglobal(load_combination.name)
+
         Qfg = self.FEFglobal(load_combination)
         print(f"Global fixed end forces for element {self.uid} under load combination '{load_combination.name}':\n{Qfg}")
         print(f"Calculating global displacements for element {self.uid} under load combination '{load_combination.name}'")
@@ -541,7 +541,7 @@ class R2Frame(Element):
         # global stiffness matrix
         KG = self.kglobal()
         print(f"Global stiffness matrix for element {self.uid}:\n{KG}")
-        display_stiffness_matrix_in_units(KG, force_unit='N', length_unit='m', return_matrix=False)
+        display_stiffness_matrix_in_units(KG,  IMPERIAL_UNITS )
         FG = np.matmul(KG, Dglobal).A.flatten()
         print(f"Global end forces for element {self.uid} under load combination '{load_combination.name}':\n{FG}")
 

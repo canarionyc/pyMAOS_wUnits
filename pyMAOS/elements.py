@@ -86,66 +86,23 @@ class Element(ABC):
         global_stiffness_matrix = np.matmul(np.matmul(np.transpose(T), k), T); print("kglobal:", global_stiffness_matrix)
         return global_stiffness_matrix
 
-    def Dglobal(self, load_combination):
+    def Dglobal(self, load_case):
         """Get global nodal displacement vector for the element"""
         D = np.zeros(6)
-        iD = self.inode.displacements[load_combination.name]
-        jD = self.jnode.displacements[load_combination.name]
+        iD = self.inode.displacements[load_case]
+        jD = self.jnode.displacements[load_case]
 
         # Populate Displacement Vector
         displacement_vector_global = np.array([*iD, *jD])
-        
-        # Import and use the display function if it's available
-        try:
-            from pyMAOS.display_utils import display_member_displacement_in_units
-            if hasattr(self, 'structure') and hasattr(self.structure, 'units'):
-                force_unit = self.structure.units.get('force', 'N')
-                length_unit = self.structure.units.get('length', 'm')
-            else:
-                # Default units if structure reference not available
-                force_unit = 'N'
-                length_unit = 'm'
-            
-            display_member_displacement_in_units(
-                displacement_vector_global,
-                force_unit=force_unit,
-                length_unit=length_unit,
-                is_local=False,
-                element_uid=self.uid,
-                load_combo_name=load_combination.name
-            )
-        except ImportError:
-            print(f"Global displacements for element {self.uid} under load combination '{load_combination.name}':\n{displacement_vector_global}")
+       
 
         return displacement_vector_global
 
-    def Dlocal(self, load_combination):
+    def Dlocal(self, load_case):
         """Calculate local displacement vector"""
-        Dglobal = self.Dglobal(load_combination)
+        Dglobal = self.Dglobal(load_case)
         displacement_vector_local = np.matmul(self.T(), Dglobal)
-        
-        # Import and use the display function if it's available
-        try:
-            from pyMAOS.display_utils import display_member_displacement_in_units
-            if hasattr(self, 'structure') and hasattr(self.structure, 'units'):
-                force_unit = self.structure.units.get('force', 'N')
-                length_unit = self.structure.units.get('length', 'm')
-            else:
-                # Default units if structure reference not available
-                force_unit = 'N'
-                length_unit = 'm'
-            
-            display_member_displacement_in_units(
-                displacement_vector_local,
-                force_unit=force_unit,
-                length_unit=length_unit,
-                is_local=True,
-                element_uid=self.uid,
-                load_combo_name=load_combination.name
-            )
-        except ImportError:
-            print(f"Local displacements for element {self.uid} under load combination '{load_combination.name}':\n{displacement_vector_local}")
-
+      
         return displacement_vector_local
 
     def stations(self, num_stations=10):

@@ -1,2 +1,23 @@
-# In pyMAOS/__init__.py
-import pint
+"""
+pyMAOS - Python Mechanics and Analysis of Structures
+
+This package provides tools for structural engineering analysis,
+with a focus on frame structures.
+"""
+
+# Import and expose unit systems and other global constants
+from pyMAOS.globals import (
+    SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS,
+    DISPLAY_UNITS, DEFAULT_UNIT_SYSTEM,
+    FORCE_UNIT, LENGTH_UNIT, MOMENT_UNIT, PRESSURE_UNIT, DISTRIBUTED_LOAD_UNIT
+)
+
+__all__ = [
+    'SI_UNITS', 'IMPERIAL_UNITS', 'METRIC_KN_UNITS',
+    'DISPLAY_UNITS', 'DEFAULT_UNIT_SYSTEM',
+    'FORCE_UNIT', 'LENGTH_UNIT', 'MOMENT_UNIT', 'PRESSURE_UNIT', 'DISTRIBUTED_LOAD_UNIT',
+    'units'  # The module itself
+]
+
+# Package version
+__version__ = '0.1.0'

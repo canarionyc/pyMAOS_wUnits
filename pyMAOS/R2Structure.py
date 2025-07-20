@@ -1,7 +1,7 @@
-import os
+﻿import os
 import numpy as np
 
-from pyMAOS import units
+from pyMAOS import units_mod
 from pyMAOS.display_utils import display_node_load_vector_in_units, display_node_displacement_in_units, display_stiffness_matrix_in_units
 np.set_printoptions(precision=4, suppress=False, floatmode='maxprec_equal',linewidth= 999)
 
@@ -40,8 +40,8 @@ class R2Structure:
     def __init__(self, nodes, members, units=None):
         self.nodes = nodes
         self.members = members
-        self.units = units or {}  # Default empty dict if None
-        
+        self.units = units or units_mod.unit_manager.get_current_units()  # Use unit manager as fallback
+
         # Validate node UIDs are unique
         self._validate_node_uids()
         
@@ -378,9 +378,9 @@ class R2Structure:
                 if node.uid==2:
                     display_node_displacement_in_units(
                         node_displacements,
-                        node_uid=node.uid,          
-                        length_unit=self.units['length'],              
-                        load_combo_name=load_combination.name
+                        node_uid=node.uid,              
+                        load_combo_name=load_combination.name,
+                        units_system=self.units
                     )
 
             # In the solve_linear_static method, after computing U:
@@ -628,3 +628,308 @@ class R2Structure:
         
         # THIS IS THE KEY FIX - Return the joined result
         return "\n".join(result)
+
+    def export_results_to_excel(self, load_combination, output_file=None, **kwargs):
+        """
+        Export structural analysis results to Excel format with multiple sheets including visualization
+        
+        This method creates a comprehensive Excel workbook containing:
+        - Summary of analysis parameters
+        - Structure visualization plot (optional)
+        - Units information
+        - Node data (coordinates, restraints, displacements, reactions)
+        - Member properties
+        - Member forces (global and local)
+        
+        The method leverages the existing plot_structure_matplotlib function to create
+        a visual representation of the structure and integrates it seamlessly with
+        the tabular data export functionality.
+        
+        Parameters
+        ----------
+        load_combination : LoadCombo
+            The load combination for which to export results
+        output_file : str or Path, optional
+            Path for the output Excel file. If None, uses "structure_results.xlsx"
+        **kwargs : dict
+            Additional options:
+            - include_visualization : bool, default True
+                Whether to include structure visualization sheet
+            - scaling : dict, optional
+                Scaling factors for visualization (reserved for future use)
+                
+        Returns
+        -------
+        str
+            Path to the created Excel file
+            
+        Raises
+        ------
+        ImportError
+            If required packages (pandas, matplotlib, xlsxwriter) are not available
+        ValueError
+            If the structure hasn't been analyzed or load combination data is missing
+            
+        Examples
+        --------
+        >>> # After solving the structure
+        >>> structure.solve_linear_static(load_combo)
+        >>> 
+        >>> # Export with visualization
+        >>> excel_file = structure.export_results_to_excel(load_combo, "results.xlsx")
+        >>> 
+        >>> # Export without visualization
+        >>> excel_file = structure.export_results_to_excel(
+        ...     load_combo, 
+        ...     "results_data_only.xlsx",
+        ...     include_visualization=False
+        ... )
+        
+        Notes
+        -----
+        This method requires the following Python packages:
+        - pandas (for DataFrame operations and Excel writing)
+        - matplotlib (for structure visualization)
+        - xlsxwriter (for Excel formatting)
+        
+        The structure visualization uses the same plotting functionality as
+        plot_structure_matplotlib() to ensure consistency with other visualization
+        methods in the package.
+        
+        The Excel file contains the following sheets:
+        1. Summary - Basic analysis information
+        2. Structure Visualization - Plot of the structure geometry (optional)
+        3. Units - Unit system information
+        4. Nodes - Node coordinates, restraints, displacements, and reactions
+        5. Member Properties - Member connectivity, geometry, and material properties
+        6. Member Forces - End forces in both global and local coordinate systems
+        """
+        # Check for required packages
+        try:
+            import pandas as pd
+            import matplotlib.pyplot as plt
+            import numpy as np
+            import io
+            from pathlib import Path
+        except ImportError as e:
+            raise ImportError(f"Required package not available for Excel export: {e}")
+        
+        # Validate inputs
+        if output_file is None:
+            output_file = Path("structure_results.xlsx")
+        else:
+            output_file = Path(output_file)
+            
+        # Check if analysis has been performed
+        has_results = any(hasattr(node, 'displacements') and node.displacements for node in self.nodes)
+        if not has_results:
+            raise ValueError("No analysis results found. Please run solve_linear_static() first.")
+            
+        # Check if the specific load combination has results
+        combo_name = load_combination.name
+        has_combo_results = any(combo_name in getattr(node, 'displacements', {}) for node in self.nodes)
+        if not has_combo_results:
+            raise ValueError(f"No results found for load combination '{combo_name}'. Please analyze this combination first.")
+        
+        # Extract options
+        include_visualization = kwargs.get('include_visualization', True)
+        
+        print(f"Exporting analysis results to {output_file}...")
+        
+        # Create Excel writer
+        with pd.ExcelWriter(output_file, engine='xlsxwriter') as writer:
+            workbook = writer.book
+            
+            # Create formats
+            try:
+                header_format = workbook.add_format({
+                    'bold': True, 
+                    'text_wrap': True, 
+                    'valign': 'top',
+                    'fg_color': '#D7E4BC', 
+                    'border': 1
+                })
+            except AttributeError:
+                header_format = None
+            
+            # 1. Summary sheet
+            summary_data = {
+                'Parameter': ['Number of Nodes', 'Number of Members', 'Degrees of Freedom', 
+                             'Number of Restraints', 'Load Combination', 'Analysis Type'],
+                'Value': [self.NJ, self.NM, self.NDOF, self.NR, combo_name, 'Linear Static']
+            }
+            summary_df = pd.DataFrame(summary_data)
+            summary_df.to_excel(writer, sheet_name='Summary', index=False)
+            
+            # 2. Structure visualization (if requested)
+            if include_visualization:
+                try:
+                    from pyMAOS.plot_with_matplotlib import plot_structure_matplotlib
+                    
+                    # Use the existing plot function
+                    fig, ax = plot_structure_matplotlib(self.nodes, self.members)
+                    
+                    # Add visualization to Excel
+                    worksheet = workbook.add_worksheet('Structure Visualization')
+                    
+                    # Save the figure to a BytesIO object
+                    imgdata = io.BytesIO()
+                    fig.savefig(imgdata, format='png', dpi=150, bbox_inches='tight')
+                    imgdata.seek(0)
+                    
+                    # Insert the image into the worksheet
+                    worksheet.insert_image('A1', 'structure.png', 
+                                         {'image_data': imgdata, 'x_scale': 0.8, 'y_scale': 0.8})
+                    
+                    # Close the matplotlib figure to free memory
+                    plt.close(fig)
+                    
+                except (ImportError, AttributeError) as e:
+                    print(f"Warning: Could not create structure visualization: {e}")
+            
+            # 3. Units sheet
+            units_data = []
+            for dimension, unit in self.units.items():
+                units_data.append({'Dimension': dimension, 'Unit': unit})
+            units_df = pd.DataFrame(units_data)
+            units_df.to_excel(writer, sheet_name='Units', index=False)
+            
+            # 4. Node information sheet
+            nodes_data = []
+            for node in sorted(self.nodes, key=lambda n: n.uid):
+                node_info = {
+                    'Node ID': node.uid,
+                    f'X ({self.units["length"]})': node.x,
+                    f'Y ({self.units["length"]})': node.y,
+                    'Restrained X': node.restraints[0],
+                    'Restrained Y': node.restraints[1],
+                    'Restrained Z': node.restraints[2],
+                }
+                
+                # Add displacements if available
+                if hasattr(node, 'displacements') and combo_name in node.displacements:
+                    disp = node.displacements[combo_name]
+                    node_info.update({
+                        f'Displacement X ({self.units["length"]})': disp[0],
+                        f'Displacement Y ({self.units["length"]})': disp[1],
+                        'Rotation Z (rad)': disp[2],
+                    })
+                else:
+                    node_info.update({
+                        f'Displacement X ({self.units["length"]})': 0.0,
+                        f'Displacement Y ({self.units["length"]})': 0.0,
+                        'Rotation Z (rad)': 0.0,
+                    })
+                
+                # Add reactions if available
+                if hasattr(node, 'reactions') and combo_name in node.reactions:
+                    reaction = node.reactions[combo_name]
+                    node_info.update({
+                        f'Reaction X ({self.units["force"]})': reaction[0],
+                        f'Reaction Y ({self.units["force"]})': reaction[1],
+                        f'Moment Z ({self.units["moment"]})': reaction[2],
+                    })
+                else:
+                    node_info.update({
+                        f'Reaction X ({self.units["force"]})': 0.0,
+                        f'Reaction Y ({self.units["force"]})': 0.0,
+                        f'Moment Z ({self.units["moment"]})': 0.0,
+                    })
+                
+                nodes_data.append(node_info)
+            
+            nodes_df = pd.DataFrame(nodes_data)
+            nodes_df.to_excel(writer, sheet_name='Nodes', index=False)
+            
+            # 5. Member properties sheet
+            members_data = []
+            for member in sorted(self.members, key=lambda m: m.uid):
+                member_info = {
+                    'Member ID': member.uid,
+                    'Type': member.type,
+                    'i-node': member.inode.uid,
+                    'j-node': member.jnode.uid,
+                    f'Length ({self.units["length"]})': member.length,
+                    'Material ID': member.material.uid,
+                    f'E ({self.units["pressure"]})': member.material.E,
+                    'Section ID': member.section.uid,
+                    f'Area ({self.units["length"]}²)': member.section.Area,
+                    f'Ixx ({self.units["length"]}⁴)': member.section.Ixx,
+                }
+                
+                # Add hinge information if it's a frame
+                if hasattr(member, 'hinges'):
+                    hinge_info = []
+                    if member.hinges[0]:
+                        hinge_info.append('i-node')
+                    if member.hinges[1]:
+                        hinge_info.append('j-node')
+                    member_info['Hinges'] = ', '.join(hinge_info) if hinge_info else 'None'
+                
+                members_data.append(member_info)
+            
+            members_df = pd.DataFrame(members_data)
+            members_df.to_excel(writer, sheet_name='Member Properties', index=False)
+            
+            # 6. Member forces sheet
+            forces_data = []
+            for member in sorted(self.members, key=lambda m: m.uid):
+                # Calculate member forces for this load combination
+                if hasattr(member, 'end_forces_global') and combo_name in member.end_forces_global:
+                    global_forces = member.end_forces_global[combo_name]
+                else:
+                    # Calculate forces if not already available
+                    try:
+                        global_forces = member.Fglobal(load_combination)
+                    except:
+                        global_forces = [0.0] * 6
+                
+                if hasattr(member, 'end_forces_local') and combo_name in member.end_forces_local:
+                    local_forces = member.end_forces_local[combo_name].flatten()
+                else:
+                    try:
+                        member.Flocal(load_combination)
+                        local_forces = member.end_forces_local[combo_name].flatten()
+                    except:
+                        local_forces = [0.0] * 6
+                
+                # i-node global forces
+                forces_data.append({
+                    'Member ID': member.uid,
+                    'Node': f"{member.inode.uid} (i)",
+                    f'Fx ({self.units["force"]})': global_forces[0],
+                    f'Fy ({self.units["force"]})': global_forces[1],
+                    f'Mz ({self.units["moment"]})': global_forces[2],
+                    'System': 'Global'
+                })
+                
+                # j-node global forces
+                forces_data.append({
+                    'Member ID': member.uid,
+                    'Node': f"{member.jnode.uid} (j)",
+                    f'Fx ({self.units["force"]})': global_forces[3],
+                    f'Fy ({self.units["force"]})': global_forces[4],
+                    f'Mz ({self.units["moment"]})': global_forces[5],
+                    'System': 'Global'
+                })
+                
+                # i-node local forces
+                forces_data.append({
+                    'Member ID': member.uid,
+                    'Node': f"{member.inode.uid} (i)",
+                    f'Fx ({self.units["force"]})': local_forces[0],
+                    f'Fy ({self.units["force"]})': local_forces[1],
+                    f'Mz ({self.units["moment"]})': local_forces[2],
+                    'System': 'Local'
+                })
+                
+                # j-node local forces
+                forces_data.append({
+                    'Member ID': member.uid,
+                    'Node': f"{member.jnode.uid} (j)",
+                    f'Fx ({self.units["force"]})': local_forces[3],
+                    f'Fy ({self.units["force"]})': local_forces[4],
+                    f'Mz ({self.units["moment"]})': local_forces[5],
+                    'System': 'Local'
+                })
+           
