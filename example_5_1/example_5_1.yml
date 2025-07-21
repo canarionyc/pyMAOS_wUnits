@@ -1,0 +1,114 @@
+# Continuous beam example with units
+units:
+  force: kip
+  length: ft
+  pressure: ksi
+
+nodes:
+  - id: 1
+    x: 0ft
+    y: 0ft
+    # Node A
+  - id: 2
+    x: 15ft
+    y: 0ft
+    # Node B
+  - id: 3
+    x: 30ft
+    y: 0ft
+    # Node C
+  - id: 4
+    x: 40ft
+    y: 0ft
+    # Node D
+
+supports:
+  - node: 1
+    rx: 1
+    ry: 1
+    rz: 0
+    # Pinned support at A
+  - node: 2
+    rx: 0
+    ry: 1
+    rz: 0
+    # Roller support at B
+  - node: 3
+    rx: 0
+    ry: 1
+    rz: 0
+    # Roller support at C
+  - node: 4
+    rx: 0
+    ry: 1
+    rz: 0
+    # Roller support at D
+
+materials:
+  - id: 1
+    type: linear
+    E: 29000ksi
+
+sections:
+  - id: 1
+    area: 10in^2
+    ixx: 350in^4
+
+members:
+  - id: 1
+    i_node: 1
+    j_node: 2
+    material: 1
+    section: 1
+    # Span A-B
+  - id: 2
+    i_node: 2
+    j_node: 3
+    material: 1
+    section: 1
+    # Span B-C
+  - id: 3
+    i_node: 3
+    j_node: 4
+    material: 1
+    section: 1
+    # Span C-D
+
+joint_loads:
+  - node: 4
+    fx: 0kip
+    fy: -0kip
+    mz: -50kip*ft
+    # 50 kip*ft moment at D
+  - node: 4
+    fx: 0kip
+    fy: -20kip
+    mz: 0kip*ft
+    # 20 kip concentrated load at D
+
+# Commented out distributed loads
+# member_loads:
+#  - member_uid: 1
+#    load_type: 3
+#    wi: -2kip/ft
+#    wj: -2kip/ft
+#    a: 0ft
+#    b: 15ft
+#    case: D
+#    # Distributed load on span A-B
+#  - member_uid: 2
+#    load_type: 3
+#    wi: -2kip/ft
+#    wj: -2kip/ft
+#    a: 0ft
+#    b: 15ft
+#    case: D
+#    # Distributed load on span B-C
+#  - member_uid: 3
+#    load_type: 3
+#    wi: -2kip/ft
+#    wj: -2kip/ft
+#    a: 0ft
+#    b: 10ft
+#    case: D
+#    # Distributed load on span C-D

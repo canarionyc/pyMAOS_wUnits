@@ -21,6 +21,13 @@ Q_ = ureg.Quantity  # Shorthand for creating quantities
 print(ureg.sys)  # Shows available systems
 print(ureg.get_system('imperial'))  # Shows units in the imperial system
 
+# Add these definitions to the top of the file after initializing ureg
+# Pre-computed dimensionality constants for efficient type checking
+FORCE_DIMENSIONALITY = ureg.N.dimensionality
+MOMENT_DIMENSIONALITY = (ureg.N * ureg.m).dimensionality
+LENGTH_DIMENSIONALITY = ureg.m.dimensionality
+PRESSURE_DIMENSIONALITY = ureg.Pa.dimensionality
+DISTRIBUTED_LOAD_DIMENSIONALITY = (ureg.N / ureg.m).dimensionality
 
 # Common imperial units as constants
 FOOT = ureg.foot
@@ -365,7 +372,10 @@ SI_UNITS = {
     "pressure": "Pa",
     "distance": "m",
     "moment": "N*m",
-    "distributed_load": "N/m"   
+    "distributed_load": "N/m",
+    "area": "m^2",
+    "moment_of_inertia": "m^4",
+    "density": "kg/m^3"
 }
 
 IMPERIAL_UNITS = {
@@ -374,7 +384,10 @@ IMPERIAL_UNITS = {
     "pressure": "ksi",
     "distance": "ft",
     "moment": "klbf*in",
-    "distributed_load": "klbf/in"
+    "distributed_load": "klbf/in",
+    "area": "in^2",
+    "moment_of_inertia": "in^4",
+    "density": "klb/in^3"
 }
 
 METRIC_KN_UNITS = {
@@ -383,7 +396,10 @@ METRIC_KN_UNITS = {
     "pressure": "kN/m^2",
     "distance": "m",
     "moment": "kN*m",
-    "distributed_load": "kN/m"
+    "distributed_load": "kN/m",
+    "area": "m^2",
+    "moment_of_inertia": "m^4",
+    "density": "kg/m^3"
 }
 
 class UnitManager:

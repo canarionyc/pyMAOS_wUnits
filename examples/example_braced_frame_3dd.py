@@ -15,9 +15,9 @@ matplotlib.use("QtAgg")
 
 from context import pyMAOS
 
-from pyMAOS.nodes import R2Node, get_nodes_from_csv
-from pyMAOS.Truss import R2Truss
-from pyMAOS.Frame import R2Frame
+from pyMAOS.R2Node import R2Node, get_nodes_from_csv
+from pyMAOS.R2Truss import R2Truss
+from pyMAOS.R2Frame import R2Frame
 from pyMAOS.material import LinearElasticMaterial as Material
 from pyMAOS.section import Section
 import pyMAOS.R2Structure as R2Struct
@@ -361,7 +361,7 @@ for element in element_list:
     print(f"\nElement {element.uid} loads:")
     for load in element.loads:
         factor = loadcombo.factors.get(load.loadcase, 0)
-        status = "✓ ACTIVE" if factor != 0 else "✗ INACTIVE"
+        status = "✓ ACTIVE" if factor != 0 : "✗ INACTIVE"
         print(f"  {load.kind} (case '{load.loadcase}'): Factor={factor} {status}")
 
 # Create the 2D Structure

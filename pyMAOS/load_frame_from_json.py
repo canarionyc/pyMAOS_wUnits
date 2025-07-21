@@ -77,8 +77,8 @@ np.set_printoptions(formatter={
 
 # Import other modules
 from pyMAOS.plot_structure import plot_structure_vtk
-from pyMAOS.nodes import R2Node
-from pyMAOS.Frame import R2Frame
+from pyMAOS.R2Node import R2Node
+from pyMAOS.R2Frame import R2Frame
 from pyMAOS.material import LinearElasticMaterial as Material
 from pyMAOS.section import Section
 import pyMAOS.R2Structure as R2Struct
@@ -97,17 +97,21 @@ default_scaling = {
         "displacement": 100,
     }
 
-def load_frame_from_json(filename, logger=None):
+def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False):
     """
-    Reads a structural model from a JSON file and creates nodes and elements in SI units
+    Reads a structural model from a JSON or YAML file and creates nodes and elements in SI units
     
     Parameters
     ----------
     filename : str
-        Path to the input JSON file
+        Path to the input file (JSON or YAML format)
     logger : logging.Logger, optional
         Logger object for output
-        
+    schema_file : str, optional
+        Path to JSON schema for validation (only used for JSON files)
+    show_vtk : bool, optional
+        Whether to show VTK plot of the structure
+    
     Returns
     -------
     tuple
@@ -119,15 +123,44 @@ def load_frame_from_json(filename, logger=None):
             logger.info(message)
         else:
             print(message)
-            
+    
+    # Check file extension to determine format
+    file_ext = os.path.splitext(filename)[1].lower()
+    
     # Create reactive subjects for key data
     model_data = Subject()
     nodes_subject = Subject()
     elements_subject = Subject()
     results_subject = Subject()
 
-    with open(filename, 'r', encoding='utf-8') as file:
-        data = json.load(file)
+    # Load data from file based on format
+    if file_ext in ['.yml', '.yaml']:
+        try:
+            import yaml
+            log(f"Loading YAML file: {filename}")
+            with open(filename, 'r', encoding='utf-8') as file:
+                data = yaml.safe_load(file)
+            log("YAML file loaded successfully")
+        except ImportError:
+            log("Error: PyYAML package not found. Install it using: pip install pyyaml")
+            raise
+        except Exception as e:
+            log(f"Error loading YAML file: {e}")
+            raise
+    else:  # Default to JSON
+        log(f"Loading JSON file: {filename}")
+        # Validate JSON file if schema_file is provided
+        if schema_file:
+            try:
+                from pyMAOS.units_mod import validate_input_with_schema
+                validate_input_with_schema(filename, schema_file=schema_file)
+                log("JSON validation passed!")
+            except Exception as e:
+                log(f"Warning: JSON validation failed: {e}")
+        
+        # Load JSON data
+        with open(filename, 'r', encoding='utf-8') as file:
+            data = json.load(file)
     
     # Process nodes - always convert to SI units (meters)
     nodes_dict = {}
@@ -418,12 +451,13 @@ def load_frame_from_json(filename, logger=None):
         rz_status = "Fixed" if rz == 1 else "Free"
         log(f"Node {node.uid:2d}  |  {rx_status:5s} |  {ry_status:5s} |  {rz_status:5s}")
                 
-    # Plot structure
-    plot_structure_vtk(node_list, element_list, scaling=default_scaling)
+    # Plot structure if requested
+    if show_vtk:
+        plot_structure_vtk(node_list, element_list, scaling=default_scaling)
     
     return node_list, element_list
 
-def load_frame_from_json_new(filename, logger=None):
+def load_frame_from_file_new(filename, logger=None):
     """
     Reads a structural model from a JSON file, first converting it to SI units
     
@@ -471,15 +505,15 @@ def load_frame_from_json_new(filename, logger=None):
         
         # Load the SI version using the original function
         log(f"Loading SI converted model from {si_filename}...")
-        return load_frame_from_json(si_filename, logger=logger)
-        
+        return load_frame_from_file_new(si_filename, logger=logger)
+
     except ImportError:
         log("Warning: Could not import convert_units.py. Falling back to standard loader.")
-        return load_frame_from_json(filename, logger=logger)
+        return load_frame_from_file(filename, logger=logger)
     except Exception as e:
         log(f"Error in unit conversion: {str(e)}")
         log("Falling back to standard loader with unit conversions.")
-        return load_frame_from_json(filename, logger=logger)
+        return load_frame_from_file(filename, logger=logger)
 
 def load_linear_load_reactively(element, member_load, logger=None):
     """Process linear load using reactive approach"""
@@ -544,28 +578,28 @@ if __name__ == "__main__":
     """Command line interface for unit conversion."""
     parser = argparse.ArgumentParser(description="Convert JSON structural model to SI units")
     parser.add_argument("input_file", help="Input JSON file path")
-    parser.add_argument("-o", "--output", default=None, help="Output JSON file path")
+    parser.add_argument("-w", "--working_dir", default=None, help="Working directory for output files")
     parser.add_argument("--units", choices=["si", "imperial", "metric_kn"], default="imperial",
                    help="Unit system to use (si, imperial, or metric_kn)")
     parser.add_argument("--log", help="Output log file path")
+    parser.add_argument("--to", choices=["JSON", "XLSX", "BOTH"], default="BOTH",
+                   help="Output format: JSON, XLSX, or BOTH (default)")
+    parser.add_argument("--vtk", action="store_true", 
+                   help="Enable VTK visualization of the structure and results")
     args = parser.parse_args()
 
     # Set up logging
     logger = setup_logger(args.log)
     
-    working_dir=os.path.curdir
-    input_file=args.__contains__('input_file') and args.input_file or "input.json"
-    DATADIR=os.environ.get('DATADIR', working_dir)
-    import jsonschema
-    from pyMAOS.units_mod import validate_input_with_schema
-    try:
-        schema_file=os.path.join(DATADIR,"myschema.json")
-        validate_input_with_schema(input_file, schema_file=schema_file)
-        logger.info("Validation passed!")
-    except jsonschema.ValidationError as e:
-        logger.error(f"Validation error: {e}")
-    except Exception as e:
-        logger.error(f"Error during validation: {e}")    
+    # Use the directory of the input file as the working directory for all outputs
+    input_file = args.input_file
+    if args.working_dir:
+        working_dir = args.working_dir
+    else:
+        working_dir = os.path.dirname(os.path.abspath(input_file)) or os.path.curdir
+    logger.info(f"Using working directory: {working_dir}")
+    
+    DATADIR = os.environ.get('DATADIR', working_dir)
     
     # Import the unit system utilities
     from pyMAOS.units_mod import (
@@ -585,13 +619,13 @@ if __name__ == "__main__":
         set_unit_system(METRIC_KN_UNITS, args.units)
         logger.info("Using metric kN unit system")
     
-    # Choose appropriate loader based on file extension
-    if input_file.lower().endswith('.json'):
-        logger.info(f"Loading structural model from JSON file: {input_file}")
-        node_list, element_list = load_frame_from_json(input_file, logger=logger)
-    else:
-        logger.info(f"Loading structural model from text file: {input_file}")
-        exit(1)  # Placeholder for text file loading logic
+    try:
+       logger.info(f"Loading structural model from file: {input_file}")
+       # Pass the VTK flag to control visualization in load_frame_from_file
+       node_list, element_list = load_frame_from_file(input_file, logger=logger, show_vtk=args.vtk)
+    except Exception as e:
+       logger.error(f"Error loading structural model: {e}")
+       sys.exit(1)
 
     logger.info(f"Total nodes: {len(node_list)}")
     logger.info(f"Total elements: {len(element_list)}")
@@ -611,44 +645,54 @@ if __name__ == "__main__":
     np.save(os.path.join(working_dir, 'U.npy'), U)
     np.savetxt(os.path.join(working_dir, 'U.txt'), U)
 
-    # Export results to JSON
-    json_output = os.path.join(working_dir, f"{os.path.splitext(input_file)[0]}_results.json")
-    export_results_to_json(model_structure, [loadcombo], json_output)
-
-    # Create a version with display units
-    try:
-        # Import the conversion utility
-        from pyMAOS.convert_units import convert_si_to_display_units
-        
-        # Create path for display units version
-        json_output_display = os.path.join(working_dir, f"{os.path.splitext(input_file)[0]}_results_display.json")
-        
-        # Get current unit system directly from the manager
-        current_units = unit_manager.get_current_units()
-        system_name = unit_manager.get_system_name()
-        
-        # Convert the SI results to the selected display units
-        convert_si_to_display_units(json_output, json_output_display, current_units)
-        logger.info(f"\nResults exported in SI units: {json_output}")
-        logger.info(f"Results exported in {system_name} units: {json_output_display}")
-        
-    except Exception as e:
-        logger.error(f"Error creating display units version: {e}")
-        import traceback
-        traceback.print_exc()
+    # Output format handling
+    output_to_json = args.to in ["JSON", "BOTH"]
+    output_to_xlsx = args.to in ["XLSX", "BOTH"]
     
-    results_xlsx= os.path.join(working_dir, f"{os.path.splitext(input_file)[0]}_results.xlsx")
-    try:
-        # Export results to Excel
-        model_structure.export_results_to_excel(results_xlsx, loadcombos=[loadcombo])
-        logger.info(f"Results exported to Excel: {results_xlsx}")
-    except Exception as e:
-        logger.error(f"Error exporting results to Excel: {e}")
-        import traceback
-        traceback.print_exc()
+    # Export results to JSON if requested
+    if output_to_json:
+        json_output = f"{os.path.splitext(input_file)[0]}_results.json"
+        export_results_to_json(model_structure, [loadcombo], json_output)
+        logger.info(f"\nResults exported in SI units: {json_output}")
+        
+        # Create a version with display units
+        try:
+            # Import the conversion utility
+            from pyMAOS.convert_units import convert_si_to_display_units
+            
+            # Create path for display units version
+            json_output_display = f"{os.path.splitext(input_file)[0]}_results_display.json"
+            
+            # Get current unit system directly from the manager
+            current_units = unit_manager.get_current_units()
+            system_name = unit_manager.get_system_name()
+            
+            # Convert the SI results to the selected display units
+            convert_si_to_display_units(json_output, json_output_display, current_units)
+            logger.info(f"Results exported in {system_name} units: {json_output_display}")
+            
+        except Exception as e:
+            logger.error(f"Error creating display units version: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    # Export results to Excel if requested
+    if output_to_xlsx:
+        results_xlsx = f"{os.path.splitext(input_file)[0]}_results.xlsx"
+        try:
+            # Export results to Excel with proper unit system
+            model_structure.export_results_to_excel(results_xlsx, loadcombos=[loadcombo], 
+                                                   unit_system=args.units)
+            logger.info(f"Results exported to Excel: {results_xlsx} using {args.units} units")
+        except Exception as e:
+            logger.error(f"Error exporting results to Excel: {e}")
+            import traceback
+            traceback.print_exc()
 
-    # Visualize results
-    model_structure.plot_loadcombos_vtk(loadcombos=None, scaling=default_scaling)
+    # Visualize results only if --vtk flag is used
+    if args.vtk:
+        logger.info("Showing VTK visualization...")
+        model_structure.plot_loadcombos_vtk(loadcombos=None, scaling=default_scaling)
      
     # Pause the program before exiting
     logger.info("\n\nAnalysis complete. Press Enter to exit...")

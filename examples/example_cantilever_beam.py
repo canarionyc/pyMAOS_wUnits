@@ -1,8 +1,7 @@
 from signal import pause
-from context import pyMAOS
 
-from pyMAOS.nodes import R2Node
-from pyMAOS.elements import R2Truss, R2Frame
+from pyMAOS.R2Node import R2Node
+from pyMAOS.elements import R2Frame
 from pyMAOS.material import LinearElasticMaterial as Material
 from pyMAOS.section import Section
 import pyMAOS.R2Structure as R2Struct
@@ -15,15 +14,15 @@ loadcombo = LoadCombo("S1", {"D": 1}, ["D"], False, "SLS")
 loadcombos = [loadcombo, LoadCombo("D1", {"D": 1.4}, ["D"], False, "ULS")]
 
 # Nodes
-N1 = R2Node(0, 0)
-N2 = R2Node(60, 0)
-N3 = R2Node(120, 0)
-N4 = R2Node(180, 0)
-N5 = R2Node(240, 0)
-N6 = R2Node(300, 0)
+N1 = R2Node(1,0, 0)
+N2 = R2Node(2,60, 0)
+N3 = R2Node(3,120, 0)
+N4 = R2Node(4,180, 0)
+N5 = R2Node(5,240, 0)
+N6 = R2Node(6,300, 0)
 
-N7 = R2Node(0, 30)
-N8 = R2Node(300, 30)
+N7 = R2Node(7, 0,30)
+N8 = R2Node(8, 300, 30)
 
 # Node Restraints
 N2.releaseAll()
@@ -41,20 +40,20 @@ N6.loads[loadcase] = [0, -10, 0]
 N8.loads[loadcase] = [0, -10, 0]
 
 # Materials
-BeamMaterial = Material(29000, 7850, 210000000000, 0.3)
+BeamMaterial = Material(1, E=29000, nu=0.3)
 
 
 # Sections
 # W24x55
-BeamSection = Section(16.2, 1350)
+BeamSection = Section(1,16.2, 1350)
 
 # Members
-RF1 = R2Frame(N1, N2, BeamMaterial, BeamSection)
-RF2 = R2Frame(N2, N3, BeamMaterial, BeamSection)
-RF3 = R2Frame(N3, N4, BeamMaterial, BeamSection)
-RF4 = R2Frame(N4, N5, BeamMaterial, BeamSection)
-RF5 = R2Frame(N5, N6, BeamMaterial, BeamSection)
-RF6 = R2Frame(N7, N8, BeamMaterial, BeamSection)
+RF1 = R2Frame(1,N1, N2, BeamMaterial, BeamSection)
+RF2 = R2Frame(2,N2, N3, BeamMaterial, BeamSection)
+RF3 = R2Frame(3,N3, N4, BeamMaterial, BeamSection)
+RF4 = R2Frame(4,N4, N5, BeamMaterial, BeamSection)
+RF5 = R2Frame(5,N5, N6, BeamMaterial, BeamSection)
+RF6 = R2Frame(6,N7, N8, BeamMaterial, BeamSection)
 
 # Member List
 members = [RF1, RF2, RF3, RF4, RF5, RF6]

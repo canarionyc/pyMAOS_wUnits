@@ -33,8 +33,13 @@ class UnitAwareMixin:
         unit_mappings = {
             'length': 'length',
             'area': 'area',
+            'Area': 'area',
             'ixx': 'moment_of_inertia',
+            'Ixx': 'moment_of_inertia',
+            'iyy': 'moment_of_inertia',
+            'Iyy': 'moment_of_inertia',
             'E': 'pressure',
+            'density': 'density',
             'force': 'force',
             'moment': 'moment'
         }
@@ -47,6 +52,7 @@ class UnitAwareMixin:
             'area': 'm^2',
             'moment_of_inertia': 'm^4',
             'pressure': 'Pa',
+            'density': 'kg/m^3',
             'force': 'N',
             'moment': 'N*m',
             'distributed_load': 'N/m'
@@ -77,7 +83,8 @@ class UnitAwareMixin:
         self._internal_values[attr_name] = internal_value
         
         # Calculate display value
-        display_unit = unit_manager.get_current_units().get(unit_type, si_unit)
+        current_units = unit_manager.get_current_units()
+        display_unit = current_units.get(unit_type, si_unit)
         display_value = unit_manager.convert_value(internal_value, si_unit, display_unit)
         self._display_values[attr_name] = display_value
         
@@ -107,5 +114,6 @@ class UnitAwareMixin:
             return unit_manager.convert_value(internal_value, si_unit, unit)
         else:
             # Use current display unit
-            display_unit = unit_manager.get_current_units().get(unit_type, si_unit)
+            current_units = unit_manager.get_current_units()
+            display_unit = current_units.get(unit_type, si_unit)
             return unit_manager.convert_value(internal_value, si_unit, display_unit)

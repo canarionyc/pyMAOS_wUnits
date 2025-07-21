@@ -19,5 +19,11 @@ __all__ = [
     'units'  # The module itself
 ]
 
+# Add references to the new modules
+from .R2Structure import R2Structure
+from .R2Structure_export import export_results_to_excel
+from .R2Structure_viz import plot_loadcombos_vtk
+from .R2Structure_utils import __str__
+
 # Package version
 __version__ = '0.1.0'

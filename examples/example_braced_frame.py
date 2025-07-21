@@ -9,7 +9,7 @@ matplotlib.rcParams['figure.max_open_warning'] = 0  # Suppress warnins about too
 
 from context import pyMAOS
 
-from pyMAOS.nodes import R2Node
+from pyMAOS.R2Node import R2Node
 from pyMAOS.elements import R2Truss, R2Frame
 from pyMAOS.material import LinearElasticMaterial as Material
 from pyMAOS.section import Section

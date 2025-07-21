@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>1bbe5831-8d79-4261-a96f-0e35f369fa5b</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>examples\demo_excel_export.py</StartupFile>
+    <StartupFile>pyMAOS\load_frame_from_json.py</StartupFile>
     <SearchPath>..\pyMAOS_testing</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -14,7 +14,7 @@
     <IsWindowsApplication>True</IsWindowsApplication>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
-    <CommandLineArguments> example_6_3\input_imperial.json --units imperial  --log  example_6_3\output.txt</CommandLineArguments>
+    <CommandLineArguments> example_5_1\Example_5_1.yml --units imperial  --log  example_5_1\example_5_1.txt --to XLSX</CommandLineArguments>
     <PublishUrl>C:\out\example_braced_frame</PublishUrl>
     <Environment>DATADIR=C:\dev\pyMAOS_testing\data\</Environment>
     <TestFramework>Pytest</TestFramework>
@@ -28,7 +28,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="examples\demo_coordinate_parsing.py" />
     <Compile Include="examples\demo_excel_export.py" />
+    <Compile Include="examples\demo_load_parsing.py" />
     <Compile Include="examples\run_json_to_excel.py" />
     <Compile Include="pyMAOS\convert_units.py" />
     <Compile Include="examples\example_beam_on_springs.py" />
@@ -52,27 +54,33 @@
     <Compile Include="pyMAOS\loading\tests\tests.py" />
     <Compile Include="pyMAOS\loading\__init__.py" />
     <Compile Include="pyMAOS\plot_with_matplotlib.py" />
+    <Compile Include="pyMAOS\R2Node.py" />
     <Compile Include="pyMAOS\R2structure_extras.py" />
     <Compile Include="pyMAOS\load_frame_from_json.py" />
     <Compile Include="examples\read_truss_from_text.py" />
     <Compile Include="examples\visualize_matrix2.py" />
     <Compile Include="pyMAOS\elements.py" />
-    <Compile Include="pyMAOS\Frame.py" />
+    <Compile Include="pyMAOS\R2Frame.py" />
     <Compile Include="pyMAOS\loadcombos.py" />
     <Compile Include="pyMAOS\loading.py" />
     <Compile Include="pyMAOS\material.py" />
     <Compile Include="pyMAOS\database.py" />
-    <Compile Include="pyMAOS\nodes.py" />
     <Compile Include="pyMAOS\plot_element.py" />
     <Compile Include="pyMAOS\plot_structure.py" />
     <Compile Include="pyMAOS\R2Structure.py" />
     <Compile Include="pyMAOS\section.py" />
     <Compile Include="pyMAOS\summary_results.py" />
-    <Compile Include="pyMAOS\Truss.py" />
+    <Compile Include="pyMAOS\R2Truss.py" />
     <Compile Include="pyMAOS\units_mod.py" />
     <Compile Include="pyMAOS\unit_aware.py" />
     <Compile Include="pyMAOS\__init__.py" />
+    <Compile Include="tests\test_material_section_units.py" />
+    <Compile Include="tests\test_r2node_load_units.py" />
+    <Compile Include="tests\test_r2node_units.py" />
     <Compile Include="tests\test_units.py" />
+    <Compile Include="test_demo_functionality.py" />
+    <Compile Include="test_direct_assignment_final.py" />
+    <Compile Include="test_point_load_units.py" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="Global|PythonCore|3.13" />
@@ -84,6 +92,7 @@
     <Folder Include="data\" />
     <Folder Include="docs\" />
     <Folder Include="examples\" />
+    <Folder Include="example_5_1\" />
     <Folder Include="example_6_3\" />
     <Folder Include="example_6_7\" />
     <Folder Include="figure_6_19\" />
@@ -145,11 +154,15 @@
     <Content Include="data\MaterialsDb.csv" />
     <Content Include="data\SectionsDb.csv" />
     <Content Include="docs\Matrix Analysis of Structures, Kassimali.txt" />
+    <Content Include="example_5_1\Example_5_1.png" />
+    <Content Include="example_5_1\Example_5_1_results.xlsx" />
     <Content Include="example_6_3\input_imperial.json" />
     <Content Include="example_6_3\example_6_3.txt" />
     <Content Include="example_6_3\input_imperial_results.json" />
     <Content Include="example_6_3\input_imperial_results_display.json" />
     <Content Include="example_6_3\input_imperial_SI.json" />
+    <Content Include="SOLUTION_SUMMARY.md" />
+    <Content Include="test_demo_powershell.ps1" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

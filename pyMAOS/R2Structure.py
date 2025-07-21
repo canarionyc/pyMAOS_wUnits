@@ -629,80 +629,25 @@ class R2Structure:
         # THIS IS THE KEY FIX - Return the joined result
         return "\n".join(result)
 
-    def export_results_to_excel(self, load_combination, output_file=None, **kwargs):
+    def export_results_to_excel(self, output_file, loadcombos=None, **kwargs):
         """
         Export structural analysis results to Excel format with multiple sheets including visualization
         
-        This method creates a comprehensive Excel workbook containing:
-        - Summary of analysis parameters
-        - Structure visualization plot (optional)
-        - Units information
-        - Node data (coordinates, restraints, displacements, reactions)
-        - Member properties
-        - Member forces (global and local)
-        
-        The method leverages the existing plot_structure_matplotlib function to create
-        a visual representation of the structure and integrates it seamlessly with
-        the tabular data export functionality.
-        
         Parameters
         ----------
-        load_combination : LoadCombo
-            The load combination for which to export results
-        output_file : str or Path, optional
-            Path for the output Excel file. If None, uses "structure_results.xlsx"
+        output_file : str or Path
+            Path for the output Excel file
+        loadcombos : list of LoadCombo objects, optional
+            List of load combinations to include in the export (if None, uses all analyzed load combinations)
         **kwargs : dict
             Additional options:
             - include_visualization : bool, default True
                 Whether to include structure visualization sheet
+            - unit_system : str, default None
+                The unit system to use ("imperial", "si", "metric_kn")
+                If None, uses the current unit system from the model
             - scaling : dict, optional
-                Scaling factors for visualization (reserved for future use)
-                
-        Returns
-        -------
-        str
-            Path to the created Excel file
-            
-        Raises
-        ------
-        ImportError
-            If required packages (pandas, matplotlib, xlsxwriter) are not available
-        ValueError
-            If the structure hasn't been analyzed or load combination data is missing
-            
-        Examples
-        --------
-        >>> # After solving the structure
-        >>> structure.solve_linear_static(load_combo)
-        >>> 
-        >>> # Export with visualization
-        >>> excel_file = structure.export_results_to_excel(load_combo, "results.xlsx")
-        >>> 
-        >>> # Export without visualization
-        >>> excel_file = structure.export_results_to_excel(
-        ...     load_combo, 
-        ...     "results_data_only.xlsx",
-        ...     include_visualization=False
-        ... )
-        
-        Notes
-        -----
-        This method requires the following Python packages:
-        - pandas (for DataFrame operations and Excel writing)
-        - matplotlib (for structure visualization)
-        - xlsxwriter (for Excel formatting)
-        
-        The structure visualization uses the same plotting functionality as
-        plot_structure_matplotlib() to ensure consistency with other visualization
-        methods in the package.
-        
-        The Excel file contains the following sheets:
-        1. Summary - Basic analysis information
-        2. Structure Visualization - Plot of the structure geometry (optional)
-        3. Units - Unit system information
-        4. Nodes - Node coordinates, restraints, displacements, and reactions
-        5. Member Properties - Member connectivity, geometry, and material properties
-        6. Member Forces - End forces in both global and local coordinate systems
+                Scaling factors for visualization
         """
         # Check for required packages
         try:
@@ -711,25 +656,68 @@ class R2Structure:
             import numpy as np
             import io
             from pathlib import Path
+            from pint import UnitRegistry
         except ImportError as e:
             raise ImportError(f"Required package not available for Excel export: {e}")
         
-        # Validate inputs
-        if output_file is None:
-            output_file = Path("structure_results.xlsx")
+        # Create unit registry for conversions
+        ureg = UnitRegistry()
+        Q_ = ureg.Quantity
+        
+        # Process unit system
+        unit_system = kwargs.get('unit_system')
+        if unit_system:
+            # Import unit systems
+            from pyMAOS.units_mod import SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS, set_unit_system
+            
+            # Use the specified unit system for display
+            if unit_system == "imperial":
+                display_units = IMPERIAL_UNITS
+                system_name = "Imperial"
+            elif unit_system == "si":
+                display_units = SI_UNITS
+                system_name = "SI"
+            elif unit_system == "metric_kn":
+                display_units = METRIC_KN_UNITS
+                system_name = "Metric kN"
+            else:
+                display_units = self.units
+                system_name = "Current"
         else:
-            output_file = Path(output_file)
+            display_units = self.units
+            system_name = "Current"
             
-        # Check if analysis has been performed
-        has_results = any(hasattr(node, 'displacements') and node.displacements for node in self.nodes)
-        if not has_results:
-            raise ValueError("No analysis results found. Please run solve_linear_static() first.")
+        print(f"Using {system_name} units for Excel export")
+
+        # Utility function for unit conversion
+        def convert_value(value, from_unit, to_unit):
+            """Convert a value from one unit to another"""
+            try:
+                # Handle special case for dimensionless units like radians
+                if to_unit in ['rad', 'radian', 'radians']:
+                    return value
+                
+                # Convert using pint
+                return Q_(value, from_unit).to(to_unit).magnitude
+            except Exception as e:
+                print(f"Warning: Could not convert {value} from {from_unit} to {to_unit}: {e}")
+                return value
+
+        # Resolve output file path
+        output_file = Path(output_file)
             
-        # Check if the specific load combination has results
-        combo_name = load_combination.name
-        has_combo_results = any(combo_name in getattr(node, 'displacements', {}) for node in self.nodes)
-        if not has_combo_results:
-            raise ValueError(f"No results found for load combination '{combo_name}'. Please analyze this combination first.")
+        # Get list of all load combinations that have been analyzed
+        if loadcombos is None:
+            # Find all unique load combos that have results
+            all_combos = set()
+            for node in self.nodes:
+                if hasattr(node, 'displacements'):
+                    all_combos.update(node.displacements.keys())
+            from pyMAOS.loadcombos import LoadCombo
+            loadcombos = [LoadCombo(name, {name: 1.0}, [name], False, "CUSTOM") for name in all_combos]
+        
+        if not loadcombos:
+            raise ValueError("No load combinations specified and no analysis results found.")
         
         # Extract options
         include_visualization = kwargs.get('include_visualization', True)
@@ -755,9 +743,14 @@ class R2Structure:
             # 1. Summary sheet
             summary_data = {
                 'Parameter': ['Number of Nodes', 'Number of Members', 'Degrees of Freedom', 
-                             'Number of Restraints', 'Load Combination', 'Analysis Type'],
-                'Value': [self.NJ, self.NM, self.NDOF, self.NR, combo_name, 'Linear Static']
+                             'Number of Restraints', 'Analysis Type'],
+                'Value': [self.NJ, self.NM, self.NDOF, self.NR, 'Linear Static']
             }
+            # Add load combinations to summary
+            for i, combo in enumerate(loadcombos):
+                summary_data['Parameter'].append(f"Load Combination {i+1}")
+                summary_data['Value'].append(combo.name)
+                
             summary_df = pd.DataFrame(summary_data)
             summary_df.to_excel(writer, sheet_name='Summary', index=False)
             
@@ -789,72 +782,189 @@ class R2Structure:
             
             # 3. Units sheet
             units_data = []
-            for dimension, unit in self.units.items():
+            for dimension, unit in display_units.items():
                 units_data.append({'Dimension': dimension, 'Unit': unit})
             units_df = pd.DataFrame(units_data)
             units_df.to_excel(writer, sheet_name='Units', index=False)
             
-            # 4. Node information sheet
-            nodes_data = []
-            for node in sorted(self.nodes, key=lambda n: n.uid):
-                node_info = {
-                    'Node ID': node.uid,
-                    f'X ({self.units["length"]})': node.x,
-                    f'Y ({self.units["length"]})': node.y,
-                    'Restrained X': node.restraints[0],
-                    'Restrained Y': node.restraints[1],
-                    'Restrained Z': node.restraints[2],
-                }
+            # Process each load combination
+            for combo in loadcombos:
+                combo_name = combo.name
+                sheet_name = f"Results_{combo_name}"[:31]  # Excel sheet name limit is 31 chars
                 
-                # Add displacements if available
-                if hasattr(node, 'displacements') and combo_name in node.displacements:
-                    disp = node.displacements[combo_name]
-                    node_info.update({
-                        f'Displacement X ({self.units["length"]})': disp[0],
-                        f'Displacement Y ({self.units["length"]})': disp[1],
-                        'Rotation Z (rad)': disp[2],
+                # 4. Node information sheet for this load combination
+                nodes_data = []
+                for node in sorted(self.nodes, key=lambda n: n.uid):
+                    # Convert coordinates to display units
+                    x_display = convert_value(node.x, 'm', display_units['length'])
+                    y_display = convert_value(node.y, 'm', display_units['length'])
+                    
+                    node_info = {
+                        'Node ID': node.uid,
+                        f'X ({display_units["length"]})': x_display,
+                        f'Y ({display_units["length"]})': y_display,
+                        'Restrained X': node.restraints[0],
+                        'Restrained Y': node.restraints[1],
+                        'Restrained Z': node.restraints[2],
+                    }
+                    
+                    # Add displacements if available
+                    if hasattr(node, 'displacements') and combo_name in node.displacements:
+                        disp = node.displacements[combo_name]
+                        # Convert to display units
+                        disp_x = convert_value(disp[0], 'm', display_units['length'])
+                        disp_y = convert_value(disp[1], 'm', display_units['length']) 
+                        rot_z = disp[2]  # Radians are dimensionless
+                        
+                        node_info.update({
+                            f'Displacement X ({display_units["length"]})': disp_x,
+                            f'Displacement Y ({display_units["length"]})': disp_y,
+                            'Rotation Z (rad)': rot_z,
+                        })
+                    else:
+                        node_info.update({
+                            f'Displacement X ({display_units["length"]})': 0.0,
+                            f'Displacement Y ({display_units["length"]})': 0.0,
+                            'Rotation Z (rad)': 0.0,
+                        })
+                    
+                    # Add reactions if available
+                    if hasattr(node, 'reactions') and combo_name in node.reactions:
+                        reaction = node.reactions[combo_name]
+                        # Convert to display units
+                        rx = convert_value(reaction[0], 'N', display_units['force'])
+                        ry = convert_value(reaction[1], 'N', display_units['force'])
+                        mz = convert_value(reaction[2], 'N*m', display_units['moment'])
+                        
+                        node_info.update({
+                            f'Reaction X ({display_units["force"]})': rx,
+                            f'Reaction Y ({display_units["force"]})': ry,
+                            f'Moment Z ({display_units["moment"]})': mz,
+                        })
+                    else:
+                        node_info.update({
+                            f'Reaction X ({display_units["force"]})': 0.0,
+                            f'Reaction Y ({display_units["force"]})': 0.0,
+                            f'Moment Z ({display_units["moment"]})': 0.0,
+                        })
+                    
+                    nodes_data.append(node_info)
+                
+                nodes_df = pd.DataFrame(nodes_data)
+                nodes_df.to_excel(writer, sheet_name=sheet_name, index=False)
+                
+                # 5. Member forces sheet for this load combination
+                forces_data = []
+                for member in sorted(self.members, key=lambda m: m.uid):
+                    # Calculate member forces for this load combination
+                    if hasattr(member, 'end_forces_global') and combo_name in member.end_forces_global:
+                        global_forces = member.end_forces_global[combo_name]
+                        # Ensure global_forces is 1D
+                        global_forces = np.asarray(global_forces).flatten()
+                    else:
+                        # Calculate forces if not already available
+                        try:
+                            global_forces = member.Fglobal(combo)
+                            # Ensure global_forces is 1D
+                            global_forces = np.asarray(global_forces).flatten()
+                        except:
+                            global_forces = np.zeros(6)
+                    
+                    if hasattr(member, 'end_forces_local') and combo_name in member.end_forces_local:
+                        # Always flatten local_forces to ensure consistent 1D access
+                        local_forces = np.asarray(member.end_forces_local[combo_name]).flatten()
+                    else:
+                        try:
+                            member.Flocal(combo)
+                            # Always flatten the result to get a 1D array
+                            local_forces = np.asarray(member.end_forces_local[combo_name]).flatten()
+                        except:
+                            local_forces = np.zeros(6)
+                    
+                    # Convert forces to display units
+                    global_forces_display = [
+                        convert_value(global_forces[0], 'N', display_units['force']),
+                        convert_value(global_forces[1], 'N', display_units['force']),
+                        convert_value(global_forces[2], 'N*m', display_units['moment']),
+                        convert_value(global_forces[3], 'N', display_units['force']),
+                        convert_value(global_forces[4], 'N', display_units['force']),
+                        convert_value(global_forces[5], 'N*m', display_units['moment'])
+                    ]
+                    
+                    local_forces_display = [
+                        convert_value(local_forces[0], 'N', display_units['force']),
+                        convert_value(local_forces[1], 'N', display_units['force']),
+                        convert_value(local_forces[2], 'N*m', display_units['moment']),
+                        convert_value(local_forces[3], 'N', display_units['force']),
+                        convert_value(local_forces[4], 'N', display_units['force']),
+                        convert_value(local_forces[5], 'N*m', display_units['moment'])
+                    ]
+                    
+                    # i-node global forces
+                    forces_data.append({
+                        'Member ID': member.uid,
+                        'Node': f"{member.inode.uid} (i)",
+                        f'Fx ({display_units["force"]})': global_forces_display[0],
+                        f'Fy ({display_units["force"]})': global_forces_display[1],
+                        f'Mz ({display_units["moment"]})': global_forces_display[2],
+                        'System': 'Global'
                     })
-                else:
-                    node_info.update({
-                        f'Displacement X ({self.units["length"]})': 0.0,
-                        f'Displacement Y ({self.units["length"]})': 0.0,
-                        'Rotation Z (rad)': 0.0,
+                    
+                    # j-node global forces
+                    forces_data.append({
+                        'Member ID': member.uid,
+                        'Node': f"{member.jnode.uid} (j)",
+                        f'Fx ({display_units["force"]})': global_forces_display[3],
+                        f'Fy ({display_units["force"]})': global_forces_display[4],
+                        f'Mz ({display_units["moment"]})': global_forces_display[5],
+                        'System': 'Global'
+                    })
+                    
+                    # i-node local forces
+                    forces_data.append({
+                        'Member ID': member.uid,
+                        'Node': f"{member.inode.uid} (i)",
+                        f'Fx ({display_units["force"]})': local_forces_display[0],
+                        f'Fy ({display_units["force"]})': local_forces_display[1],
+                        f'Mz ({display_units["moment"]})': local_forces_display[2],
+                        'System': 'Local'
+                    })
+                    
+                    # j-node local forces
+                    forces_data.append({
+                        'Member ID': member.uid,
+                        'Node': f"{member.jnode.uid} (j)",
+                        f'Fx ({display_units["force"]})': local_forces_display[3],
+                        f'Fy ({display_units["force"]})': local_forces_display[4],
+                        f'Mz ({display_units["moment"]})': local_forces_display[5],
+                        'System': 'Local'
                     })
                 
-                # Add reactions if available
-                if hasattr(node, 'reactions') and combo_name in node.reactions:
-                    reaction = node.reactions[combo_name]
-                    node_info.update({
-                        f'Reaction X ({self.units["force"]})': reaction[0],
-                        f'Reaction Y ({self.units["force"]})': reaction[1],
-                        f'Moment Z ({self.units["moment"]})': reaction[2],
-                    })
-                else:
-                    node_info.update({
-                        f'Reaction X ({self.units["force"]})': 0.0,
-                        f'Reaction Y ({self.units["force"]})': 0.0,
-                        f'Moment Z ({self.units["moment"]})': 0.0,
-                    })
-                
-                nodes_data.append(node_info)
+                # Write member forces to a separate sheet for this load combo
+                forces_df = pd.DataFrame(forces_data)
+                sheet_name = f"Forces_{combo_name}"[:31]  # Excel sheet name limit is 31 chars
+                forces_df.to_excel(writer, sheet_name=sheet_name, index=False)
             
-            nodes_df = pd.DataFrame(nodes_data)
-            nodes_df.to_excel(writer, sheet_name='Nodes', index=False)
-            
-            # 5. Member properties sheet
+            # Add a member properties sheet (common to all load combos)
             members_data = []
             for member in sorted(self.members, key=lambda m: m.uid):
+                # Convert member properties to display units
+                length_display = convert_value(member.length, 'm', display_units['length'])
+                e_display = convert_value(member.material.E, 'Pa', display_units['pressure'])
+                area_display = convert_value(member.section.Area, 'm^2', f"{display_units['length']}^2")
+                ixx_display = convert_value(member.section.Ixx, 'm^4', f"{display_units['length']}^4")
+                
                 member_info = {
                     'Member ID': member.uid,
                     'Type': member.type,
                     'i-node': member.inode.uid,
                     'j-node': member.jnode.uid,
-                    f'Length ({self.units["length"]})': member.length,
+                    f'Length ({display_units["length"]})': length_display,
                     'Material ID': member.material.uid,
-                    f'E ({self.units["pressure"]})': member.material.E,
+                    f'E ({display_units["pressure"]})': e_display,
                     'Section ID': member.section.uid,
-                    f'Area ({self.units["length"]}²)': member.section.Area,
-                    f'Ixx ({self.units["length"]}⁴)': member.section.Ixx,
+                    f'Area ({display_units["length"]}²)': area_display,
+                    f'Ixx ({display_units["length"]}⁴)': ixx_display,
                 }
                 
                 # Add hinge information if it's a frame
@@ -870,66 +980,6 @@ class R2Structure:
             
             members_df = pd.DataFrame(members_data)
             members_df.to_excel(writer, sheet_name='Member Properties', index=False)
-            
-            # 6. Member forces sheet
-            forces_data = []
-            for member in sorted(self.members, key=lambda m: m.uid):
-                # Calculate member forces for this load combination
-                if hasattr(member, 'end_forces_global') and combo_name in member.end_forces_global:
-                    global_forces = member.end_forces_global[combo_name]
-                else:
-                    # Calculate forces if not already available
-                    try:
-                        global_forces = member.Fglobal(load_combination)
-                    except:
-                        global_forces = [0.0] * 6
-                
-                if hasattr(member, 'end_forces_local') and combo_name in member.end_forces_local:
-                    local_forces = member.end_forces_local[combo_name].flatten()
-                else:
-                    try:
-                        member.Flocal(load_combination)
-                        local_forces = member.end_forces_local[combo_name].flatten()
-                    except:
-                        local_forces = [0.0] * 6
-                
-                # i-node global forces
-                forces_data.append({
-                    'Member ID': member.uid,
-                    'Node': f"{member.inode.uid} (i)",
-                    f'Fx ({self.units["force"]})': global_forces[0],
-                    f'Fy ({self.units["force"]})': global_forces[1],
-                    f'Mz ({self.units["moment"]})': global_forces[2],
-                    'System': 'Global'
-                })
-                
-                # j-node global forces
-                forces_data.append({
-                    'Member ID': member.uid,
-                    'Node': f"{member.jnode.uid} (j)",
-                    f'Fx ({self.units["force"]})': global_forces[3],
-                    f'Fy ({self.units["force"]})': global_forces[4],
-                    f'Mz ({self.units["moment"]})': global_forces[5],
-                    'System': 'Global'
-                })
-                
-                # i-node local forces
-                forces_data.append({
-                    'Member ID': member.uid,
-                    'Node': f"{member.inode.uid} (i)",
-                    f'Fx ({self.units["force"]})': local_forces[0],
-                    f'Fy ({self.units["force"]})': local_forces[1],
-                    f'Mz ({self.units["moment"]})': local_forces[2],
-                    'System': 'Local'
-                })
-                
-                # j-node local forces
-                forces_data.append({
-                    'Member ID': member.uid,
-                    'Node': f"{member.jnode.uid} (j)",
-                    f'Fx ({self.units["force"]})': local_forces[3],
-                    f'Fy ({self.units["force"]})': local_forces[4],
-                    f'Mz ({self.units["moment"]})': local_forces[5],
-                    'System': 'Local'
-                })
-           
+        
+        print(f"Successfully exported results to {output_file}")
+        return str(output_file)
