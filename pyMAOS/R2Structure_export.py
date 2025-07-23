@@ -260,46 +260,34 @@ def _export_member_forces(structure, writer, combo, combo_name, display_units, c
             convert_value(local_forces[5], 'N*m', display_units['moment'])
         ]
         
-        # i-node global forces
+        # i-node forces
         forces_data.append({
             'Member ID': member.uid,
             'Node': f"{member.inode.uid} (i)",
+            'System': 'Global',
             f'Fx ({display_units["force"]})': global_forces_display[0],
             f'Fy ({display_units["force"]})': global_forces_display[1],
             f'Mz ({display_units["moment"]})': global_forces_display[2],
-            'System': 'Global'
-        })
-        
-        # j-node global forces
-        forces_data.append({
-            'Member ID': member.uid,
-            'Node': f"{member.jnode.uid} (j)",
-            f'Fx ({display_units["force"]})': global_forces_display[3],
-            f'Fy ({display_units["force"]})': global_forces_display[4],
-            f'Mz ({display_units["moment"]})': global_forces_display[5],
-            'System': 'Global'
-        })
-        
-        # i-node local forces
-        forces_data.append({
-            'Member ID': member.uid,
-            'Node': f"{member.inode.uid} (i)",
+            'System': 'Local',
             f'Fx ({display_units["force"]})': local_forces_display[0],
             f'Fy ({display_units["force"]})': local_forces_display[1],
             f'Mz ({display_units["moment"]})': local_forces_display[2],
-            'System': 'Local'
         })
         
-        # j-node local forces
+        # j-node forces
         forces_data.append({
             'Member ID': member.uid,
             'Node': f"{member.jnode.uid} (j)",
+            'System': 'Global',
+            f'Fx ({display_units["force"]})': global_forces_display[3],
+            f'Fy ({display_units["force"]})': global_forces_display[4],
+            f'Mz ({display_units["moment"]})': global_forces_display[5],
+            'System': 'Local',
             f'Fx ({display_units["force"]})': local_forces_display[3],
             f'Fy ({display_units["force"]})': local_forces_display[4],
             f'Mz ({display_units["moment"]})': local_forces_display[5],
-            'System': 'Local'
         })
-    
+        
     # Write member forces to a separate sheet for this load combo
     forces_df = pd.DataFrame(forces_data)
     sheet_name = f"Forces_{combo_name}"[:31]  # Excel sheet name limit is 31 chars

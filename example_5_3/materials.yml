@@ -1,0 +1,12 @@
+# Better structure for loading multiple materials
+- !!python/object:pyMAOS.material.LinearElasticMaterial
+  uid: 1
+  type: linear
+  E: "29000 * ksi"
+- !!python/object:pyMAOS.material.LinearElasticMaterial
+  uid: 2
+  type: linear
+  E: "10000 * ksi"
+  density: "0.0975 * lb/in^3"
+  name: "al6061 Aluminum"
+  link: "https://en.wikipedia.org/wiki/Aluminium_alloy"

@@ -2,7 +2,7 @@
 import numpy as np
 
 from pyMAOS import units_mod
-from pyMAOS.display_utils import display_node_load_vector_in_units, display_node_displacement_in_units, display_stiffness_matrix_in_units
+from pyMAOS.display_utils import display_node_load_vector_in_units, display_node_displacement_in_units
 np.set_printoptions(precision=4, suppress=False, floatmode='maxprec_equal',linewidth= 999)
 
 import ast
@@ -196,7 +196,7 @@ class R2Structure:
             Structure Stiffness Matrix.
 
         """
-
+        verbose = kwargs.get('verbose', False)
         output_dir=kwargs.get('output_dir', '.')
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -260,10 +260,10 @@ class R2Structure:
                 KSTRUCT[rzposition, rzposition] += krz
         self._Kgenerated = True
 
-        verbose= kwargs.get('verbose', False)
+
         if verbose:
             print("K:\n", KSTRUCT); print(KSTRUCT.shape)
-            output_dir = kwargs.get('output_dir', '.');  KSTRUCT_csv=os.path.join(output_dir, 'KSTRUCT.csv')
+            KSTRUCT_csv=os.path.join(output_dir, 'KSTRUCT.csv')
             np.savetxt(KSTRUCT_csv, KSTRUCT, delimiter=',', fmt='%lg')
             print(f"Saved KSTRUCT to {KSTRUCT_csv}")
 
@@ -355,14 +355,14 @@ class R2Structure:
             print("Kff Partition:\n", self.Kff); print(self.Kff.shape); # display_stiffness_matrix_in_units(self.Kff)
             # Slice out the FGf partition from the global nodal force vector
             self.FGf = FG[0 : self.NDOF]
-            print("FGf Partition:\n", self.FGf); print(self.FGf.shape)
+            # print("FGf Partition:\n", self.FGf); print(self.FGf.shape)
             self.PFf = PF[0 : self.NDOF]
-            print("PFf Partition:\n", self.PFf); print(self.PFf.shape)
+            # print("PFf Partition:\n", self.PFf); print(self.PFf.shape)
 
             # Use Numpy linear Algebra solve function to solve for the
             # displacements at the free nodes.
             U = np.linalg.solve(self.Kff, self.FGf - self.PFf)
-            print("Displacement Vector U:\n", U); print(U.shape)
+            # print("Displacement Vector U:\n", U); print(U.shape)
             # Full Displacement Vector
             # Result is still mapped to DOF via FM
             USTRUCT = np.zeros(self.NJD * self.NJ)
@@ -373,22 +373,22 @@ class R2Structure:
             # store displacement results to the current case to the nodes
             for node_index,node in enumerate(self.nodes):
                 node_displacements=USTRUCT[FM[node_index * self.NJD : (node_index + 1) * self.NJD]].tolist()
-                print(f"node {node.uid}    Ux: {node_displacements[0]:.4E} -- Uy: {node_displacements[1]:.4E} -- Rz: {node_displacements[2]:.4E}")
+                # print(f"node {node.uid}    Ux: {node_displacements[0]:.4E} -- Uy: {node_displacements[1]:.4E} -- Rz: {node_displacements[2]:.4E}")
                 node.displacements[load_combination.name] = node_displacements
-                if node.uid==2:
-                    display_node_displacement_in_units(
-                        node_displacements,
-                        node_uid=node.uid,              
-                        load_combo_name=load_combination.name,
-                        units_system=self.units
-                    )
+                # if node.uid==2:
+                #     display_node_displacement_in_units(
+                #         node_displacements,
+                #         node_uid=node.uid,
+                #         load_combo_name=load_combination.name,
+                #         units_system=self.units
+                #     )
 
             # In the solve_linear_static method, after computing U:
-            print(f"DEBUG: Member 2 nodal displacements:")
-            for node in [node for member in self.members if member.uid == 2 for node in [member.inode, member.jnode]]:
-                node_index = self.uid_to_index[node.uid]
-                dof_indices = FM[node_index * self.NJD:(node_index+1) * self.NJD]
-                print(f"  Node {node.uid}: {[USTRUCT[int(i)] for i in dof_indices]}")
+            # print(f"DEBUG: Member 2 nodal displacements:")
+            # for node in [node for member in self.members if member.uid == 2 for node in [member.inode, member.jnode]]:
+            #     node_index = self.uid_to_index[node.uid]
+            #     dof_indices = FM[node_index * self.NJD:(node_index+1) * self.NJD]
+            #     print(f"  Node {node.uid}: {[USTRUCT[int(i)] for i in dof_indices]}")
 
             # compute reactions
             self.compute_reactions(load_combination)
@@ -482,7 +482,7 @@ class R2Structure:
         except Exception as e:
             print(f"Error during visualization: {e}")
 
-    def __str__(self):
+    def get_summary(self):
         """
         Returns a string representation of the structure using the display units
         specified in the input file.

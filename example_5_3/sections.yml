@@ -1,0 +1,4 @@
+- !!python/object:pyMAOS.section.Section
+  uid: 1
+  area: 10 in^2
+  ixx: 875 in^4

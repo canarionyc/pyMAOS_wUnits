@@ -78,13 +78,26 @@ class Element(ABC):
             The local stiffness matrix
         """
         pass
-        
+    def k_with_units(self):
+        """Calculate the local stiffness matrix with units"""
+        k = self.k()
+        # This is a placeholder implementation. Actual unit handling would depend on the specific units used in the analysis.
+        # For example, you might convert the matrix to a specific unit system here.
+        return k
     def kglobal(self):
         """Calculate the global stiffness matrix for the element"""
         k = self.k()
         T = self.T(); print("T:\n", T)
-        global_stiffness_matrix = np.matmul(np.matmul(np.transpose(T), k), T); print("kglobal:", global_stiffness_matrix)
+        global_stiffness_matrix = np.matmul(np.matmul(np.transpose(T), k), T)
+        print("kglobal:", global_stiffness_matrix)
         return global_stiffness_matrix
+
+    def display_stiffness_matrix_in_units(self):
+        """Display the stiffness matrix with appropriate units notation."""
+        # This is a placeholder implementation. Actual unit handling would depend on the specific units used in the analysis.
+        k_with_units = self.k_with_units()
+        print(f"Stiffness Matrix for Element {self.uid}:\n")
+        print(k_with_units)
 
     def Dglobal(self, load_case):
         """Get global nodal displacement vector for the element"""

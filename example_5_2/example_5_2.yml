@@ -14,19 +14,15 @@ nodes:
     y: 0ft
     # Node B
   - id: 3
-    x: 30ft
+    x: 35ft
     y: 0ft
     # Node C
-  - id: 4
-    x: 40ft
-    y: 0ft
-    # Node D
 
 supports:
   - node: 1
     rx: 1
     ry: 1
-    rz: 0
+    rz: 1
     # Pinned support at A
   - node: 2
     rx: 1
@@ -36,13 +32,7 @@ supports:
   - node: 3
     rx: 1
     ry: 1
-    rz: 0
-    # Roller support at C
-  - node: 4
-    rx: 0
-    ry: 1
-    rz: 0
-    # Roller support at D
+    rz: 1
 
 materials:
   - id: 1
@@ -52,7 +42,7 @@ materials:
 sections:
   - id: 1
     area: 10in^2
-    ixx: 350in^4
+    ixx: 875in^4
 
 members:
   - id: 1
@@ -67,24 +57,13 @@ members:
     material: 1
     section: 1
     # Span B-C
-  - id: 3
-    i_node: 3
-    j_node: 4
-    material: 1
-    section: 1
-    # Span C-D
 
-joint_loads:
-  - node: 4
-    fx: 0kip
-    fy: -0kip
-    mz: -50kip*ft
-    # 50 kip*ft moment at D
-  - node: 4
-    fx: 0kip
-    fy: -20kip
-    mz: 0kip*ft
-    # 20 kip concentrated load at D
+#joint_loads:
+#  - node: 2
+#    fx: 0kip
+#    fy: -0kip
+#    mz: 0kip*ft
+
 
 # Commented out distributed loads
 # member_loads:

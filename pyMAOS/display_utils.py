@@ -173,28 +173,28 @@ def display_member_forces_in_units(forces, member_uid, force_unit=None, length_u
         components = [f"{v:.4g}" for v in display_forces]
         print(f"  Forces: {', '.join(components)}")
 
-def display_stiffness_matrix_in_units(matrix, units_system=None):
-    """
-    Display stiffness matrix with appropriate units notation.
-    
-    Parameters
-    ----------
-    matrix : ndarray
-        Stiffness matrix
-    units_system : dict, optional
-        Dictionary containing unit definitions (e.g., SI_UNITS)
-    """
-    # Determine units based on units_system
-    force_unit = units_system.get("force", "N") if units_system else "N"
-    length_unit = units_system.get("length", "m") if units_system else "m"
-    
-    # Create unit descriptions for different terms in the stiffness matrix
-    force_disp = f"{force_unit}/{length_unit}"      # Force/displacement
-    force_rot = f"{force_unit}"                     # Force/rotation
-    moment_disp = f"{force_unit}*{length_unit}/{length_unit}" # Moment/displacement = Force
-    moment_rot = f"{force_unit}*{length_unit}"      # Moment/rotation
-    
-    # Print matrix with units note
-    print(f"Stiffness Matrix (Various units: {force_disp}, {moment_rot}, etc.)")
-    np.set_printoptions(precision=4, suppress=True)
-    print(matrix)
+# def display_stiffness_matrix_in_units(matrix, units_system=None):
+#     """
+#     Display stiffness matrix with appropriate units notation.
+#
+#     Parameters
+#     ----------
+#     matrix : ndarray
+#         Stiffness matrix
+#     units_system : dict, optional
+#         Dictionary containing unit definitions (e.g., SI_UNITS)
+#     """
+#     # Determine units based on units_system
+#     force_unit = units_system.get("force", "N") if units_system else "N"
+#     length_unit = units_system.get("length", "m") if units_system else "m"
+#
+#     # Create unit descriptions for different terms in the stiffness matrix
+#     force_disp = f"{force_unit}/{length_unit}"      # Force/displacement
+#     force_rot = f"{force_unit}"                     # Force/rotation
+#     moment_disp = f"{force_unit}*{length_unit}/{length_unit}" # Moment/displacement = Force
+#     moment_rot = f"{force_unit}*{length_unit}"      # Moment/rotation
+#
+#     # Print matrix with units note
+#     print(f"Stiffness Matrix (Various units: {force_disp}, {moment_rot}, etc.)")
+#     np.set_printoptions(precision=4, suppress=True)
+#     print(matrix)

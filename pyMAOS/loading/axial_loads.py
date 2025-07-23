@@ -1,5 +1,5 @@
 from pyMAOS.loading.polynomial import Piecewise_Polynomial
-from pyMAOS.units_mod import DISPLAY_UNITS
+# from pyMAOS.units_mod import DISPLAY_UNITS
 
 class R2_Axial_Load:
     def __init__(self, p, a, member, loadcase="D"):
@@ -26,7 +26,7 @@ class R2_Axial_Load:
         # Each piecewise function uses the following format:
         # [coefficients_list, domain_bounds]
         # where coefficients_list contains polynomial coefficients in ascending order [c0, c1, c2,...] 
-        # representing c0 + c1*x + c2*x² + ...
+        # representing c0 + c1*x + c2*x^2 + ...
         # and domain_bounds are [start_x, end_x] for the applicable region
         # [co....cn x^n] [xa, xb]
         Ax = [
@@ -70,10 +70,11 @@ class R2_Axial_Load:
         from pyMAOS.units_mod import convert_to_display_units
         Rix_display = convert_to_display_units(Rix, 'force')
         Rjx_display = convert_to_display_units(Rjx, 'force')
-        
+        import pyMAOS.units_mod as units
+        # Then use units.DISPLAY_UNITS which will reflect the current value
         print(f"Axial reactions - SI: Rix={Rix:.3f} N, Rjx={Rjx:.3f} N")
-        print(f"Axial reactions - Display: Rix={Rix_display:.3f} {DISPLAY_UNITS['force']}, "
-              f"Rjx={Rjx_display:.3f} {DISPLAY_UNITS['force']}")
+        print(f"Axial reactions - Display: Rix={Rix_display:.3f} {units.DISPLAY_UNITS['force']}, "
+              f"Rjx={Rjx_display:.3f} {units.DISPLAY_UNITS['force']}")
 
         return [Rix, 0, 0, Rjx, 0, 0]
 

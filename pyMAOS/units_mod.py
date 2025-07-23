@@ -12,6 +12,44 @@ import pint
 import jsonschema
 from pathlib import Path
 from jsonschema import validators
+global SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS
+
+# Predefined unit systems
+SI_UNITS = {
+    "force": "N",
+    "length": "m",
+    "pressure": "Pa",
+    "distance": "m",
+    "moment": "N*m",
+    "distributed_load": "N/m",
+    "area": "m^2",
+    "moment_of_inertia": "m^4",
+    "density": "kg/m^3"
+}
+
+IMPERIAL_UNITS = {
+    "force": "klbf",
+    "length": "in",
+    "pressure": "ksi",
+    "distance": "ft",
+    "moment": "klbf*in",
+    "distributed_load": "klbf/in",
+    "area": "in^2",
+    "moment_of_inertia": "in^4",
+    "density": "klb/in^3"
+}
+
+METRIC_KN_UNITS = {
+    "force": "kN",
+    "length": "m",
+    "pressure": "kN/m^2",
+    "distance": "m",
+    "moment": "kN*m",
+    "distributed_load": "kN/m",
+    "area": "m^2",
+    "moment_of_inertia": "m^4",
+    "density": "kg/m^3"
+}
 
 # Set up unit registry
 ureg = pint.UnitRegistry()
@@ -88,11 +126,11 @@ DISPLAY_UNITS = {
 }
 
 # For backward compatibility, keep individual variables
-FORCE_UNIT = DISPLAY_UNITS['force']
-LENGTH_UNIT = DISPLAY_UNITS['length']
-MOMENT_UNIT = DISPLAY_UNITS['moment']
-PRESSURE_UNIT = DISPLAY_UNITS['pressure']
-DISTRIBUTED_LOAD_UNIT = DISPLAY_UNITS['distributed_load']
+FORCE_DISPLAY_UNIT = DISPLAY_UNITS['force']
+LENGTH_DISPLAY_UNIT = DISPLAY_UNITS['length']
+MOMENT_DISPLAY_UNIT = DISPLAY_UNITS['moment']
+PRESSURE_DISPLAY_UNIT = DISPLAY_UNITS['pressure']
+DISTRIBUTED_LOAD_DISPLAY_UNIT = DISPLAY_UNITS['distributed_load']
 
 def update_units_from_json(json_string):
     """
@@ -116,7 +154,7 @@ def update_units_from_json(json_string):
         
         # Parse JSON
         unit_dict = json.loads(json_string)
-        global DISPLAY_UNITS, FORCE_UNIT, LENGTH_UNIT, MOMENT_UNIT, PRESSURE_UNIT, DISTRIBUTED_LOAD_UNIT
+        global DISPLAY_UNITS, FORCE_DISPLAY_UNIT, LENGTH_DISPLAY_UNIT, MOMENT_DISPLAY_UNIT, PRESSURE_DISPLAY_UNIT, DISTRIBUTED_LOAD_DISPLAY_UNIT
         
         # Update display units based on JSON specification
         if "force" in unit_dict:
@@ -139,12 +177,12 @@ def update_units_from_json(json_string):
         # Update individual variables for backward compatibility
         FORCE_UNIT = DISPLAY_UNITS['force']
         LENGTH_UNIT = DISPLAY_UNITS['length']
-        MOMENT_UNIT = DISPLAY_UNITS['moment']
-        PRESSURE_UNIT = DISPLAY_UNITS['pressure'] 
+        MOMENT_DISPLAY_UNIT = DISPLAY_UNITS['moment']
+        PRESSURE_DISPLAY_UNIT = DISPLAY_UNITS['pressure']
         DISTRIBUTED_LOAD_UNIT = DISPLAY_UNITS['distributed_load']
         
-        print(f"Using display units from JSON: Force={FORCE_UNIT}, Length={LENGTH_UNIT}, Moment={MOMENT_UNIT}")
-        print(f"Pressure={PRESSURE_UNIT}, Distributed Load={DISTRIBUTED_LOAD_UNIT}")
+        print(f"Using display units from JSON: Force={FORCE_UNIT}, Length={LENGTH_UNIT}, Moment={MOMENT_DISPLAY_UNIT}")
+        print(f"Pressure={PRESSURE_DISPLAY_UNIT}, Distributed Load={DISTRIBUTED_LOAD_UNIT}")
         print(f"Note: All internal calculations will use SI units.")
         return True
     except Exception as e:
@@ -365,42 +403,6 @@ def validate_input_with_schema(input_file, schema_file=None):
     print("Input file successfully validated against schema!")
     return True
 
-# Predefined unit systems
-SI_UNITS = {
-    "force": "N", 
-    "length": "m",
-    "pressure": "Pa",
-    "distance": "m",
-    "moment": "N*m",
-    "distributed_load": "N/m",
-    "area": "m^2",
-    "moment_of_inertia": "m^4",
-    "density": "kg/m^3"
-}
-
-IMPERIAL_UNITS = {
-    "force": "klbf", 
-    "length": "in",
-    "pressure": "ksi",
-    "distance": "ft",
-    "moment": "klbf*in",
-    "distributed_load": "klbf/in",
-    "area": "in^2",
-    "moment_of_inertia": "in^4",
-    "density": "klb/in^3"
-}
-
-METRIC_KN_UNITS = {
-    "force": "kN", 
-    "length": "m",
-    "pressure": "kN/m^2",
-    "distance": "m",
-    "moment": "kN*m",
-    "distributed_load": "kN/m",
-    "area": "m^2",
-    "moment_of_inertia": "m^4",
-    "density": "kg/m^3"
-}
 
 class UnitManager:
     """
@@ -441,15 +443,15 @@ class UnitManager:
         """
         self.current_system = system_dict
         self.system_name = system_name or "custom"
-        
+        from pprint import pp, pprint; pprint(globals())
         # Update global unit variables
-        global DISPLAY_UNITS, FORCE_UNIT, LENGTH_UNIT, MOMENT_UNIT, PRESSURE_UNIT, DISTRIBUTED_LOAD_UNIT
-        
+        global DISPLAY_UNITS, FORCE_DISPLAY_UNIT, LENGTH_DISPLAY_UNIT, MOMENT_DISPLAY_UNIT, PRESSURE_DISPLAY_UNIT, DISTRIBUTED_LOAD_UNIT
+        pprint(globals())
         DISPLAY_UNITS = system_dict
-        FORCE_UNIT = system_dict.get("force", "N")
-        LENGTH_UNIT = system_dict.get("length", "m")
-        MOMENT_UNIT = system_dict.get("moment", "N*m")
-        PRESSURE_UNIT = system_dict.get("pressure", "Pa")
+        FORCE_DISPLAY_UNIT = system_dict.get("force", "N")
+        LENGTH_DISPLAY_UNIT = system_dict.get("length", "m")
+        MOMENT_DISPLAY_UNIT = system_dict.get("moment", "N*m")
+        PRESSURE_DISPLAY_UNIT = system_dict.get("pressure", "Pa")
         DISTRIBUTED_LOAD_UNIT = system_dict.get("distributed_load", "N/m")
         
         # Notify all registered modules of unit change

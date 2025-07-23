@@ -14,7 +14,7 @@
     <IsWindowsApplication>True</IsWindowsApplication>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
-    <CommandLineArguments> example_5_1\Example_5_1.yml --units imperial  --log  example_5_1\example_5_1.txt --to XLSX</CommandLineArguments>
+    <CommandLineArguments> example_5_1\Example_5_2.yml --units imperial --to XLSX</CommandLineArguments>
     <PublishUrl>C:\out\example_braced_frame</PublishUrl>
     <Environment>DATADIR=C:\dev\pyMAOS_testing\data\</Environment>
     <TestFramework>Pytest</TestFramework>

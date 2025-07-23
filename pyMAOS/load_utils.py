@@ -5,7 +5,7 @@ from typing import Union, Tuple, Dict, Any
 import numpy as np
 
 # Import unit systems from globals
-from pyMAOS.globals import SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS
+from pyMAOS.units_mod import SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS
 
 # Import the unit registry
 try:

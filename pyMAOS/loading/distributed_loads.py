@@ -308,18 +308,22 @@ class R2_Linear_Load:
         Rjy = self.Rjy - (Miz / L) - (Mjz / L)
         
         # Print forces and moments in both SI and display units
-        from pyMAOS.units_mod import convert_to_display_units, DISPLAY_UNITS
+        from pyMAOS.units_mod import convert_to_display_units
+        from pyMAOS.units_mod import unit_manager
+        # Get current unit system directly from the manager
+        current_units = unit_manager.get_current_units()
+        system_name = unit_manager.get_system_name()
         Riy_display = convert_to_display_units(Riy, 'force')
         Rjy_display = convert_to_display_units(Rjy, 'force')
         Miz_display = convert_to_display_units(Miz, 'moment')
         Mjz_display = convert_to_display_units(Mjz, 'moment')
         
         print(f"Vertical reactions - SI: Riy={Riy:.3f} N, Rjy={Rjy:.3f} N")
-        print(f"Vertical reactions - Display: Riy={Riy_display:.3f} {DISPLAY_UNITS['force']}, "
-              f"Rjy={Rjy_display:.3f} {DISPLAY_UNITS['force']}")
+        print(f"Vertical reactions - Display: Riy={Riy_display:.3f} {current_units['force']}, "
+              f"Rjy={Rjy_display:.3f} {current_units['force']}")
         print(f"Moments - SI: Miz={Miz:.3f} N*m, Mjz={Mjz:.3f} N*m")
-        print(f"Moments - Display: Miz={Miz_display:.3f} {DISPLAY_UNITS['moment']}, "
-              f"Mjz={Mjz_display:.3f} {DISPLAY_UNITS['moment']}")
+        print(f"Moments - Display: Miz={Miz_display:.3f} {current_units['moment']}, "
+              f"Mjz={Mjz_display:.3f} {current_units['moment']}")
         
         ret_val = [0, Riy, Miz, 0, Rjy, Mjz]
         print(f"FEF distributed load results for Load Case {self.loadcase}:\n", ret_val)
@@ -359,14 +363,17 @@ class R2_Linear_Load:
         chart_height : int
             Height of ASCII charts in characters
         """
-        from pyMAOS.units_mod import convert_to_display_units, DISPLAY_UNITS
-        
+        from pyMAOS.units_mod import convert_to_display_units
+        from pyMAOS.units_mod import unit_manager
+        # Get current unit system directly from the manager
+        current_units = unit_manager.get_current_units()
+        system_name = unit_manager.get_system_name()
         print(f"\n===== DETAILED ANALYSIS FOR {self.__str__()} =====")
-        print(f"Total Load W = {self.W:.3f} N ({convert_to_display_units(self.W, 'force'):.3f} {DISPLAY_UNITS['force']})")
+        print(f"Total Load W = {self.W:.3f} N ({convert_to_display_units(self.W, 'force'):.3f} {current_units['force']})")
         print(f"Load centroid from left: {self.a + self.cbar:.3f} m")
         print(f"Reactions: Riy = {self.Riy:.3f} N, Rjy = {self.Rjy:.3f} N")
-        print(f"          ({convert_to_display_units(self.Riy, 'force'):.3f} {DISPLAY_UNITS['force']}, "
-              f"{convert_to_display_units(self.Rjy, 'force'):.3f} {DISPLAY_UNITS['force']})")
+        print(f"          ({convert_to_display_units(self.Riy, 'force'):.3f} {current_units['force']}, "
+              f"{convert_to_display_units(self.Rjy, 'force'):.3f} {current_units['force']})")
         
         # Sample points across all regions
         regions = [(0, self.a), (self.a, self.b), (self.b, self.L)]
