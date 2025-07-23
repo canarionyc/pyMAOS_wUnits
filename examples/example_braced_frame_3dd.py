@@ -15,12 +15,12 @@ matplotlib.use("QtAgg")
 
 from context import pyMAOS
 
-from pyMAOS.R2Node import R2Node, get_nodes_from_csv
-from pyMAOS.R2Truss import R2Truss
-from pyMAOS.R2Frame import R2Frame
+from pyMAOS.node2d import R2Node, get_nodes_from_csv
+from pyMAOS.truss2d import R2Truss
+from pyMAOS.frame2d import R2Frame
 from pyMAOS.material import LinearElasticMaterial as Material
 from pyMAOS.section import Section
-import pyMAOS.R2Structure as R2Struct
+import pyMAOS.structure2d as R2Struct
 from pyMAOS.loadcombos import LoadCombo
 
 import pandas as pd

@@ -8,6 +8,17 @@ from pyMAOS.elements import Element
 
 from pyMAOS.units_mod import unit_manager, IMPERIAL_UNITS, convert_to_display_units
 
+import pint
+
+# Create unit registry
+ureg = pint.UnitRegistry()
+Q_ = ureg.Quantity
+
+def convert_to_quantity(value, unit_str):
+    """Convert a value to a quantity with units if it's not already one"""
+    if isinstance(value, pint.Quantity):
+        return value
+    return Q_(value, unit_str)
 
 class R2Frame(Element):
     def __init__(self, uid, inode, jnode, material, section):

@@ -4,7 +4,7 @@ Simple demonstration of R2Node coordinate parsing with units
 """
 
 # Example of creating nodes with different coordinate formats
-from pyMAOS.R2Node import R2Node
+from pyMAOS.node2d import R2Node
 
 def demo_coordinate_parsing():
     """Demonstrate the new coordinate parsing functionality"""

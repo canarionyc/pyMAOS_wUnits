@@ -9,7 +9,7 @@ import os
 # Add the project root to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from pyMAOS.R2Node import R2Node
+from pyMAOS.node2d import R2Node
 
 def test_r2node_unit_parsing():
     """Test R2Node creation with various coordinate formats"""

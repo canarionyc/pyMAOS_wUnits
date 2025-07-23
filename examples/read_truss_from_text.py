@@ -6,11 +6,11 @@ import sys
 import numpy as np
 np.set_printoptions(precision=2, suppress=True, linewidth=np.nan, threshold=sys.maxsize) # type: ignore
 
-from pyMAOS.R2Node import R2Node
-from pyMAOS.R2Truss import R2Truss
+from pyMAOS.node2d import R2Node
+from pyMAOS.truss2d import R2Truss
 from pyMAOS.material import LinearElasticMaterial as Material
 from pyMAOS.section import Section
-import pyMAOS.R2Structure as R2Struct
+import pyMAOS.structure2d as R2Struct
 from pyMAOS.loadcombos import LoadCombo
 
 

@@ -12,7 +12,7 @@ def test_direct_assignment_with_units():
     """Test that direct assignment of loads with units works correctly"""
     
     try:
-        from pyMAOS.R2Node import R2Node
+        from pyMAOS.node2d import R2Node
         from pyMAOS.units_mod import set_unit_system, IMPERIAL_UNITS
         
         print("✓ Imports successful")

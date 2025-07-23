@@ -3,7 +3,7 @@
 Simple demonstration of R2Node load parsing with units
 """
 
-from pyMAOS.R2Node import R2Node
+from pyMAOS.node2d import R2Node
 
 def demo_load_parsing():
     """Demonstrate the new load parsing functionality"""

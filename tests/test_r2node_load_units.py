@@ -9,7 +9,7 @@ import os
 # Add the project root to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from pyMAOS.R2Node import R2Node
+from pyMAOS.node2d import R2Node
 
 def test_r2node_load_parsing():
     """Test R2Node load assignment with various unit formats"""
@@ -81,8 +81,8 @@ def test_r2node_load_parsing():
     print("\n" + "=" * 60)
     print("Conversion verification:")
     print("=" * 60)
-    print("50 kip = 50 × 4448.22 = 222,411 N")
-    print("200 kip*ft = 200 × 4448.22 × 0.3048 = 271,140 N*m")
+    print("50 kip = 50 ï¿½ 4448.22 = 222,411 N")
+    print("200 kip*ft = 200 ï¿½ 4448.22 ï¿½ 0.3048 = 271,140 N*m")
     print("100 kN = 100,000 N")
     print("50 kN*m = 50,000 N*m")
 

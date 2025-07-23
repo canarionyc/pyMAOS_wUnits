@@ -4,7 +4,7 @@ from pyMAOS.nodes import R2Node
 from pyMAOS.elements import R2Truss, R2Frame
 from pyMAOS.material import LinearElasticMaterial as Material
 from pyMAOS.section import Section
-import pyMAOS.R2Structure as R2Struct
+import pyMAOS.structure2d as R2Struct
 from pyMAOS.loadcombos import LoadCombo
 from pyMAOS.plot_structure import plot_structure
 

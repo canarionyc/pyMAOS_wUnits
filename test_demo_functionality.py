@@ -14,7 +14,7 @@ def test_demo_excel_export_functionality():
     
     try:
         # Import exactly what demo_excel_export.py imports
-        from pyMAOS.R2Node import R2Node
+        from pyMAOS.node2d import R2Node
         from pyMAOS.elements import R2Frame
         from pyMAOS.material import LinearElasticMaterial as Material
         from pyMAOS.section import Section

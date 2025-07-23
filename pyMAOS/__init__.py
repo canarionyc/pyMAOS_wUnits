@@ -12,10 +12,10 @@ with a focus on frame structures.
 # )
 
 # Add references to the new modules
-from .R2Structure import R2Structure
-from .R2Structure_export import export_results_to_excel
-from .R2Structure_viz import plot_loadcombos_vtk
-from .R2Structure_utils import __str__
+from .structure2d import R2Structure
+from .structure2d_export import export_results_to_excel
+from .structure2d_viz import plot_loadcombos_vtk
+from .structure2d_utils import __str__
 
 print("pyMAOS package initialized with unit systems and structural analysis tools.")
 

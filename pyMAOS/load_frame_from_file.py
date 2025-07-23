@@ -202,8 +202,8 @@ np.set_printoptions(precision=2, threshold=999, linewidth=999, suppress=True,
                     formatter={'all': lambda x: '.'.center(10) if abs(x) < 1e-10 else f"{x:10.4g}"})
 # Import other modules
 from pyMAOS.plot_structure import plot_structure_vtk
-from pyMAOS.R2Node import R2Node
-from pyMAOS.R2Frame import R2Frame
+from pyMAOS.node2d import R2Node
+from pyMAOS.frame2d import R2Frame
 from pyMAOS.material import LinearElasticMaterial as Material
 from pyMAOS.section import Section
 # import pyMAOS.R2Structure as R2Struct

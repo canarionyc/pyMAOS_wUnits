@@ -7,7 +7,7 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from pyMAOS.R2Node import R2Node
+from pyMAOS.node2d import R2Node
 from pyMAOS.elements import R2Frame
 from pyMAOS.material import LinearElasticMaterial as Material
 from pyMAOS.section import Section
