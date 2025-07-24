@@ -5,15 +5,13 @@ This module provides standardized unit definitions and conversion functions
 for structural analysis calculations. It ensures consistent use of units
 throughout the program and enables user-defined input/output unit preferences.
 """
-
-import json
 import re
 import pint
-import jsonschema
-from pathlib import Path
-from jsonschema import validators
-global SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS
 
+from pprint import pprint
+
+global SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS
+from pint import UnitRegistry, Quantity
 # Predefined unit systems
 SI_UNITS = {
     "force": "N",
@@ -50,15 +48,22 @@ METRIC_KN_UNITS = {
     "moment_of_inertia": "m^4",
     "density": "kg/m^3"
 }
-
+pprint(globals()); print(dir())
 # Set up unit registry
 ureg = pint.UnitRegistry()
-ureg.default_system = 'mks'  # meter-kilogram-second
+# ureg.default_system = 'mks'  # meter-kilogram-second
 Q_ = ureg.Quantity  # Shorthand for creating quantities
 
 print(ureg.sys)  # Shows available systems
 print(ureg.get_system('imperial'))  # Shows units in the imperial system
 
+print(ureg.get_system('imperial').units)  # Shows the units in the imperial system
+print(str(ureg.get_system('imperial')))   # String representation
+print(ureg.get_system('imperial').name)   # System name
+
+pprint(ureg.get_system('imperial').units)
+
+global FORCE_DIMENSIONALITY, MOMENT_DIMENSIONALITY, LENGTH_DIMENSIONALITY, PRESSURE_DIMENSIONALITY, DISTRIBUTED_LOAD_DIMENSIONALITY
 # Add these definitions to the top of the file after initializing ureg
 # Pre-computed dimensionality constants for efficient type checking
 FORCE_DIMENSIONALITY = ureg.N.dimensionality
@@ -90,12 +95,14 @@ IMPERIAL_DISPLAY_UNITS = {
     'angle': 'deg'
 }
 
+global INTERNAL_FORCE_UNIT, INTERNAL_LENGTH_UNIT, INTERNAL_TIME_UNIT
 # Base internal units (all calculations use SI units)
 INTERNAL_FORCE_UNIT = 'N'  
 INTERNAL_LENGTH_UNIT = 'm'
 INTERNAL_TIME_UNIT = 's'
 
 # Derived internal units
+global INTERNAL_AREA_UNIT, INTERNAL_VOLUME_UNIT, INTERNAL_MOMENT_OF_INERTIA_UNIT, INTERNAL_DENSITY_UNIT, INTERNAL_MOMENT_UNIT, INTERNAL_PRESSURE_UNIT, INTERNAL_PRESSURE_UNIT_EXPANDED, INTERNAL_DISTRIBUTED_LOAD_UNIT
 INTERNAL_AREA_UNIT = f"{INTERNAL_LENGTH_UNIT}^2"
 INTERNAL_VOLUME_UNIT = f"{INTERNAL_LENGTH_UNIT}^3"
 INTERNAL_MOMENT_OF_INERTIA_UNIT = f"{INTERNAL_LENGTH_UNIT}^4"
@@ -299,109 +306,6 @@ def get_internal_unit(unit_type):
     }
     return mapping.get(unit_type)
 
-def extend_with_dimension_validator(validator_class):
-    """Extend JSON Schema validator with dimension validation"""
-    validate_properties = validator_class.VALIDATORS["properties"]
-    
-    def set_dimensions(validator, properties, instance, schema):
-        for property, subschema in properties.items():
-            if instance is not None and property in instance:
-                # Process normal validation
-                for error in validate_properties(validator, properties, instance, schema):
-                    yield error
-                
-                # Add dimension validation if specified
-                if "dimension" in subschema and instance[property] is not None:
-                    dimension = subschema["dimension"]
-                    value = instance[property]
-                    
-                    # Handle string values with units
-                    if isinstance(value, str):
-                        try:
-                            # Parse and validate the unit dimensions
-                            parsed = parse_value_with_units(value)
-                            if isinstance(parsed, pint.Quantity):
-                                # Get the expected dimension's internal unit
-                                expected_unit = get_internal_unit(dimension)
-                                if expected_unit:
-                                    try:
-                                        # Try converting - will fail if dimensions don't match
-                                        parsed.to(expected_unit)
-                                    except pint.DimensionalityError as e:
-                                        yield jsonschema.ValidationError(
-                                            f"Value '{value}' has incorrect dimension for '{property}'. "
-                                            f"Expected {dimension} ({expected_unit}), got {parsed.units}")
-                        except Exception as e:
-                            yield jsonschema.ValidationError(
-                                f"Failed to parse unit dimensions for '{property}': {str(e)}")
-    
-    return validators.extend(validator_class, {"properties": set_dimensions})
-
-# Create our custom validator
-DimensionValidator = extend_with_dimension_validator(jsonschema.Draft7Validator)
-
-def validate_input_with_schema(input_file, schema_file=None):
-    """
-    Validate a JSON input file against the schema with dimension validation
-    
-    Parameters
-    ----------
-    input_file : str
-        Path to the input JSON file to validate
-    schema_file : str, optional
-        Path to the schema file (defaults to data/myschema.json)
-        
-    Returns
-    -------
-    bool
-        True if validation succeeds
-        
-    Raises
-    ------
-    ValidationError
-        If validation fails
-    """
-    # Default schema location
-    if schema_file is None:
-        # Try to find schema in a few common locations
-        possible_paths = [
-            Path("data/myschema.json"),
-            Path("myschema.json"),
-            Path(__file__).parent.parent / "data" / "myschema.json"
-        ]
-        
-        for path in possible_paths:
-            if path.exists():
-                schema_file = str(path)
-                break
-        else:
-            raise FileNotFoundError("Could not find schema file 'myschema.json'")
-    
-    # Load the schema
-    with open(schema_file, 'r') as f:
-        schema = json.load(f)
-    
-    # Load the input file
-    with open(input_file, 'r') as f:
-        data = json.load(f)
-    
-    # Create validator instance
-    validator = DimensionValidator(schema)
-    
-    # Collect and report all errors
-    errors = list(validator.iter_errors(data))
-    if errors:
-        print(f"Validation failed with {len(errors)} errors:")
-        for i, error in enumerate(errors, 1):
-            # Format the error path as a JSON path
-            path = ".".join(str(p) for p in error.path) if error.path else "root"
-            print(f"{i}. Error at '{path}': {error.message}")
-        
-        # Raise the first error to stop execution if needed
-        raise jsonschema.ValidationError(f"Validation failed: {errors[0].message}")
-    
-    print("Input file successfully validated against schema!")
-    return True
 
 
 class UnitManager:

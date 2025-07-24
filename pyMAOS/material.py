@@ -32,16 +32,15 @@ class LinearElasticMaterial(UnitAwareMixin):
                 density = density.to('kg/m^3')
 
         print(
-            f"LinearElasticMaterial uid {self.uid} initialized with density={self.density} kg/m^3, E={self.E} Pa, nu={self.nu}")
+            f"LinearElasticMaterial uid {self.uid} initialized with density={self.density:.4g} kg/m^3, E={self.E:.3g} Pa, nu={self.nu}")
 
     def __setstate__(self, state):
 
-        from pint import UnitRegistry
-        ureg = UnitRegistry()
+        from pyMAOS.units_mod import ureg
         # Initialize the object properly
         self.__init__(state.get('uid'),
-                      ureg(state.get('density', "0.284 lb/in^3")),
-                      ureg(state.get('E', "29000.0 ksi")),
+                      ureg(state.get('density', "0.284 lb/in^3")).to('kg/m^3'),
+                      ureg(state.get('E', "29000.0 ksi")).to('Pa'),
                       state.get('nu', 0.3))
 
     def _parse_value_with_units(self, value: Union[float, str], unit_type: str) -> float:
@@ -97,7 +96,6 @@ class LinearElasticMaterial(UnitAwareMixin):
     # If we get here, something unexpected happened
         raise ValueError(f"Unsupported material value type: {type(value)}")
 
-
     def stress(self, strain):
         return self.E * strain
 
@@ -110,9 +108,9 @@ class LinearElasticMaterial(UnitAwareMixin):
         density_display = self.density.to(units['density'])
         # pressure_unit = units.get('pressure', 'Pa')
         # density_unit = units.get('density', 'kg/m^3')
-        return f"LinearElasticMaterial(uid={self.uid}, density={density_display:.4f}, E={e_display}, nu={self.nu})"
+        return f"LinearElasticMaterial(uid={self.uid}, density={density_display:.4f}, E={e_display}, nu={self.nu}) in {units.get('name', 'default')} units"
 
 
     def __repr__(self):
         """Return developer representation of the material"""
-        return self.__str__()
+        return f"LinearElasticMaterial(uid={self.uid}, density={self.density:.4f}, E={self.E:.2f}, nu={self.nu})"

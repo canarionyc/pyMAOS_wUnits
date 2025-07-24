@@ -28,12 +28,14 @@ class Piecewise_Polynomial:
             func = ""
             for i, coeff in enumerate(line[0]):
                 if i == 0:
-                    func += f"{coeff}"
+                    func += f"{coeff:6.2f}"
                 else:
-                    func += f" + {coeff} x^{i}"
-            func += f"  for {line[1][0]} <= x <= {line[1][1]}\n"
+                    func += f" + {coeff:6.2f} x^{i}"
+            func += f"  for {line[1][0]:.2f} <= x <= {line[1][1]:.2f};"
             out += func
         return out
+    def __repr__(self):
+        return f"Piecewise_Polynomial(functions={self.functions})"
 
     def evaluate(self, x):
         """

@@ -39,7 +39,7 @@ class Piecewise_Polynomial:
                 else:
 
                     func += f" + {coeff} x^{i}"
-            func += f"  for {line[1][0]} <= x <= {line[1][1]}\n"
+            func += f"  for {line[1][0]:.2f} <= x <= {line[1][1]:.2f};"
 
             out += func
         return out

@@ -11,7 +11,7 @@ from pathlib import Path
 import pint
 
 # Initialize unit registry
-ureg = pint.UnitRegistry()
+from pyMAOS.units_mod import ureg
 Q_ = ureg.Quantity
 
 # Define dimension mappings - what fields have what physical dimensions
@@ -179,8 +179,7 @@ def convert_si_to_display_units(si_data, output_file=None, display_units=None):
     from copy import deepcopy
     import pint
     
-    # Initialize unit registry
-    ureg = pint.UnitRegistry()
+    from pyMAOS.units_mod import ureg
     
     # Handle case where si_data is a file path
     if isinstance(si_data, str):

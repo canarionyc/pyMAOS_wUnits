@@ -1,7 +1,10 @@
+import pint
+
+from pyMAOS.frame2d import R2Frame
 from pyMAOS.loading.polynomial import Piecewise_Polynomial
 
 class R2_Point_Moment:
-    def __init__(self, M, a, member, loadcase="D"):
+    def __init__(self, M: pint.Quantity, a: pint.Quantity, member: R2Frame, loadcase="D"):
         """
         Parameters
         ----------
@@ -114,7 +117,7 @@ class R2_Point_Moment:
 
 
 class R2_Point_Load:
-    def __init__(self, p, a, member, loadcase="D"):
+    def __init__(self, p: pint.Quantity, a: pint.Quantity, member: R2Frame, loadcase="D"):
         self.p = p
         self.a = a
         self.L = member.length

@@ -502,8 +502,7 @@ class R2Structure:
         
         # Create a ureg for conversions if not already available
         try:
-            from pint import UnitRegistry
-            ureg = UnitRegistry()
+            from pyMAOS.units_mod import ureg
             Q_ = ureg.Quantity
         except:
             # Fall back if pint is not available
@@ -661,7 +660,7 @@ class R2Structure:
             raise ImportError(f"Required package not available for Excel export: {e}")
         
         # Create unit registry for conversions
-        ureg = UnitRegistry()
+        from pyMAOS.units_mod import ureg
         Q_ = ureg.Quantity
         
         # Process unit system

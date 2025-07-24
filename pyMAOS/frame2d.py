@@ -11,7 +11,7 @@ from pyMAOS.units_mod import unit_manager, IMPERIAL_UNITS, convert_to_display_un
 import pint
 
 # Create unit registry
-ureg = pint.UnitRegistry()
+from pyMAOS.units_mod import ureg
 Q_ = ureg.Quantity
 
 def convert_to_quantity(value, unit_str):
@@ -105,118 +105,118 @@ class R2Frame(Element):
         """
         self.hinges[1] = 0
 
-    def _parse_load_value(self, load_value):
-        """
-        Parse a load value that may be a float or string with units.
-        
-        Parameters
-        ----------
-        load_value : float or str
-            Load value, either as a number or string with units (e.g., "50kip", "100kN")
-            
-        Returns
-        -------
-        float
-            Load value in SI units (Newtons for forces, Newton-meters for moments)
-        """
-        # If it's already a number, return it as-is (assume SI units)
-        if isinstance(load_value, (int, float)):
-            return float(load_value)
-        
-        # If it's a string, try to parse units
-        if isinstance(load_value, str):
-            try:
-                # Import the parse function from units_mod
-                from pyMAOS.units_mod import parse_value_with_units
-                import pint
-                
-                # Parse the load string
-                parsed_value = parse_value_with_units(load_value)
-                
-                # If it has units, convert to SI units
-                if isinstance(parsed_value, pint.Quantity):
-                    try:
-                        # Try to convert to force units (Newtons) first
-                        force_value = parsed_value.to('N').magnitude
-                        return float(force_value)
-                    except Exception:
-                        try:
-                            # If that fails, try moment units (Newton-meters)
-                            moment_value = parsed_value.to('N*m').magnitude
-                            return float(moment_value)
-                        except Exception as e:
-                            print(f"Warning: Could not convert '{load_value}' to SI units (N or N*m): {e}")
-                            # Fall back to magnitude if conversion fails
-                            return float(parsed_value.magnitude)
-                else:
-                    # No units, just return the numeric value
-                    return float(parsed_value)
-                    
-            except Exception as e:
-                print(f"Warning: Could not parse load value '{load_value}': {e}")
-                # Try to convert directly to float as fallback
-                try:
-                    return float(load_value)
-                except Exception:
-                    raise ValueError(f"Could not parse load value: {load_value}")
-        
-        # If we get here, something unexpected happened
-        raise ValueError(f"Unsupported load value type: {type(load_value)}")
+    # def _parse_load_value(self, load_value):
+    #     """
+    #     Parse a load value that may be a float or string with units.
+    #
+    #     Parameters
+    #     ----------
+    #     load_value : float or str
+    #         Load value, either as a number or string with units (e.g., "50kip", "100kN")
+    #
+    #     Returns
+    #     -------
+    #     float
+    #         Load value in SI units (Newtons for forces, Newton-meters for moments)
+    #     """
+    #     # If it's already a number, return it as-is (assume SI units)
+    #     if isinstance(load_value, (int, float)):
+    #         return float(load_value)
+    #
+    #     # If it's a string, try to parse units
+    #     if isinstance(load_value, str):
+    #         try:
+    #             # Import the parse function from units_mod
+    #             from pyMAOS.units_mod import parse_value_with_units
+    #             import pint
+    #
+    #             # Parse the load string
+    #             parsed_value = parse_value_with_units(load_value)
+    #
+    #             # If it has units, convert to SI units
+    #             if isinstance(parsed_value, pint.Quantity):
+    #                 try:
+    #                     # Try to convert to force units (Newtons) first
+    #                     force_value = parsed_value.to('N').magnitude
+    #                     return float(force_value)
+    #                 except Exception:
+    #                     try:
+    #                         # If that fails, try moment units (Newton-meters)
+    #                         moment_value = parsed_value.to('N*m').magnitude
+    #                         return float(moment_value)
+    #                     except Exception as e:
+    #                         print(f"Warning: Could not convert '{load_value}' to SI units (N or N*m): {e}")
+    #                         # Fall back to magnitude if conversion fails
+    #                         return float(parsed_value.magnitude)
+    #             else:
+    #                 # No units, just return the numeric value
+    #                 return float(parsed_value)
+    #
+    #         except Exception as e:
+    #             print(f"Warning: Could not parse load value '{load_value}': {e}")
+    #             # Try to convert directly to float as fallback
+    #             try:
+    #                 return float(load_value)
+    #             except Exception:
+    #                 raise ValueError(f"Could not parse load value: {load_value}")
+    #
+    #     # If we get here, something unexpected happened
+    #     raise ValueError(f"Unsupported load value type: {type(load_value)}")
 
-    def _parse_position_value(self, position_value):
-        """
-        Parse a position value that may be a float or string with units.
-        
-        Parameters
-        ----------
-        position_value : float or str
-            Position value, either as a number or string with units (e.g., "10ft", "3m")
-            
-        Returns
-        -------
-        float
-            Position value in SI units (meters)
-        """
-        # If it's already a number, return it as-is (assume SI units)
-        if isinstance(position_value, (int, float)):
-            return float(position_value)
-        
-        # If it's a string, try to parse units
-        if isinstance(position_value, str):
-            try:
-                # Import the parse function from units_mod
-                from pyMAOS.units_mod import parse_value_with_units
-                import pint
-                
-                # Parse the position string
-                parsed_value = parse_value_with_units(position_value)
-                
-                # If it has units, convert to SI units (meters)
-                if isinstance(parsed_value, pint.Quantity):
-                    try:
-                        # Convert to length units (meters)
-                        length_value = parsed_value.to('m').magnitude
-                        return float(length_value)
-                    except Exception as e:
-                        print(f"Warning: Could not convert '{position_value}' to meters: {e}")
-                        # Fall back to magnitude if conversion fails
-                        return float(parsed_value.magnitude)
-                else:
-                    # No units, just return the numeric value
-                    return float(parsed_value)
-                    
-            except Exception as e:
-                print(f"Warning: Could not parse position value '{position_value}': {e}")
-                # Try to convert directly to float as fallback
-                try:
-                    return float(position_value)
-                except Exception:
-                    raise ValueError(f"Could not parse position value: {position_value}")
-        
-        # If we get here, something unexpected happened
-        raise ValueError(f"Unsupported position value type: {type(position_value)}")
+    # def _parse_position_value(self, position_value):
+    #     """
+    #     Parse a position value that may be a float or string with units.
+    #
+    #     Parameters
+    #     ----------
+    #     position_value : float or str
+    #         Position value, either as a number or string with units (e.g., "10ft", "3m")
+    #
+    #     Returns
+    #     -------
+    #     float
+    #         Position value in SI units (meters)
+    #     """
+    #     # If it's already a number, return it as-is (assume SI units)
+    #     if isinstance(position_value, (int, float)):
+    #         return float(position_value)
+    #
+    #     # If it's a string, try to parse units
+    #     if isinstance(position_value, str):
+    #         try:
+    #             # Import the parse function from units_mod
+    #             from pyMAOS.units_mod import parse_value_with_units
+    #             import pint
+    #
+    #             # Parse the position string
+    #             parsed_value = parse_value_with_units(position_value)
+    #
+    #             # If it has units, convert to SI units (meters)
+    #             if isinstance(parsed_value, pint.Quantity):
+    #                 try:
+    #                     # Convert to length units (meters)
+    #                     length_value = parsed_value.to('m').magnitude
+    #                     return float(length_value)
+    #                 except Exception as e:
+    #                     print(f"Warning: Could not convert '{position_value}' to meters: {e}")
+    #                     # Fall back to magnitude if conversion fails
+    #                     return float(parsed_value.magnitude)
+    #             else:
+    #                 # No units, just return the numeric value
+    #                 return float(parsed_value)
+    #
+    #         except Exception as e:
+    #             print(f"Warning: Could not parse position value '{position_value}': {e}")
+    #             # Try to convert directly to float as fallback
+    #             try:
+    #                 return float(position_value)
+    #             except Exception:
+    #                 raise ValueError(f"Could not parse position value: {position_value}")
+    #
+    #     # If we get here, something unexpected happened
+    #     raise ValueError(f"Unsupported position value type: {type(position_value)}")
 
-    def add_point_load(self, p, a, case="D", direction="y", location_percent=False):
+    def add_point_load(self, p: pint.Quantity, a: pint.Quantity, case="D", direction="y", location_percent=False):
         """Add a concentrated point load to the frame element
         
         Parameters
@@ -245,14 +245,14 @@ class R2Frame(Element):
         and stored as two separate loads (axial and transverse)
         """
         # Parse the load magnitude with units
-        p_parsed = self._parse_load_value(p)
-        
-        # Parse the position with units (unless it's a percentage)
-        if location_percent:
-            # For percentages, convert to decimal and multiply by length
-            a_parsed = float(a) / 100 * self.length
-        else:
-            a_parsed = self._parse_position_value(a)
+        # p = self._parse_load_value(p)
+        #
+        # # Parse the position with units (unless it's a percentage)
+        # if location_percent:
+        #     # For percentages, convert to decimal and multiply by length
+        #     a = float(a) / 100 * self.length
+        # # else:
+        # #     a = self._parse_position_value(a)
             
         if direction == "Y" or direction == "X":
             # Load is applied in the global axis
@@ -261,25 +261,35 @@ class R2Frame(Element):
             s = (self.jnode.y - self.inode.y) / self.length
 
             if direction == "Y":
-                pyy = c * p_parsed
-                pxx = s * p_parsed
+                pyy = c * p
+                pxx = s * p
             else:
-                pyy = -1 * s * p_parsed
-                pxx = c * p_parsed
-            self.loads.append(loadtypes.R2_Axial_Load(pxx, a_parsed, self, loadcase=case))
-            self.loads.append(loadtypes.R2_Point_Load(pyy, a_parsed, self, loadcase=case))
+                pyy = -1 * s * p
+                pxx = c * p
+            self.loads.append(loadtypes.R2_Axial_Load(pxx, a, self, loadcase=case))
+            self.loads.append(loadtypes.R2_Point_Load(pyy, a, self, loadcase=case))
         else:
             # Load is applied in the local member axis
 
             if direction == "xx":
-                self.loads.append(loadtypes.R2_Axial_Load(p_parsed, a_parsed, self, loadcase=case))
+                self.loads.append(loadtypes.R2_Axial_Load(p, a, self, loadcase=case))
             else:
-                self.loads.append(loadtypes.R2_Point_Load(p_parsed, a_parsed, self, loadcase=case))
+                self.loads.append(loadtypes.R2_Point_Load(p, a, self, loadcase=case))
 
         self._stations = False
         self._loaded = True
 
-    def add_distributed_load(self, wi, wj, a, b, case="D", direction="y", location_percent=False, projected=False):
+    def add_distributed_load(
+        self,
+        wi: pint.Quantity,
+        wj: pint.Quantity,
+        a: pint.Quantity,
+        b: pint.Quantity,
+        case: str = "D",
+        direction: str = "y",
+        location_percent: bool = False,
+        projected: bool = False
+    ):
         """Add a distributed load to the frame element
         
         Parameters
@@ -307,17 +317,12 @@ class R2Frame(Element):
         For global loads (X, Y), the load is transformed into local components
         and stored as two separate loads
         """
-        # Parse the load intensities with units
-        wi_parsed = self._parse_distributed_load_value(wi)
-        wj_parsed = self._parse_distributed_load_value(wj)
+
         
         # Parse the positions with units (unless they're percentages)
         if location_percent:
-            a_parsed = (float(a) / 100) * self.length
-            b_parsed = (float(b) / 100) * self.length
-        else:
-            a_parsed = self._parse_position_value(a)
-            b_parsed = self._parse_position_value(b)
+            a = (float(a) / 100) * self.length
+            b = (float(b) / 100) * self.length
             
         if direction == "Y" or direction == "X":
             # Load is applied in the global axis
@@ -327,42 +332,42 @@ class R2Frame(Element):
 
             if direction == "Y":
                 if projected:
-                    wi_parsed = c * wi_parsed
-                    wj_parsed = c * wj_parsed
+                    wi = c * wi
+                    wj = c * wj
 
-                wyyi = c * wi_parsed
-                wyyj = c * wj_parsed
-                wxxi = s * wi_parsed
-                wxxj = s * wj_parsed
+                wyyi = c * wi
+                wyyj = c * wj
+                wxxi = s * wi
+                wxxj = s * wj
             else:
                 if projected:
-                    wi_parsed = s * wi_parsed
-                    wj_parsed = s * wj_parsed
+                    wi = s * wi
+                    wj = s * wj
 
-                wyyi = -1 * s * wi_parsed
-                wyyj = -1 * s * wj_parsed
-                wxxi = c * wi_parsed
-                wxxj = c * wj_parsed
-            if abs(wxxi) > 1e-10 or abs(wxxj) > 1e-10:  # Only add if at least one component is non-zero
+                wyyi = -1 * s * wi
+                wyyj = -1 * s * wj
+                wxxi = c * wi
+                wxxj = c * wj
+            if abs(wxxi.magnitude) > 1e-10 or abs(wxxj.magnitude) > 1e-10:  # Only add if at least one component is non-zero
                 self.loads.append(
-                    loadtypes.R2_Axial_Linear_Load(wxxi, wxxj, a_parsed, b_parsed, self, loadcase=case)
+                    loadtypes.R2_Axial_Linear_Load(wxxi, wxxj, a, b, self, loadcase=case)
                 )
-            if abs(wyyi) > 1e-10 or abs(wyyj) > 1e-10:  # Also check transverse load
+            if abs(wyyi.magnitude) > 1e-10 or abs(wyyj.magnitude) > 1e-10:  # Also check transverse load
                 self.loads.append(
-                    loadtypes.R2_Linear_Load(wyyi, wyyj, a_parsed, b_parsed, self, loadcase=case)
+                    loadtypes.R2_Linear_Load(wyyi, wyyj, a, b, self, loadcase=case)
                 )
         else:
             # Load is applied in the local member axis
 
             if direction == "xx":
                 self.loads.append(
-                    loadtypes.R2_Axial_Linear_Load(wi_parsed, wj_parsed, a_parsed, b_parsed, self, loadcase=case)
+                    loadtypes.R2_Axial_Linear_Load(wi, wj, a, b, self, loadcase=case)
                 )
             else:
                 if projected:
-                    wi_parsed = (self.jnode.x - self.inode.x) * wi_parsed / self.length
-                    wj_parsed = (self.jnode.x - self.inode.x) * wj_parsed / self.length
-                load= loadtypes.R2_Linear_Load(wi_parsed, wj_parsed, a_parsed, b_parsed, self, loadcase=case)
+                    wi = (self.jnode.x - self.inode.x) * wi / self.length
+                    wj = (self.jnode.x - self.inode.x) * wj / self.length
+                load= loadtypes.R2_Linear_Load(wi, wj, a, b, self, loadcase=case)
                 load.print_detailed_analysis()
                 self.loads.append(load)
 
@@ -422,7 +427,7 @@ class R2Frame(Element):
         # If we get here, something unexpected happened
         raise ValueError(f"Unsupported distributed load value type: {type(load_value)}")
 
-    def add_moment_load(self, m, a, case="D", location_percent=False):
+    def add_moment_load(self, m: pint.Quantity, a: pint.Quantity, case="D", location_percent=False):
         """Add a concentrated moment to the frame element
         
         Parameters
@@ -447,15 +452,15 @@ class R2Frame(Element):
         The moment is applied in the local coordinate system of the element.
         """
         # Parse the moment magnitude with units
-        m_parsed = self._parse_load_value(m)  # Works for both forces and moments
-        
-        # Parse the position with units (unless it's a percentage)
-        if location_percent:
-            a_parsed = (float(a) / 100) * self.length
-        else:
-            a_parsed = self._parse_position_value(a)
+        # m = self._parse_load_value(m)  # Works for both forces and moments
+        #
+        # # Parse the position with units (unless it's a percentage)
+        # if location_percent:
+        #     a = (float(a) / 100) * self.length
+        # else:
+        #     a = self._parse_position_value(a)
             
-        self.loads.append(loadtypes.R2_Point_Moment(m_parsed, a_parsed, self, loadcase=case))
+        self.loads.append(loadtypes.R2_Point_Moment(m, a, self, loadcase=case))
 
         self._stations = False
         self._loaded = True

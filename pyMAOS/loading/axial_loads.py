@@ -1,8 +1,11 @@
+import pint
+
+from pyMAOS.frame2d import R2Frame
 from pyMAOS.loading.polynomial import Piecewise_Polynomial
-# from pyMAOS.units_mod import DISPLAY_UNITS
+
 
 class R2_Axial_Load:
-    def __init__(self, p, a, member, loadcase="D"):
+    def __init__(self, p: pint.Quantity, a: pint.Quantity, member: R2Frame, loadcase="D"):
         self.p = p
         self.a = a
         self.L = member.length

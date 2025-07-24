@@ -5,8 +5,7 @@ from pyMAOS.units_mod import set_unit_system, IMPERIAL_UNITS
 
 print(os.getcwd())
 
-
-set_unit_system(IMPERIAL_UNITS, "imperial")  # Set the unit system to imperial
+# set_unit_system(IMPERIAL_UNITS, "imperial")  # Set the unit system to imperial
 
 materials_yml = os.path.join("materials.yml")
 with open(materials_yml, 'r') as file:
@@ -18,6 +17,6 @@ for material_obj in materials_list:
     print(material_obj)
     print(f"E value: {material_obj.E}")
     print(f"E with display units: {material_obj.E.to(IMPERIAL_UNITS['pressure'])}")
-    print(f"Material {material_obj.uid} initialized with E={material_obj.E}, density={material_obj.density}, nu={material_obj.nu}")
+    print(f"Material {material_obj.uid} initialized with E={material_obj.E:.3f}, density={material_obj.density:.3f}, nu={material_obj.nu}")
 
 

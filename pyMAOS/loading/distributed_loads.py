@@ -1,8 +1,11 @@
-﻿from pyMAOS.display_utils import display_node_load_vector_in_units
+﻿import pint
+
+from pyMAOS.display_utils import display_node_load_vector_in_units
+from pyMAOS.frame2d import R2Frame
 from pyMAOS.loading.polynomial import Piecewise_Polynomial
 
 class R2_Linear_Load:
-    def __init__(self, w1, w2, a, b, member, loadcase="D"):
+    def __init__(self, w1: pint.Quantity, w2: pint.Quantity, a: pint.Quantity, b: pint.Quantity, member: R2Frame, loadcase="D"):
         self.w1 = w1
         self.w2 = w2
         self.a = a

@@ -21,7 +21,7 @@ class Section(UnitAwareMixin):
 
     def __setstate__(self, state):
         from pint import UnitRegistry
-        ureg = UnitRegistry()
+        from pyMAOS.units_mod import ureg
 
         # Get values from state
         uid = state.get('uid')
@@ -120,8 +120,8 @@ class Section(UnitAwareMixin):
         else:
             iyy_display = self.Iyy.to(units['moment_of_inertia'])
 
-        return f"Section {self.uid}: A={area_display}, Ixx={ixx_display}, Iyy={iyy_display}"
+        return f"Section {self.uid}: A={area_display:.2f}, Ixx={ixx_display:.2f}, Iyy={iyy_display}"
 
     def __repr__(self):
         """Return developer representation of the section"""
-        return self.__str__()
+        return f"Section(uid={self.uid}, Area={self.Area}, Ixx={self.Ixx}, Iyy={self.Iyy})"

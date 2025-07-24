@@ -33,11 +33,13 @@ class Element(ABC):
         """Return string representation of the element"""
         return (f"{self.type} Element {self.uid}: "
                 f"Nodes({self.inode.uid}->{self.jnode.uid}), "
-                f"Material({self.material}), Section({self.section})")
+                f"{self.material}, {self.section}")
     
     def __repr__(self):
         """Return developer representation of the element"""
-        return self.__str__()
+        return f"Element(uid={self.uid}, type={self.type}, "
+                f"inode={self.inode.uid}, jnode={self.jnode.uid}, " \
+                f"material={self.material.uid}, section={self.section.uid})"
 
     @property
     def length(self):
@@ -78,12 +80,12 @@ class Element(ABC):
             The local stiffness matrix
         """
         pass
-    def k_with_units(self):
-        """Calculate the local stiffness matrix with units"""
-        k = self.k()
-        # This is a placeholder implementation. Actual unit handling would depend on the specific units used in the analysis.
-        # For example, you might convert the matrix to a specific unit system here.
-        return k
+    # def k_with_units(self):
+    #     """Calculate the local stiffness matrix with units"""
+    #     k = self.k()
+    #     # This is a placeholder implementation. Actual unit handling would depend on the specific units used in the analysis.
+    #     # For example, you might convert the matrix to a specific unit system here.
+    #     return k
     def kglobal(self):
         """Calculate the global stiffness matrix for the element"""
         k = self.k()

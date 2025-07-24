@@ -422,68 +422,69 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
 
         if load_type == 3:  # Distributed load
             # Extract load intensity parameters with unit conversion
-            w1_with_units = parse_value_with_units(str(member_load.get("wi", 0)))
+            from pyMAOS.units_mod import INTERNAL_LENGTH_UNIT, INTERNAL_DISTRIBUTED_LOAD_UNIT
+            w1_with_units = parse_value_with_units(str(member_load.get("wi", 0))).to(INTERNAL_DISTRIBUTED_LOAD_UNIT)
 
             if "wj" in member_load:
-                w2_with_units = parse_value_with_units(str(member_load["wj"]))
+                w2_with_units = parse_value_with_units(str(member_load["wj"])).to(INTERNAL_DISTRIBUTED_LOAD_UNIT)
             else:
                 w2_with_units = w1_with_units
 
             # Get positions - check for percentage parameters first
             if "a_pct" in member_load:
                 a_pct = float(member_load["a_pct"])
-                a = a_pct / 100.0 * element.length
+                a_with_units = a_pct / 100.0 * element.length
                 log(f"  Using a_pct={a_pct}% → position a={a:.4f}m")
             else:
-                a_with_units = parse_value_with_units(str(member_load["a"]))
+                a_with_units = parse_value_with_units(str(member_load["a"])).to(INTERNAL_LENGTH_UNIT)
 
             if "b_pct" in member_load:
                 b_pct = float(member_load["b_pct"])
-                b = b_pct / 100.0 * element.length
+                b_with_units = b_pct / 100.0 * element.length
                 log(f"  Using b_pct={b_pct}% → position b={b:.4f}m")
             else:
-                b_with_units = parse_value_with_units(member_load.get("b", element.length))
-            from pyMAOS.units_mod import INTERNAL_DISTRIBUTED_LOAD_UNIT
+                b_with_units = parse_value_with_units(member_load.get("b", element.length)).to(INTERNAL_LENGTH_UNIT)
+
             # Convert to SI units (N/m)
-            w1 = w1_with_units.to(INTERNAL_DISTRIBUTED_LOAD_UNIT).magnitude if isinstance(w1_with_units,
-                                                                                          pint.Quantity) else w1_with_units
-            w2 = w2_with_units.to(INTERNAL_DISTRIBUTED_LOAD_UNIT).magnitude if isinstance(w2_with_units,
-                                                                                          pint.Quantity) else w2_with_units
+            # w1 = w1_with_units.to(INTERNAL_DISTRIBUTED_LOAD_UNIT).magnitude if isinstance(w1_with_units,
+            #                                                                               pint.Quantity) else w1_with_units
+            # w2 = w2_with_units.to(INTERNAL_DISTRIBUTED_LOAD_UNIT).magnitude if isinstance(w2_with_units,
+            #                                                                               pint.Quantity) else w2_with_units
 
             # Log with SI units
             # log(f"  Element {element_id}: Distributed load w1={w1:.4g} N/m, w2={w2:.4g} N/m, "
             #     f"a={a:.4f} m, b={b:.4f} m")
-            from pyMAOS.units_mod import INTERNAL_LENGTH_UNIT
-            a = a_with_units.to(INTERNAL_LENGTH_UNIT).magnitude if isinstance(a_with_units,pint.Quantity) else a_with_units
-            b = b_with_units.to(INTERNAL_LENGTH_UNIT).magnitude if isinstance(b_with_units,pint.Quantity) else b_with_units
-            # Apply the load to the element
-            element.add_distributed_load(w1, w2, a, b, load_case, direction=direction)
+            # from pyMAOS.units_mod import INTERNAL_LENGTH_UNIT
+            # a = a_with_units.to(INTERNAL_LENGTH_UNIT).magnitude if isinstance(a_with_units,pint.Quantity) else a_with_units
+            # b = b_with_units.to(INTERNAL_LENGTH_UNIT).magnitude if isinstance(b_with_units,pint.Quantity) else b_with_units
+            # # Apply the load to the element
+            element.add_distributed_load(w1_with_units, w2_with_units, a_with_units, b_with_units, load_case, direction=direction)
 
         elif load_type == 1:  # Point load
             # Parse force magnitude with unit conversion
             from pprint import pprint
             pprint(member_load)
-            p_with_units = parse_value_with_units(str(member_load.get("p", 0)))
             from pyMAOS.units_mod import INTERNAL_LENGTH_UNIT, INTERNAL_FORCE_UNIT
+            p_with_units = parse_value_with_units(str(member_load.get("p", 0))).to(INTERNAL_FORCE_UNIT)
             # Parse position - use percentage value if available
             if "a_pct" in member_load:
                 a_pct = float(member_load["a_pct"])
-                a = a_pct / 100.0 * element.length
+                a_with_units = a_pct / 100.0 * element.length
             else:
-                a_with_units = parse_value_with_units(str(member_load["a"]))
-                a = a_with_units.to(INTERNAL_LENGTH_UNIT).magnitude if isinstance(a_with_units,pint.Quantity) else a_with_units
+                a_with_units = parse_value_with_units(str(member_load["a"])).to(INTERNAL_LENGTH_UNIT)
+            #     a = a_with_units.to(INTERNAL_LENGTH_UNIT).magnitude if isinstance(a_with_units,pint.Quantity) else a_with_units
 
             # Convert to SI units (N)
-            p = p_with_units.to(INTERNAL_FORCE_UNIT).magnitude if isinstance(p_with_units, pint.Quantity) else p_with_units
+            # p = p_with_units.to(INTERNAL_FORCE_UNIT).magnitude if isinstance(p_with_units, pint.Quantity) else p_with_units
 
             # Log with SI units
             # log(f"  Element {element_id}: Point load p={p:.4g} N, position={a:.4f} m, direction={direction}")
 
             # Apply the load to the element with correct direction
             if direction == "X":
-                element.add_point_load(p, a, load_case, direction="xx")
+                element.add_point_load(p_with_units, a_with_units, load_case, direction="xx")
             else:
-                element.add_point_load(p, a, load_case)
+                element.add_point_load(p_with_units, a_with_units, load_case)
 
         elif load_type == 2:  # Point moment
             # Parse moment magnitude with unit conversion
@@ -753,15 +754,8 @@ if __name__ == "__main__":
     if is_class_imported('R2Structure'):
         print("R2Structure class is available")
 
-    # Check for a class from a specific module
-    if is_class_available_from_module('pyMAOS.R2Structure', 'R2Structure'):
-        print("R2Structure class is available from pyMAOS.R2Structure module")
-    else:
-        logger.error("R2Structure class is not available. Please check your installation.")
-        sys.exit(1)
-
     # Import the R2Structure class
-    from pyMAOS import R2Structure  # Instead of from pyMAOS.R2Structure import R2Structure
+    from pyMAOS.structure2d import R2Structure  # Instead of from pyMAOS.R2Structure import R2Structure
 
     # Pass all display units to the structure
     model_structure = R2Structure(node_list, element_list)

@@ -30,7 +30,7 @@
         raise ImportError(f"Required package not available for Excel export: {e}")
     
     # Create unit registry for conversions
-    ureg = UnitRegistry()
+    from pyMAOS.units_mod import ureg
     Q_ = ureg.Quantity
     
     # Process unit system

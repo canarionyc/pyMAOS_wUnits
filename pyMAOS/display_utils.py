@@ -40,7 +40,7 @@ def display_node_load_vector_in_units(load_vector, node_uid, force_unit=None, le
     moment_unit = f"{force_unit}*{length_unit}"
     
     # Get unit registry
-    ureg = get_unit_registry()
+    from pyMAOS.units_mod import ureg
     
     # Convert load vector to display units
     fx_display = load_vector[0]
@@ -135,8 +135,7 @@ def display_member_forces_in_units(forces, member_uid, force_unit=None, length_u
     
     moment_unit = f"{force_unit}*{length_unit}"
     
-    # Get unit registry
-    ureg = get_unit_registry()
+    from pyMAOS.units_mod import ureg
     
     # Convert force values to display units
     display_forces = []

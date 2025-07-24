@@ -12,8 +12,7 @@ def __str__(self):
     
     # Create a ureg for conversions if not already available
     try:
-        from pint import UnitRegistry
-        ureg = UnitRegistry()
+        from pyMAOS.units_mod import ureg
         Q_ = ureg.Quantity
     except:
         # Fall back if pint is not available
