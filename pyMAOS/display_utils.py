@@ -172,28 +172,145 @@ def display_member_forces_in_units(forces, member_uid, force_unit=None, length_u
         components = [f"{v:.4g}" for v in display_forces]
         print(f"  Forces: {', '.join(components)}")
 
-# def display_stiffness_matrix_in_units(matrix, units_system=None):
-#     """
-#     Display stiffness matrix with appropriate units notation.
-#
-#     Parameters
-#     ----------
-#     matrix : ndarray
-#         Stiffness matrix
-#     units_system : dict, optional
-#         Dictionary containing unit definitions (e.g., SI_UNITS)
-#     """
-#     # Determine units based on units_system
-#     force_unit = units_system.get("force", "N") if units_system else "N"
-#     length_unit = units_system.get("length", "m") if units_system else "m"
-#
-#     # Create unit descriptions for different terms in the stiffness matrix
-#     force_disp = f"{force_unit}/{length_unit}"      # Force/displacement
-#     force_rot = f"{force_unit}"                     # Force/rotation
-#     moment_disp = f"{force_unit}*{length_unit}/{length_unit}" # Moment/displacement = Force
-#     moment_rot = f"{force_unit}*{length_unit}"      # Moment/rotation
-#
-#     # Print matrix with units note
-#     print(f"Stiffness Matrix (Various units: {force_disp}, {moment_rot}, etc.)")
-#     np.set_printoptions(precision=4, suppress=True)
-#     print(matrix)
+
+import pint
+from typing import List, Any, Union
+
+
+def print_quantity_nested_list(data, indent=0, precision=4, width=15, simplify_units=True):
+    """
+    Print nested lists containing pint.Quantity objects with simplified units.
+
+    Parameters
+    ----------
+    data : Any
+        The data structure to print
+    indent : int
+        Current indentation level
+    precision : int
+        Decimal places to display
+    width : int
+        Minimum field width
+    simplify_units : bool
+        Whether to simplify units using to_reduced_units()
+    """
+    if isinstance(data, pint.Quantity):
+        # Simplify units if requested
+        if simplify_units:
+            data = data.to_reduced_units()
+        formatted = f"{data.magnitude:.{precision}g} {data.units}"
+        print(formatted.ljust(width), end="")
+    elif isinstance(data, list):
+        # Handle lists (similar to your original implementation)
+        if not data:
+            print("[]")
+            return
+
+        all_simple = all(not isinstance(x, list) for x in data)
+        if all_simple and len(data) <= 4:
+            print("[", end="")
+            for i, item in enumerate(data):
+                print_quantity_nested_list(item, indent, precision, width=0, simplify_units=simplify_units)
+                if i < len(data) - 1:
+                    print(", ", end="")
+            print("]")
+        else:
+            print("[")
+            for i, item in enumerate(data):
+                print(" " * (indent + 2), end="")
+                print_quantity_nested_list(item, indent + 2, precision, width, simplify_units=simplify_units)
+                if i < len(data) - 1:
+                    print(",")
+                else:
+                    print("")
+            print(" " * indent + "]", end="")
+            if indent==0:
+                print()
+    else:
+        # Handle non-quantity, non-list values
+        formatted = f"{data:.{precision}g}" if isinstance(data, (int, float)) else str(data)
+        print(formatted.ljust(width), end="")
+
+def print_quantity_list(data: List[Union[pint.Quantity, Any]], precision=4, width=15):
+    """
+    Print a list of pint.Quantity objects or other values in a formatted manner.
+
+    Parameters
+    ----------
+    data : List[Union[pint.Quantity, Any]]
+        List containing pint.Quantity objects or other values
+    precision : int
+        Number of decimal places to display for numerical values
+    width : int
+        Minimum width for each value field
+    """
+    print("[", end="")
+    for i, item in enumerate(data):
+        print_quantity_nested_list(item, indent=0, precision=precision, width=width)
+        if i < len(data) - 1:
+            print(", ", end="")
+    print("]")  # Close the list
+
+def print_quantity(data: Union[pint.Quantity, List[Union[pint.Quantity, Any]]],
+                   precision=4, width=15):
+    """
+    Print a pint.Quantity or a list of pint.Quantity objects in a formatted manner.
+
+    Parameters
+    ----------
+    data : Union[pint.Quantity, List[Union[pint.Quantity, Any]]]
+        The data to print (can be a single Quantity or a list)
+    precision : int
+        Number of decimal places to display for numerical values
+    width : int
+        Minimum width for each value field
+    """
+    if isinstance(data, list):
+        print_quantity_list(data, precision, width)
+    else:
+        print_quantity_nested_list(data, indent=0, precision=precision, width=width)
+    print()  # Newline at the end
+
+if __name__ == "__main__":
+    # Example usage
+    ureg = get_unit_registry()
+
+    # Create some example quantities
+    q1 = ureg.Quantity(5.123456, "m")
+    q2 = ureg.Quantity(10.987654, "N")
+    q3 = ureg.Quantity(3.14159, "rad")
+
+    # Print a single quantity
+    print_quantity(q1, precision=2)
+
+    # Print a list of quantities
+    print_quantity([q1, q2, q3], precision=2)
+
+    # Print nested lists with quantities
+    nested_data = [[q1, [q2, q3]], [q3, q1]]
+    print_quantity(nested_data, precision=2)
+
+    # Example for using the custom formatter
+    def example():
+        import pint
+        ureg = pint.UnitRegistry()
+
+        # Example similar to Dy structure in your code
+        Dy = [
+            [
+                [0 * ureg.meter, 5.3 * ureg.newton * ureg.meter, 1.2 * ureg.newton],
+                [0 * ureg.meter, 3.6 * ureg.meter]
+            ],
+            [
+                [2.1 * ureg.meter, 7.8 * ureg.newton * ureg.meter, 3.4 * ureg.newton],
+                [3.6 * ureg.meter, 5.0 * ureg.meter]
+            ]
+        ]
+
+        print("Formatted output:")
+        print_quantity_nested_list(Dy)
+
+        # You can adjust precision and width
+        print("\nWith custom precision and width:")
+        print_quantity_nested_list(Dy, precision=2, width=20)
+    example()

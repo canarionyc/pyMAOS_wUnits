@@ -30,8 +30,8 @@ IMPERIAL_UNITS = {
     "length": "in",
     "pressure": "ksi",
     "distance": "ft",
-    "moment": "klbf*in",
-    "distributed_load": "klbf/in",
+    "moment": "klbf * foot",
+    "distributed_load": "klbf / foot",
     "area": "in^2",
     "moment_of_inertia": "in^4",
     "density": "klb/in^3"
@@ -39,14 +39,14 @@ IMPERIAL_UNITS = {
 
 METRIC_KN_UNITS = {
     "force": "kN",
-    "length": "m",
+    "length": "cm",
     "pressure": "kN/m^2",
     "distance": "m",
     "moment": "kN*m",
     "distributed_load": "kN/m",
-    "area": "m^2",
-    "moment_of_inertia": "m^4",
-    "density": "kg/m^3"
+    "area": "cm^2",
+    "moment_of_inertia": "cm^4",
+    "density": "kg/cm^3"
 }
 pprint(globals()); print(dir())
 # Set up unit registry
@@ -160,6 +160,7 @@ def update_units_from_json(json_string):
             return False
         
         # Parse JSON
+        import json
         unit_dict = json.loads(json_string)
         global DISPLAY_UNITS, FORCE_DISPLAY_UNIT, LENGTH_DISPLAY_UNIT, MOMENT_DISPLAY_UNIT, PRESSURE_DISPLAY_UNIT, DISTRIBUTED_LOAD_DISPLAY_UNIT
         
@@ -352,11 +353,11 @@ class UnitManager:
         global DISPLAY_UNITS, FORCE_DISPLAY_UNIT, LENGTH_DISPLAY_UNIT, MOMENT_DISPLAY_UNIT, PRESSURE_DISPLAY_UNIT, DISTRIBUTED_LOAD_UNIT
         pprint(globals())
         DISPLAY_UNITS = system_dict
-        FORCE_DISPLAY_UNIT = system_dict.get("force", "N")
+        FORCE_DISPLAY_UNIT = system_dict.get("force", "kN")
         LENGTH_DISPLAY_UNIT = system_dict.get("length", "m")
-        MOMENT_DISPLAY_UNIT = system_dict.get("moment", "N*m")
-        PRESSURE_DISPLAY_UNIT = system_dict.get("pressure", "Pa")
-        DISTRIBUTED_LOAD_UNIT = system_dict.get("distributed_load", "N/m")
+        MOMENT_DISPLAY_UNIT = system_dict.get("moment", "kN*m")
+        PRESSURE_DISPLAY_UNIT = system_dict.get("pressure", "GPa")
+        DISTRIBUTED_LOAD_UNIT = system_dict.get("distributed_load", "kN/m")
         
         # Notify all registered modules of unit change
         for module_update_func in self.registered_modules:
@@ -412,3 +413,93 @@ unit_manager = UnitManager()
 def set_unit_system(system_dict, system_name=None):
     """Set the unit system throughout the package"""
     unit_manager.set_unit_system(system_dict, system_name)
+
+def convert_to_unit_system(array, target_system_name):
+    """
+    Convert all pint.Quantity objects in a numpy array to units from a specified unit system.
+
+    Parameters
+    ----------
+    array : numpy.ndarray
+        Array containing pint.Quantity objects.
+    target_system_name : str
+        Name of the unit system to convert to ('SI', 'imperial', or 'metric_kn').
+
+    Returns
+    -------
+    numpy.ndarray
+        Array with magnitudes in the target system units.
+    """
+    # Get the target unit system dictionary
+    if target_system_name.lower() == 'si':
+        target_system = SI_UNITS
+    elif target_system_name.lower() == 'imperial':
+        target_system = IMPERIAL_UNITS
+    elif target_system_name.lower() in ('metric_kn', 'metric'):
+        target_system = METRIC_KN_UNITS
+    else:
+        target_system = unit_manager.get_current_units()
+
+    # Create dimensionality to unit type mapping
+    dim_to_unit_type = {
+        FORCE_DIMENSIONALITY: 'force',
+        LENGTH_DIMENSIONALITY: 'length',
+        PRESSURE_DIMENSIONALITY: 'pressure',
+        MOMENT_DIMENSIONALITY: 'moment',
+        DISTRIBUTED_LOAD_DIMENSIONALITY: 'distributed_load'
+    }
+
+    # Initialize result array
+    converted_array = np.empty_like(array, dtype=float)
+
+    # Convert each element
+    for index, value in np.ndenumerate(array):
+        if isinstance(value, pint.Quantity):
+            # Get dimensionality of the quantity
+            dim = value.dimensionality
+
+            # Find matching unit type
+            unit_type = None
+            for dim_key, type_name in dim_to_unit_type.items():
+                if dim == dim_key:
+                    unit_type = type_name
+                    break
+
+            if unit_type and unit_type in target_system:
+                # Convert to the target unit
+                target_unit = target_system[unit_type]
+                converted_array[index] = value.to(target_unit).magnitude
+            else:
+                # If we can't determine the unit type, keep the magnitude
+                converted_array[index] = value.magnitude
+        else:
+            # If it's not a Quantity, keep it as is
+            converted_array[index] = value
+
+    return converted_array
+
+if __name__ == "__main__":
+    # Example usage
+    set_unit_system(IMPERIAL_UNITS, "imperial")
+    print("Current unit system:", unit_manager.get_system_name())
+
+    # Convert a value
+    value = Q_(10, 'N')
+    converted_value = unit_manager.convert_value(value.magnitude, 'N', 'lbf')
+    print(f"Converted {value} to {converted_value} lbf")
+
+    # Convert a numpy array
+    import numpy as np
+    arr = np.array([Q_(10, 'N'), Q_(20, 'm')])
+    converted_arr = convert_to_unit_system(arr, 'imperial')
+    print("Converted array:", converted_arr)
+
+    # Example usage
+    array_with_units = np.array([
+        ureg.Quantity(5, 'meter'),
+        ureg.Quantity(10, 'newton')
+    ], dtype=object)
+
+    # Convert to imperial units
+    imperial_values = convert_to_unit_system(array_with_units, 'imperial')
+    print(imperial_values)  # Values in inches and klbf

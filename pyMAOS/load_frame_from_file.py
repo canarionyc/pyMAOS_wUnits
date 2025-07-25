@@ -127,50 +127,10 @@ def print_imported_classes(module_filter=None):
 # Alternative: show all imported classes
 # print_imported_classes()
 
-# Configure logging to write to both console and file
-def setup_logger(log_file=None):
-    """
-    Set up logger to output to both console and file
-    
-    Parameters
-    ----------
-    log_file : str, optional
-        Path to log file. If None, logging will only be to console.
-    """
-    # Create logger
-    logger = logging.getLogger('pyMAOS')
-    logger.setLevel(logging.INFO)
-
-    # Create formatter
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-
-    # Create console handler and set level to info
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    console.setFormatter(formatter)
-    logger.addHandler(console)
-
-    # Create file handler if log_file is provided
-    if log_file:
-        file_handler = logging.FileHandler(log_file)
-        file_handler.setLevel(logging.INFO)
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
-
-    return logger
+from pyMAOS.logger import setup_logger
 
 
-# Print module search paths and loading information
-print("\n=== Python Module Search Paths ===")
-print(f"Current working directory: {os.getcwd()}")
-print(f"Python executable: {sys.executable}")
-print(f"Python version: {sys.version}")
-print("\nModule search paths (sys.path):")
-for i, p in enumerate(sys.path):
-    print(f"  {i}: {p}")
-print("=" * 40 + "\n")
 
-# from pyMAOS.globals import SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS
 
 # Import all unit-related functionality from units.py module
 from pyMAOS.units_mod import (
@@ -445,19 +405,6 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
             else:
                 b_with_units = parse_value_with_units(member_load.get("b", element.length)).to(INTERNAL_LENGTH_UNIT)
 
-            # Convert to SI units (N/m)
-            # w1 = w1_with_units.to(INTERNAL_DISTRIBUTED_LOAD_UNIT).magnitude if isinstance(w1_with_units,
-            #                                                                               pint.Quantity) else w1_with_units
-            # w2 = w2_with_units.to(INTERNAL_DISTRIBUTED_LOAD_UNIT).magnitude if isinstance(w2_with_units,
-            #                                                                               pint.Quantity) else w2_with_units
-
-            # Log with SI units
-            # log(f"  Element {element_id}: Distributed load w1={w1:.4g} N/m, w2={w2:.4g} N/m, "
-            #     f"a={a:.4f} m, b={b:.4f} m")
-            # from pyMAOS.units_mod import INTERNAL_LENGTH_UNIT
-            # a = a_with_units.to(INTERNAL_LENGTH_UNIT).magnitude if isinstance(a_with_units,pint.Quantity) else a_with_units
-            # b = b_with_units.to(INTERNAL_LENGTH_UNIT).magnitude if isinstance(b_with_units,pint.Quantity) else b_with_units
-            # # Apply the load to the element
             element.add_distributed_load(w1_with_units, w2_with_units, a_with_units, b_with_units, load_case, direction=direction)
 
         elif load_type == 1:  # Point load
@@ -474,11 +421,9 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
                 a_with_units = parse_value_with_units(str(member_load["a"])).to(INTERNAL_LENGTH_UNIT)
             #     a = a_with_units.to(INTERNAL_LENGTH_UNIT).magnitude if isinstance(a_with_units,pint.Quantity) else a_with_units
 
-            # Convert to SI units (N)
-            # p = p_with_units.to(INTERNAL_FORCE_UNIT).magnitude if isinstance(p_with_units, pint.Quantity) else p_with_units
-
-            # Log with SI units
-            # log(f"  Element {element_id}: Point load p={p:.4g} N, position={a:.4f} m, direction={direction}")
+            # Remove b_with_units if it exists
+            if 'b_with_units' in locals():
+                del b_with_units
 
             # Apply the load to the element with correct direction
             if direction == "X":
@@ -712,14 +657,15 @@ if __name__ == "__main__":
     # os.chdir(working_dir)  # Change to the working directory
     print(f"Working directory set to: {working_dir}")
     print(f"Current directory: {os.path.abspath(os.getcwd())}")
-    logfile = f"{os.path.splitext(input_file)[0]}.log"
-    # Set up logging
 
-    logger = setup_logger(logfile)
+    # Set up logging
+    logfile = f"{os.path.splitext(input_file)[0]}.log"
+    logger = setup_logger('pyMAOS', logfile)
 
     logger.info(f"Using working directory: {working_dir}")
-    global DATADIR
-    DATADIR = os.environ.get('DATADIR', working_dir)
+
+    # global DATADIR
+    # DATADIR = os.environ.get('DATADIR', working_dir)
 
     from pyMAOS.units_mod import set_unit_system, IMPERIAL_UNITS, SI_UNITS, METRIC_KN_UNITS
 
@@ -744,7 +690,8 @@ if __name__ == "__main__":
         # Pass the VTK flag to control visualization in load_frame_from_file
         node_list, element_list = load_frame_from_file(input_file, logger=logger, show_vtk=args.vtk)
     except Exception as e:
-        logger.error(f"Error loading structural model: {e}")
+        from pyMAOS.logger import log_exception
+        log_exception(logger, message=f"Error loading structural model: {e}")
         sys.exit(1)
 
     logger.info(f"Total nodes: {len(node_list)}")
@@ -755,7 +702,7 @@ if __name__ == "__main__":
         print("R2Structure class is available")
 
     # Import the R2Structure class
-    from pyMAOS.structure2d import R2Structure  # Instead of from pyMAOS.R2Structure import R2Structure
+    from pyMAOS.structure2d import R2Structure # Instead of from pyMAOS.R2Structure import R2Structure
 
     # Pass all display units to the structure
     model_structure = R2Structure(node_list, element_list)
@@ -768,8 +715,10 @@ if __name__ == "__main__":
     try:
         U = model_structure.solve_linear_static(loadcombo, output_dir=working_dir, verbose=True)
     except Exception as e:
-        logger.error(f"Error solving linear static problem: {e}")
+        from pyMAOS.logger import log_exception
+        log_exception(logger, message="Error solving linear static problem")
         sys.exit(1)
+
     logger.info("Linear static problem solved successfully.")
     # logger.info(f"Displacements U:\n{U}")
     # logger.info(str(model_structure))

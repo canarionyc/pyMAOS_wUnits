@@ -1,6 +1,7 @@
 ﻿import os
 import numpy as np
-
+import pint
+from pprint import pprint
 from pyMAOS import units_mod
 from pyMAOS.display_utils import display_node_load_vector_in_units, display_node_displacement_in_units
 np.set_printoptions(precision=4, suppress=False, floatmode='maxprec_equal',linewidth= 999)
@@ -9,23 +10,23 @@ import ast
 import operator
 import importlib
 
-# Add custom formatters with explicit type signatures
-def format_with_dots(x) -> str: 
-    return '.'.center(12) if abs(x) < 1e-10 else f"{x:12.4g}"
-
-def format_double(x) -> str: 
-    return '.'.center(13) if abs(x) < 1e-10 else f"{x:13.8g}"  # More precision for doubles
-
-# Now use these type-annotated functions in the formatter dictionary
-np.set_printoptions(precision=4, 
-    suppress=False, 
-    formatter={
-        'float': format_with_dots,     # For float32 and generic floats
-        'float_kind': format_with_dots,  # For all floating point types
-        'float64': format_double       # Specifically for float64 (double precision)
-    }, # type: ignore
-    linewidth=120  # Wider output to prevent unnecessary wrapping
-)
+# # Add custom formatters with explicit type signatures
+# def format_with_dots(x) -> str:
+#     return '.'.center(12) if abs(x) < 1e-10 else f"{x:12.4g}"
+#
+# def format_double(x) -> str:
+#     return '.'.center(13) if abs(x) < 1e-10 else f"{x:13.8g}"  # More precision for doubles
+#
+# # Now use these type-annotated functions in the formatter dictionary
+# np.set_printoptions(precision=4,
+#     suppress=False,
+#     formatter={
+#         'float': format_with_dots,     # For float32 and generic floats
+#         'float_kind': format_with_dots,  # For all floating point types
+#         'float64': format_double       # Specifically for float64 (double precision)
+#     }, # type: ignore
+#     linewidth=120  # Wider output to prevent unnecessary wrapping
+# )
 
 # Parameters you can adjust:
 # *	precision: Number of decimal places (4 is a good default)
@@ -203,7 +204,7 @@ class R2Structure:
 
         # Structure Stiffness Matrix
         KSTRUCT = np.zeros([self.NJD * self.NJ, self.NJD * self.NJ])
-        print(KSTRUCT.shape, flush=True)
+        print("KSTRUCT shape:", KSTRUCT.shape, flush=True)
 
         for member in self.members:
             # Freedom map for i and j nodes
@@ -262,7 +263,7 @@ class R2Structure:
 
 
         if verbose:
-            print("K:\n", KSTRUCT); print(KSTRUCT.shape)
+            print("KSTRUCT:\n", KSTRUCT); print(KSTRUCT.shape)
             KSTRUCT_csv=os.path.join(output_dir, 'KSTRUCT.csv')
             np.savetxt(KSTRUCT_csv, KSTRUCT, delimiter=',', fmt='%lg')
             print(f"Saved KSTRUCT to {KSTRUCT_csv}")
@@ -345,7 +346,7 @@ class R2Structure:
         else:
             # Build Nodal Force Vector
             FG = self.nodal_force_vector(FM, load_combination)
-            
+            print("Nodal Force Vector FG:\n", FG); print(FG.shape)
             # Build Member Fixed-end-Force vector
             PF = self.member_fixed_end_force_vector(FM, load_combination)
             print("Member Fixed End Force Vector:\n", PF); print(PF.shape)

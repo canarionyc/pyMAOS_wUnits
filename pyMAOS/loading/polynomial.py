@@ -31,7 +31,7 @@ class Piecewise_Polynomial:
                     func += f"{coeff:6.2f}"
                 else:
                     func += f" + {coeff:6.2f} x^{i}"
-            func += f"  for {line[1][0]:.2f} <= x <= {line[1][1]:.2f};"
+            func += f"  for {line[1][0]:.2f} <= x <= {line[1][1]:.2f}\n"
             out += func
         return out
     def __repr__(self):

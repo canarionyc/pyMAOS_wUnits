@@ -1,5 +1,6 @@
-# -*- coding: utf-8 -*-
-import os
+
+# import os
+import pint
 import numpy as np
 
 from pyMAOS.display_utils import display_node_load_vector_in_units
@@ -8,7 +9,7 @@ from pyMAOS.elements import Element
 
 from pyMAOS.units_mod import unit_manager, IMPERIAL_UNITS, convert_to_display_units
 
-import pint
+from pyMAOS.quantity_utils import QuantityArray
 
 # Create unit registry
 from pyMAOS.units_mod import ureg
@@ -508,7 +509,9 @@ class R2Frame(Element):
                 
             # Calculate FEF contribution from this load
             load_fef = load.FEF()
-            factored_fef = np.array([load_factor * i for i in load_fef])
+            print(convert_to_unit_system(np.array(load_fef, dtype="object"), "imperial"))
+
+            factored_fef = np.array([load_factor * i for i in load_fef], dtype=object)
 
             print(f"Element {self.uid} load {load_idx}: {load.kind} (case '{load_case}', factor={load_factor})", file=sys.stderr)
             print(f"    Raw FEF: {load_fef}", file=sys.stderr)
@@ -620,23 +623,24 @@ class R2Frame(Element):
         A = self.section.Area
         L = self.length
         
-        if self.uid==2:
-            print(f"Calculating local stiffness matrix for element {self.uid} with length {L}, E={E}, Ixx={Ixx}, A={A}, hinges={self.hinges}")
+        # if self.uid==2:
+        #     print(f"Calculating local stiffness matrix for element {self.uid} with length {L}, E={E}, Ixx={Ixx}, A={A}, hinges={self.hinges}")
 
         # Initialize matrix with zeros
-        k = np.zeros((6, 6))
+        k = np.zeros((6, 6)).view(QuantityArray)
         
         # Common terms to improve readability
         AE_L = A * E / L
-        EI = E * Ixx
-        EI_L = EI / L
-        EI_L2 = EI / (L * L)
-        EI_L3 = EI / (L * L * L)
-        
+
         # Axial terms (common to all hinge configurations)
         k[0, 0] = k[3, 3] = AE_L
         k[0, 3] = k[3, 0] = -AE_L
-        
+
+        EI = E * Ixx
+        EI_L = EI / L
+        EI_L2 = EI_L / L
+        EI_L3 = EI_L2 / L
+
         # Apply appropriate bending terms based on hinge configuration
         if self.hinges == [1, 1]:  # Both ends hinged - only axial stiffness
             pass  # No additional terms needed
@@ -665,118 +669,118 @@ class R2Frame(Element):
             k[2, 5] = k[5, 2] = 2 * EI_L
             k[4, 5] = k[5, 4] = -6 * EI_L2
             k[5, 5] = 4 * EI_L
-     
-        local_stiffness_matrix = np.matrix(k)
-        print(f"Local stiffness matrix for element {self.uid}:\n{local_stiffness_matrix}")
+        print(f"Local stiffness matrix for element {self.uid} with hinges {self.hinges}:\n{k}")
+        # local_stiffness_matrix = np.matrix(k)
+        # print(f"Local stiffness matrix for element {self.uid}:\n{local_stiffness_matrix}")
 
-        # First try to get units from element's structure
-        units_dict = None
-        
-        # Option 1: Check if element has direct reference to structure with units
-        if hasattr(self, 'structure') and hasattr(self.structure, 'units'):
-            units_dict = self.structure.units
-        else:            # Option 2: Use unit manager to get current units
-            from pyMAOS.units_mod import unit_manager
-            units_dict = unit_manager.get_current_units()
-        # Get current unit system directly from the manager
+        # # First try to get units from element's structure
+        # units_dict = None
+        #
+        # # Option 1: Check if element has direct reference to structure with units
+        # if hasattr(self, 'structure') and hasattr(self.structure, 'units'):
+        #     units_dict = self.structure.units
+        # else:            # Option 2: Use unit manager to get current units
+        #     from pyMAOS.units_mod import unit_manager
+        #     units_dict = unit_manager.get_current_units()
+        # # Get current unit system directly from the manager
+        #
+        # print(f"Local stiffness matrix for element {self.uid}:{self.k_with_units()}\n")
+        #
+        # # self.display_stiffness_matrix_in_units(local_stiffness_matrix, units_dict)
 
-        print(f"Local stiffness matrix for element {self.uid}:{self.k_with_units()}\n")
+        return k
 
-        self.display_stiffness_matrix_in_units(local_stiffness_matrix, units_dict)
-
-        return local_stiffness_matrix
-
-    def k_with_units(self):
-        """Calculate the local stiffness matrix with Pint unit quantities
-
-        Creates a 6x6 stiffness matrix with appropriate modifications for hinges
-        if present. Each entry in the matrix has appropriate units based on its
-        physical meaning.
-
-        Returns
-        -------
-        numpy.ndarray
-            6x6 local stiffness matrix where each element is a Pint quantity
-            with appropriate units
-        """
-        # Import necessary unit components
-        from pyMAOS.units_mod import ureg, Q_
-
-
-        # Get material and section properties
-        E = Q_(self.material.E, ureg.Pa)  # Young's modulus in Pa
-        Ixx = Q_(self.section.Ixx, ureg.m**4)  # Second moment of area in m⁴
-        A = Q_(self.section.Area, ureg.m**2)  # Cross-sectional area in m²
-        L = Q_(self.length, ureg.m)  # Element length in m
-
-        from pyMAOS.units_mod import unit_manager as unit_manager
-        current_units = unit_manager.get_current_units()
-        system_name = unit_manager.get_system_name()
-
-        E_with_units= E.to(current_units['E'])
-
-        # Initialize matrix with zeros
-        k_with_units = np.zeros((6, 6), dtype=object)
-
-
-        A_with_units=A.to('m²')
-
-        # Common terms to improve readability
-        AE_L = A * E / L
-        EI = E * Ixx
-        EI_L = EI / L
-        EI_L2 = EI / (L * L)
-        EI_L3 = EI / (L * L * L)
-
-        AE_L_with_units = AE_L.to('ksi * in')
-        EI_with_units = EI.to('ksi * in**4')
-        EI_L_with_units = EI_L.to('ksi * in**2 / in')
-        EI_L2_with_units = EI_L2.to('ksi * in / in**2')
-
-        # Axial terms (common to all hinge configurations)
-        k_with_units[0, 0] = k_with_units[3, 3] = AE_L
-        k_with_units[0, 3] = k_with_units[3, 0] = -AE_L
-
-        # Apply appropriate bending terms based on hinge configuration
-        if self.hinges == [1, 1]:  # Both ends hinged - only axial stiffness
-            pass  # No additional terms needed
-
-        elif self.hinges == [1, 0]:  # Hinge at start node
-            # Modified matrix for hinge at i-end
-            k_with_units[1, 1] = k_with_units[4, 4] = 3 * EI_L3
-            k_with_units[1, 4] = k_with_units[4, 1] = -3 * EI_L3
-            k_with_units[1, 5] = k_with_units[5, 1] = 3 * EI_L2
-            k_with_units[4, 5] = k_with_units[5, 4] = -3 * EI_L2
-            k_with_units[5, 5] = 3 * EI_L
-
-        elif self.hinges == [0, 1]:  # Hinge at end node
-            # Modified matrix for hinge at j-end
-            k_with_units[1, 1] = k_with_units[4, 4] = 3 * EI_L3
-            k_with_units[1, 4] = k_with_units[4, 1] = -3 * EI_L3
-            k_with_units[1, 2] = k_with_units[2, 1] = 3 * EI_L2
-            k_with_units[2, 4] = k_with_units[4, 2] = -3 * EI_L2
-            k_with_units[2, 2] = 3 * EI_L
-
-        else:  # No hinges - standard beam element
-            k_with_units[1, 1] = k_with_units[4, 4] = 12 * EI_L3
-            k_with_units[1, 4] = k_with_units[4, 1] = -12 * EI_L3
-            k_with_units[1, 2] = k_with_units[2, 1] = 6 * EI_L2
-            k_with_units[1, 5] = k_with_units[5, 1] = 6 * EI_L2
-            k_with_units[2, 2] = k_with_units[5, 5] = 4 * EI_L
-            k_with_units[2, 4] = k_with_units[4, 2] = -6 * EI_L2
-            k_with_units[2, 5] = k_with_units[5, 2] = 2 * EI_L
-            k_with_units[4, 5] = k_with_units[5, 4] = -6 * EI_L2
-
-        # This matrix has mixed units:
-        # - Force/length for translational DOFs
-        # - Force·length for rotational DOFs
-
-
-
-        print(f"Local stiffness matrix in units for element {self.uid}:\n");
-        print(k_with_units)
-        
-        return k_with_units
+    # def k_with_units(self):
+    #     """Calculate the local stiffness matrix with Pint unit quantities
+    #
+    #     Creates a 6x6 stiffness matrix with appropriate modifications for hinges
+    #     if present. Each entry in the matrix has appropriate units based on its
+    #     physical meaning.
+    #
+    #     Returns
+    #     -------
+    #     numpy.ndarray
+    #         6x6 local stiffness matrix where each element is a Pint quantity
+    #         with appropriate units
+    #     """
+    #     # Import necessary unit components
+    #     from pyMAOS.units_mod import ureg, Q_
+    #
+    #
+    #     # Get material and section properties
+    #     E = Q_(self.material.E, ureg.Pa)  # Young's modulus in Pa
+    #     Ixx = Q_(self.section.Ixx, ureg.m**4)  # Second moment of area in m⁴
+    #     A = Q_(self.section.Area, ureg.m**2)  # Cross-sectional area in m²
+    #     L = Q_(self.length, ureg.m)  # Element length in m
+    #
+    #     from pyMAOS.units_mod import unit_manager as unit_manager
+    #     current_units = unit_manager.get_current_units()
+    #     system_name = unit_manager.get_system_name()
+    #
+    #     E_with_units= E.to(current_units['pressure'])
+    #
+    #     # Initialize matrix with zeros
+    #     k_with_units = np.zeros((6, 6), dtype=object)
+    #
+    #
+    #     A_with_units=A.to('m²')
+    #
+    #     # Common terms to improve readability
+    #     AE_L = A * E / L
+    #     EI = E * Ixx
+    #     EI_L = EI / L
+    #     EI_L2 = EI / (L * L)
+    #     EI_L3 = EI / (L * L * L)
+    #
+    #     AE_L_with_units = AE_L.to('ksi * in')
+    #     EI_with_units = EI.to('ksi * in**4')
+    #     EI_L_with_units = EI_L.to('ksi * in**2 / in')
+    #     EI_L2_with_units = EI_L2.to('ksi * in / in**2')
+    #
+    #     # Axial terms (common to all hinge configurations)
+    #     k_with_units[0, 0] = k_with_units[3, 3] = AE_L
+    #     k_with_units[0, 3] = k_with_units[3, 0] = -AE_L
+    #
+    #     # Apply appropriate bending terms based on hinge configuration
+    #     if self.hinges == [1, 1]:  # Both ends hinged - only axial stiffness
+    #         pass  # No additional terms needed
+    #
+    #     elif self.hinges == [1, 0]:  # Hinge at start node
+    #         # Modified matrix for hinge at i-end
+    #         k_with_units[1, 1] = k_with_units[4, 4] = 3 * EI_L3
+    #         k_with_units[1, 4] = k_with_units[4, 1] = -3 * EI_L3
+    #         k_with_units[1, 5] = k_with_units[5, 1] = 3 * EI_L2
+    #         k_with_units[4, 5] = k_with_units[5, 4] = -3 * EI_L2
+    #         k_with_units[5, 5] = 3 * EI_L
+    #
+    #     elif self.hinges == [0, 1]:  # Hinge at end node
+    #         # Modified matrix for hinge at j-end
+    #         k_with_units[1, 1] = k_with_units[4, 4] = 3 * EI_L3
+    #         k_with_units[1, 4] = k_with_units[4, 1] = -3 * EI_L3
+    #         k_with_units[1, 2] = k_with_units[2, 1] = 3 * EI_L2
+    #         k_with_units[2, 4] = k_with_units[4, 2] = -3 * EI_L2
+    #         k_with_units[2, 2] = 3 * EI_L
+    #
+    #     else:  # No hinges - standard beam element
+    #         k_with_units[1, 1] = k_with_units[4, 4] = 12 * EI_L3
+    #         k_with_units[1, 4] = k_with_units[4, 1] = -12 * EI_L3
+    #         k_with_units[1, 2] = k_with_units[2, 1] = 6 * EI_L2
+    #         k_with_units[1, 5] = k_with_units[5, 1] = 6 * EI_L2
+    #         k_with_units[2, 2] = k_with_units[5, 5] = 4 * EI_L
+    #         k_with_units[2, 4] = k_with_units[4, 2] = -6 * EI_L2
+    #         k_with_units[2, 5] = k_with_units[5, 2] = 2 * EI_L
+    #         k_with_units[4, 5] = k_with_units[5, 4] = -6 * EI_L2
+    #
+    #     # This matrix has mixed units:
+    #     # - Force/length for translational DOFs
+    #     # - Force·length for rotational DOFs
+    #
+    #
+    #
+    #     print(f"Local stiffness matrix in units for element {self.uid}:\n");
+    #     print(k_with_units)
+    #
+    #     return k_with_units
 
     def Flocal(self, load_combination):
         """Calculate element end forces in the local coordinate system

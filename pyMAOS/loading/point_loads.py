@@ -1,10 +1,14 @@
 import pint
-
-from pyMAOS.frame2d import R2Frame
+from typing import TYPE_CHECKING, Any
 from pyMAOS.loading.polynomial import Piecewise_Polynomial
+from pprint import pprint
+from display_utils import print_quantity_nested_list
+# Use TYPE_CHECKING to avoid runtime imports
+if TYPE_CHECKING:
+    from pyMAOS.frame2d import R2Frame
 
 class R2_Point_Moment:
-    def __init__(self, M: pint.Quantity, a: pint.Quantity, member: R2Frame, loadcase="D"):
+    def __init__(self, M: pint.Quantity, a: pint.Quantity, member: "Any", loadcase="D"):
         """
         Parameters
         ----------
@@ -41,12 +45,12 @@ class R2_Point_Moment:
         # [co....cn x^n] [xa, xb]
 
         Vy = [[[self.Riy], [0, self.a]], [[self.Riy], [self.a, self.L]]]
-
+        pprint(Vy)
         Mz = [
             [[0, self.Riy], [0, self.a]],
             [[-1 * self.M, self.Riy], [self.a, self.L]],
         ]
-
+        pprint(Mz)
         Sz = [
             [[self.c1 / self.EI, 0, self.Riy / (2 * self.EI)], [0, self.a]],
             [
@@ -58,7 +62,7 @@ class R2_Point_Moment:
                 [self.a, self.L],
             ],
         ]
-
+        pprint(Sz)
         Dy = [
             [
                 [
@@ -79,7 +83,7 @@ class R2_Point_Moment:
                 [self.a, self.L],
             ],
         ]
-
+        pprint(Dy)
         self.Wx = Piecewise_Polynomial()  # Axial Load Function
         self.Wy = Piecewise_Polynomial()  # Vertical Load Function
         self.Ax = Piecewise_Polynomial()
@@ -117,7 +121,7 @@ class R2_Point_Moment:
 
 
 class R2_Point_Load:
-    def __init__(self, p: pint.Quantity, a: pint.Quantity, member: R2Frame, loadcase="D"):
+    def __init__(self, p: pint.Quantity, a: pint.Quantity, member: "Any", loadcase="D"):
         self.p = p
         self.a = a
         self.L = member.length
@@ -136,24 +140,26 @@ class R2_Point_Load:
         # Simple End Reactions
         self.Riy = self.p * ((self.a - self.L) / self.L)
         self.Rjy = -1 * self.p * self.a * (1 / self.L)
-
+        print("Riy:", self.Riy, "Rjy:", self.Rjy)
         # Piecewise Functions
         # [co....cn x^n] [xa, xb]
         Vy = [
             [[self.Riy], [0, self.a]],
             [[self.Riy + self.p], [self.a, self.L]],
         ]
-
+        print_quantity_nested_list(Vy)
         Mz = [
             [[self.c1, self.Riy], [0, self.a]],
             [[self.c2, self.Riy + self.p], [self.a, self.L]],
         ]
-
+        print_quantity_nested_list(Mz)
         Sz = [
             [[self.c3, self.c1, self.Riy / 2], [0, self.a]],
             [[self.c4, self.c2, (self.Riy + self.p) / 2], [self.a, self.L]],
         ]
-
+        Sz[0][0] = [i / self.EI for i in Sz[0][0]]
+        Sz[1][0] = [i / self.EI for i in Sz[1][0]]
+        print_quantity_nested_list(Sz)
         Dy = [
             [[self.c5, self.c3, self.c1 / 2, self.Riy / 6], [0, self.a]],
             [
@@ -161,21 +167,28 @@ class R2_Point_Load:
                 [self.a, self.L],
             ],
         ]
-
-        Sz[0][0] = [i / self.EI for i in Sz[0][0]]
-        Sz[1][0] = [i / self.EI for i in Sz[1][0]]
-
         Dy[0][0] = [i / self.EI for i in Dy[0][0]]
         Dy[1][0] = [i / self.EI for i in Dy[1][0]]
+        #print(Dy)
 
-        self.Wx = Piecewise_Polynomial()  # Axial Load Function
+        print_quantity_nested_list(Dy, precision=2, width=20)
+
+        self.Wx = Piecewise_Polynomial()
+        # print(self.Wx) # Axial Load Function
         self.Wy = Piecewise_Polynomial()  # Vertical Load Function
+        # print(self.Wy)
         self.Ax = Piecewise_Polynomial()
+        # print(self.Ax)
         self.Dx = Piecewise_Polynomial()
+        #print(self.Dx)
         self.Vy = Piecewise_Polynomial(Vy)
+        print("Vy:\n", self.Vy)
         self.Mz = Piecewise_Polynomial(Mz)
+        print("Mz:\n", self.Mz)
         self.Sz = Piecewise_Polynomial(Sz)
+        print("Sz:\n", self.Sz)
         self.Dy = Piecewise_Polynomial(Dy)
+        print("Dy:\n",self.Dy)
 
     def integration_constants(self):
         P = self.p

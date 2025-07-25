@@ -1,11 +1,14 @@
 import pint
-
-from pyMAOS.frame2d import R2Frame
+from typing import TYPE_CHECKING, Any
 from pyMAOS.loading.polynomial import Piecewise_Polynomial
+
+# Use TYPE_CHECKING to avoid runtime imports
+if TYPE_CHECKING:
+    from pyMAOS.frame2d import R2Frame
 
 
 class R2_Axial_Load:
-    def __init__(self, p: pint.Quantity, a: pint.Quantity, member: R2Frame, loadcase="D"):
+    def __init__(self, p: pint.Quantity, a: pint.Quantity, member: "Any", loadcase="D"):
         self.p = p
         self.a = a
         self.L = member.length

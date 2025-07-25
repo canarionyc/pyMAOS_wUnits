@@ -1,16 +1,21 @@
 ﻿import pint
+from typing import TYPE_CHECKING, Any
+# from pyMAOS.display_utils import display_node_load_vector_in_units
 
-from pyMAOS.display_utils import display_node_load_vector_in_units
-from pyMAOS.frame2d import R2Frame
 from pyMAOS.loading.polynomial import Piecewise_Polynomial
 
+# Use TYPE_CHECKING to avoid runtime imports
+if TYPE_CHECKING:
+    from pyMAOS.frame2d import R2Frame
+
 class R2_Linear_Load:
-    def __init__(self, w1: pint.Quantity, w2: pint.Quantity, a: pint.Quantity, b: pint.Quantity, member: R2Frame, loadcase="D"):
+    def __init__(self, w1: pint.Quantity, w2: pint.Quantity, a: pint.Quantity, b: pint.Quantity, member: "Any", loadcase="D"):
         self.w1 = w1
         self.w2 = w2
         self.a = a
         self.b = b
         self.c = b - a
+        self.member_uid = member.uid
         self.L = member.length
 
         self.E = member.material.E
@@ -312,30 +317,22 @@ class R2_Linear_Load:
         
         # Print forces and moments in both SI and display units
         from pyMAOS.units_mod import convert_to_display_units
-        from pyMAOS.units_mod import unit_manager
+        from pyMAOS.units_mod import unit_manager,FORCE_DISPLAY_UNIT, MOMENT_DISPLAY_UNIT
         # Get current unit system directly from the manager
         current_units = unit_manager.get_current_units()
         system_name = unit_manager.get_system_name()
-        Riy_display = convert_to_display_units(Riy, 'force')
-        Rjy_display = convert_to_display_units(Rjy, 'force')
-        Miz_display = convert_to_display_units(Miz, 'moment')
-        Mjz_display = convert_to_display_units(Mjz, 'moment')
+        Riy_display = Riy.to(FORCE_DISPLAY_UNIT)
+        Rjy_display = Rjy.to(FORCE_DISPLAY_UNIT)
+        Miz_display = Miz.to(MOMENT_DISPLAY_UNIT)
+        Mjz_display = Mjz.to(MOMENT_DISPLAY_UNIT)
         
         print(f"Vertical reactions - SI: Riy={Riy:.3f} N, Rjy={Rjy:.3f} N")
-        print(f"Vertical reactions - Display: Riy={Riy_display:.3f} {current_units['force']}, "
-              f"Rjy={Rjy_display:.3f} {current_units['force']}")
+        print(f"Vertical reactions - Display: Riy={Riy_display:.3f}, Rjy={Rjy_display:.3f}")
         print(f"Moments - SI: Miz={Miz:.3f} N*m, Mjz={Mjz:.3f} N*m")
-        print(f"Moments - Display: Miz={Miz_display:.3f} {current_units['moment']}, "
-              f"Mjz={Mjz_display:.3f} {current_units['moment']}")
+        print(f"Moments - Display: Miz={Miz_display:.3f}, Mjz={Mjz_display:.3f}")
         
         ret_val = [0, Riy, Miz, 0, Rjy, Mjz]
-        print(f"FEF distributed load results for Load Case {self.loadcase}:\n", ret_val)
-        display_node_load_vector_in_units(ret_val[0:3], "node_i",
-                                          force_unit='klbf', 
-                                          length_unit='in')
-        display_node_load_vector_in_units(ret_val[3:6], "node_j",
-                                          force_unit='klbf',
-                                          length_unit='in')
+        print(f"FEF distributed load results on member {self.member_uid} for Load Case {self.loadcase}:\n", ret_val)
 
         return ret_val
 

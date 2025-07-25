@@ -37,9 +37,7 @@ class Element(ABC):
     
     def __repr__(self):
         """Return developer representation of the element"""
-        return f"Element(uid={self.uid}, type={self.type}, "
-                f"inode={self.inode.uid}, jnode={self.jnode.uid}, " \
-                f"material={self.material.uid}, section={self.section.uid})"
+        return (f"Element(uid={self.uid}, type={self.type}, inode={self.inode.uid}, jnode={self.jnode.uid}, material={self.material.uid}, section={self.section.uid})")
 
     @property
     def length(self):
@@ -91,7 +89,7 @@ class Element(ABC):
         k = self.k()
         T = self.T(); print("T:\n", T)
         global_stiffness_matrix = np.matmul(np.matmul(np.transpose(T), k), T)
-        print("kglobal:", global_stiffness_matrix)
+        print(f"kglobal for element {self.uid}:  {global_stiffness_matrix}\n")
         return global_stiffness_matrix
 
     def display_stiffness_matrix_in_units(self):
@@ -139,8 +137,3 @@ class Element(ABC):
     def set_structure(self, structure):
         """Attach reference to parent structure for unit access"""
         self.structure = structure
-
-
-
-
-
