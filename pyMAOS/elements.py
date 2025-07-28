@@ -86,10 +86,11 @@ class Element(ABC):
     #     return k
     def kglobal(self):
         """Calculate the global stiffness matrix for the element"""
-        k = self.k()
+        k = self.k(); print("k:\n", k)
         T = self.T(); print("T:\n", T)
-        global_stiffness_matrix = np.matmul(np.matmul(np.transpose(T), k), T)
-        print(f"kglobal for element {self.uid}:  {global_stiffness_matrix}\n")
+        #global_stiffness_matrix = np.matmul(np.matmul(np.transpose(T), k), T)
+        global_stiffness_matrix=np.linalg.multi_dot([np.transpose(T), self.k(), T])
+        print(f"kglobal for element {self.uid}:\n{global_stiffness_matrix}\n")
         return global_stiffness_matrix
 
     def display_stiffness_matrix_in_units(self):

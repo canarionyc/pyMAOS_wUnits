@@ -5,7 +5,7 @@ from pprint import pprint
 from pyMAOS import units_mod
 from pyMAOS.display_utils import display_node_load_vector_in_units, display_node_displacement_in_units
 np.set_printoptions(precision=4, suppress=False, floatmode='maxprec_equal',linewidth= 999)
-
+from pyMAOS.quantity_utils import QuantityArray
 import ast
 import operator
 import importlib
@@ -203,7 +203,7 @@ class R2Structure:
             os.makedirs(output_dir)
 
         # Structure Stiffness Matrix
-        KSTRUCT = np.zeros([self.NJD * self.NJ, self.NJD * self.NJ])
+        KSTRUCT = np.zeros([self.NJD * self.NJ, self.NJD * self.NJ], dtype=float64).view(QuantityArray)
         print("KSTRUCT shape:", KSTRUCT.shape, flush=True)
 
         for member in self.members:
@@ -281,7 +281,7 @@ class R2Structure:
             Structure Nodal Force Vector.
 
         """
-        FG = np.zeros(self.NJD * self.NJ)
+        FG = np.zeros(self.NJD * self.NJ, dtype=np.float64).view(QuantityArray)
 
         for node_index,node in enumerate(self.nodes):
             for load_case, load in node.loads.items():

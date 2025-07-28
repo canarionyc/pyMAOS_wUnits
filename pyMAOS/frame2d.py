@@ -1,5 +1,5 @@
-
 # import os
+import sys
 import pint
 import numpy as np
 
@@ -267,15 +267,19 @@ class R2Frame(Element):
             else:
                 pyy = -1 * s * p
                 pxx = c * p
-            self.loads.append(loadtypes.R2_Axial_Load(pxx, a, self, loadcase=case))
-            self.loads.append(loadtypes.R2_Point_Load(pyy, a, self, loadcase=case))
+            loadx=loadtypes.R2_Axial_Load(pxx, a, self, loadcase=case)
+            loady=loadtypes.R2_Point_Load(pyy, a, self, loadcase=case)
+            self.loads.append(loadx)
+            self.loads.append(loady)
         else:
             # Load is applied in the local member axis
 
             if direction == "xx":
-                self.loads.append(loadtypes.R2_Axial_Load(p, a, self, loadcase=case))
+                load=loadtypes.R2_Axial_Load(p, a, self, loadcase=case)
+                self.loads.append(load)
             else:
-                self.loads.append(loadtypes.R2_Point_Load(p, a, self, loadcase=case))
+                load=loadtypes.R2_Point_Load(p, a, self, loadcase=case)
+                self.loads.append(load)
 
         self._stations = False
         self._loaded = True
@@ -319,7 +323,6 @@ class R2Frame(Element):
         and stored as two separate loads
         """
 
-        
         # Parse the positions with units (unless they're percentages)
         if location_percent:
             a = (float(a) / 100) * self.length
@@ -350,25 +353,24 @@ class R2Frame(Element):
                 wxxi = c * wi
                 wxxj = c * wj
             if abs(wxxi.magnitude) > 1e-10 or abs(wxxj.magnitude) > 1e-10:  # Only add if at least one component is non-zero
-                self.loads.append(
-                    loadtypes.R2_Axial_Linear_Load(wxxi, wxxj, a, b, self, loadcase=case)
-                )
+                load=loadtypes.R2_Axial_Linear_Load(wxxi, wxxj, a, b, self, loadcase=case); print(load)
+                self.loads.append(load)
             if abs(wyyi.magnitude) > 1e-10 or abs(wyyj.magnitude) > 1e-10:  # Also check transverse load
-                self.loads.append(
-                    loadtypes.R2_Linear_Load(wyyi, wyyj, a, b, self, loadcase=case)
-                )
+                load=loadtypes.LinearLoadXY(wyyi, wyyj, a, b, self, loadcase=case); print(load)
+                load.print_detailed_analysis()
+                self.loads.append(load)
         else:
             # Load is applied in the local member axis
 
             if direction == "xx":
-                self.loads.append(
-                    loadtypes.R2_Axial_Linear_Load(wi, wj, a, b, self, loadcase=case)
-                )
+                load=loadtypes.R2_Axial_Linear_Load(wi, wj, a, b, self, loadcase=case); print(load)
+                load.print_detailed_analysis()
+                self.loads.append(load)
             else:
                 if projected:
                     wi = (self.jnode.x - self.inode.x) * wi / self.length
                     wj = (self.jnode.x - self.inode.x) * wj / self.length
-                load= loadtypes.R2_Linear_Load(wi, wj, a, b, self, loadcase=case)
+                load = loadtypes.LinearLoadXY(wi, wj, a, b, self, loadcase=case); print(load)
                 load.print_detailed_analysis()
                 self.loads.append(load)
 
@@ -491,10 +493,9 @@ class R2Frame(Element):
             [Fi_x, Fi_y, Mi_z, Fj_x, Fj_y, Mj_z]
             where i = start node, j = end node, and x,y,z are local coordinates
         """
-        import sys
         
         # Initialize fixed end forces vector
-        fef = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        fef = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=float64).view(QuantityArray)
         
         # Process each load applied to the element
         print(f"Processing {len(self.loads)} loads on element {self.uid}:", file=sys.stderr)
@@ -509,6 +510,8 @@ class R2Frame(Element):
                 
             # Calculate FEF contribution from this load
             load_fef = load.FEF()
+            from pyMAOS.units_mod import convert_to_unit_system
+
             print(convert_to_unit_system(np.array(load_fef, dtype="object"), "imperial"))
 
             factored_fef = np.array([load_factor * i for i in load_fef], dtype=object)
@@ -618,7 +621,7 @@ class R2Frame(Element):
         numpy.matrix
             6x6 local stiffness matrix for the frame element
         """
-        E = self.material.E
+        E: Quantity = self.material.E
         Ixx = self.section.Ixx
         A = self.section.Area
         L = self.length
@@ -627,9 +630,9 @@ class R2Frame(Element):
         #     print(f"Calculating local stiffness matrix for element {self.uid} with length {L}, E={E}, Ixx={Ixx}, A={A}, hinges={self.hinges}")
 
         # Initialize matrix with zeros
-        k = np.zeros((6, 6)).view(QuantityArray)
+        k = np.zeros((6, 6), dtype=float64).view(QuantityArray)
         
-        # Common terms to improve readability
+        # Common terms
         AE_L = A * E / L
 
         # Axial terms (common to all hinge configurations)
@@ -948,8 +951,8 @@ class R2Frame(Element):
         2. Input for generating internal force functions
         3. Integration to produce shear, moment and deflection functions
         """
-        wy = loadtypes.Piecewise_Polynomial()
-        wx = loadtypes.Piecewise_Polynomial()
+        wy = loadtypes.PiecewisePolynomial()
+        wx = loadtypes.PiecewisePolynomial()
 
         # Combine Piecewise Deflection Functions of all of the loads
         if self._loaded:
@@ -969,7 +972,7 @@ class R2Frame(Element):
         Fendlocal = self.end_forces_local.get(load_combination.name, empty_f)
 
         # Empty Piecewise functions to build the total function from the loading
-        ax = loadtypes.Piecewise_Polynomial()
+        ax = loadtypes.PiecewisePolynomial()
 
         # Create "loads" from the end forces and combine with dx and dy
         fxi = loadtypes.R2_Axial_Load(Fendlocal[0, 0], 0, self)
@@ -1002,7 +1005,7 @@ class R2Frame(Element):
         Fendlocal = self.end_forces_local.get(load_combination.name, empty_f)
 
         # Empty Piecewise functions to build the total function from the loading
-        vy = loadtypes.Piecewise_Polynomial()
+        vy = loadtypes.PiecewisePolynomial()
 
         # Create "loads" from the end forces and combine with dx and dy
         fxi = loadtypes.R2_Axial_Load(Fendlocal[0, 0], 0, self)
@@ -1034,7 +1037,7 @@ class R2Frame(Element):
         Fendlocal = self.end_forces_local.get(load_combination.name, empty_f)
 
         # Empty Piecewise functions to build the total function from the loading
-        Mzx = loadtypes.Piecewise_Polynomial()
+        Mzx = loadtypes.PiecewisePolynomial()
 
         # Create "loads" from the end forces and combine with dx and dy
         fxi = loadtypes.R2_Axial_Load(Fendlocal[0, 0], 0, self)
@@ -1066,7 +1069,7 @@ class R2Frame(Element):
         Fendlocal = self.end_forces_local.get(load_combination.name, empty_f)
 
         # Empty Piecwise functions to build the total function from the loading
-        Szx = loadtypes.Piecewise_Polynomial()
+        Szx = loadtypes.PiecewisePolynomial()
 
         # Create "loads" from the end forces and combine with dx and dy
         fxi = loadtypes.R2_Axial_Load(Fendlocal[0, 0], 0, self)
@@ -1109,8 +1112,8 @@ class R2Frame(Element):
         Fendlocal = self.end_forces_local.get(load_combination.name, empty_f)
 
         # Empty Piecwise functions to build the total function from the loading
-        dx = loadtypes.Piecewise_Polynomial()
-        dy = loadtypes.Piecewise_Polynomial()
+        dx = loadtypes.PiecewisePolynomial()
+        dy = loadtypes.PiecewisePolynomial()
 
         # Create "loads" from the end forces and combine with dx and dy
         fxi = loadtypes.R2_Axial_Load(Fendlocal[0, 0], 0, self)

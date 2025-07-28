@@ -1,6 +1,6 @@
 import pint
 from typing import TYPE_CHECKING, Any
-from pyMAOS.loading.polynomial import Piecewise_Polynomial
+from pyMAOS.loading.piecewisePolinomial import PiecewisePolynomial
 
 # Use TYPE_CHECKING to avoid runtime imports
 if TYPE_CHECKING:
@@ -31,8 +31,8 @@ class R2_Axial_Load:
         # Piecewise Functions
         # Each piecewise function uses the following format:
         # [coefficients_list, domain_bounds]
-        # where coefficients_list contains polynomial coefficients in ascending order [c0, c1, c2,...] 
-        # representing c0 + c1*x + c2*x^2 + ...
+        # where coefficients_list contains polynomial coefficients in ascending order [c0, c01, c02,...]
+        # representing c0 + c01*x + c02*x^2 + ...
         # and domain_bounds are [start_x, end_x] for the applicable region
         # [co....cn x^n] [xa, xb]
         Ax = [
@@ -48,14 +48,14 @@ class R2_Axial_Load:
         Dx[0][0] = [i / self.EA for i in Dx[0][0]]
         Dx[1][0] = [i / self.EA for i in Dx[1][0]]
 
-        self.Wx = Piecewise_Polynomial()  # Axial Load Function
-        self.Wy = Piecewise_Polynomial()  # Vertical Load Function
-        self.Ax = Piecewise_Polynomial(Ax)
-        self.Dx = Piecewise_Polynomial(Dx)
-        self.Vy = Piecewise_Polynomial()
-        self.Mz = Piecewise_Polynomial()
-        self.Sz = Piecewise_Polynomial()
-        self.Dy = Piecewise_Polynomial()
+        self.Wx = PiecewisePolynomial()  # Axial Load Function
+        self.Wy = PiecewisePolynomial()  # Vertical Load Function
+        self.Ax = PiecewisePolynomial(Ax)
+        self.Dx = PiecewisePolynomial(Dx)
+        self.Vy = PiecewisePolynomial()
+        self.Mz = PiecewisePolynomial()
+        self.Sz = PiecewisePolynomial()
+        self.Dy = PiecewisePolynomial()
 
     def integration_constants(self):
         p = self.p
@@ -165,14 +165,14 @@ class R2_Axial_Linear_Load:
         Dx[1][0] = [i / self.EA for i in Dx[1][0]]
         Dx[2][0] = [i / self.EA for i in Dx[2][0]]
 
-        self.Wx = Piecewise_Polynomial(Wx)  # Axial Load Function
-        self.Wy = Piecewise_Polynomial()  # Vertical Load Function
-        self.Ax = Piecewise_Polynomial(Ax)
-        self.Dx = Piecewise_Polynomial(Dx)
-        self.Vy = Piecewise_Polynomial()
-        self.Mz = Piecewise_Polynomial()
-        self.Sz = Piecewise_Polynomial()
-        self.Dy = Piecewise_Polynomial()
+        self.Wx = PiecewisePolynomial(Wx)  # Axial Load Function
+        self.Wy = PiecewisePolynomial()  # Vertical Load Function
+        self.Ax = PiecewisePolynomial(Ax)
+        self.Dx = PiecewisePolynomial(Dx)
+        self.Vy = PiecewisePolynomial()
+        self.Mz = PiecewisePolynomial()
+        self.Sz = PiecewisePolynomial()
+        self.Dy = PiecewisePolynomial()
 
     def integration_constants(self):
         w1 = self.w1

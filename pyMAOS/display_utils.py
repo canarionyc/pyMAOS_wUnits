@@ -161,15 +161,15 @@ def display_member_forces_in_units(forces, member_uid, force_unit=None, length_u
     
     # For standard beam/frame with 6 components
     if len(display_forces) >= 6:
-        print(f"  i-node: Fx={display_forces[0]:.4g} {force_unit}, "
-              f"Fy={display_forces[1]:.4g} {force_unit}, "
-              f"Mz={display_forces[2]:.4g} {moment_unit}")
-        print(f"  j-node: Fx={display_forces[3]:.4g} {force_unit}, "
-              f"Fy={display_forces[4]:.4g} {force_unit}, "
-              f"Mz={display_forces[5]:.4g} {moment_unit}")
+        print(f"  i-node: Fx={display_forces[0]:12.4g} {force_unit}, "
+              f"Fy={display_forces[1]:12.4g} {force_unit}, "
+              f"Mz={display_forces[2]:12.4g} {moment_unit}")
+        print(f"  j-node: Fx={display_forces[3]:12.4g} {force_unit}, "
+              f"Fy={display_forces[4]:12.4g} {force_unit}, "
+              f"Mz={display_forces[5]:12.4g} {moment_unit}")
     else:
         # For other element types, just print all components
-        components = [f"{v:.4g}" for v in display_forces]
+        components = [f"{v:12.4g}" for v in display_forces]
         print(f"  Forces: {', '.join(components)}")
 
 

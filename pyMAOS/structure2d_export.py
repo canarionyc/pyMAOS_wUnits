@@ -267,7 +267,12 @@ def _export_member_forces(structure, writer, combo, combo_name, display_units, c
             'System': 'Global',
             f'Fx ({display_units["force"]})': global_forces_display[0],
             f'Fy ({display_units["force"]})': global_forces_display[1],
-            f'Mz ({display_units["moment"]})': global_forces_display[2],
+            f'Mz ({display_units["moment"]})': global_forces_display[2]
+        })
+        forces_data.append({
+            'Member ID': member.uid,
+            'Node': f"{member.inode.uid} (i)",
+
             'System': 'Local',
             f'Fx ({display_units["force"]})': local_forces_display[0],
             f'Fy ({display_units["force"]})': local_forces_display[1],
@@ -281,7 +286,12 @@ def _export_member_forces(structure, writer, combo, combo_name, display_units, c
             'System': 'Global',
             f'Fx ({display_units["force"]})': global_forces_display[3],
             f'Fy ({display_units["force"]})': global_forces_display[4],
-            f'Mz ({display_units["moment"]})': global_forces_display[5],
+            f'Mz ({display_units["moment"]})': global_forces_display[5]
+        })
+        forces_data.append({
+            'Member ID': member.uid,
+            'Node': f"{member.jnode.uid} (j)",
+
             'System': 'Local',
             f'Fx ({display_units["force"]})': local_forces_display[3],
             f'Fy ({display_units["force"]})': local_forces_display[4],

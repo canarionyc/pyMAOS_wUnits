@@ -10,8 +10,8 @@ from rx.subject.subject import Subject
 from rx import operators as ops
 import rx
 import logging  # Add logging module
-from pprint import pp, pprint
 
+from pprint import pprint
 
 def is_class_imported(class_name):
     """
@@ -129,9 +129,6 @@ def print_imported_classes(module_filter=None):
 
 from pyMAOS.logger import setup_logger
 
-
-
-
 # Import all unit-related functionality from units.py module
 from pyMAOS.units_mod import (
     ureg, Q_,  # Unit registry
@@ -158,8 +155,8 @@ def format_double(x) -> str: return '.'.center(16) if abs(x) < 1e-10 else f"{x:<
 #     np.float64: format_double,
 #     np.float32: format_with_dots
 # }) # type: ignore
-np.set_printoptions(precision=2, threshold=999, linewidth=999, suppress=True,
-                    formatter={'all': lambda x: '.'.center(10) if abs(x) < 1e-10 else f"{x:10.4g}"})
+np.set_printoptions(precision=2, threshold=999, linewidth=120, suppress=True,
+                    formatter={np.float32: lambda x: '.'.center(10) if abs(x) < 1e-10 else f"{x:10.4g}"})
 # Import other modules
 from pyMAOS.plot_structure import plot_structure_vtk
 from pyMAOS.node2d import R2Node
@@ -363,12 +360,14 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
             log(f"Node {node_id} load: Fx={fx:.4g} N, Fy={fy:.4g} N, Mz={mz:.4g} N*m")
 
     # Import the necessary load classes
-    from pyMAOS.loading import R2_Point_Load, R2_Linear_Load, R2_Axial_Load, R2_Axial_Linear_Load, R2_Point_Moment
+    from pyMAOS.loading import R2_Point_Load, LinearLoadXY, R2_Axial_Load, R2_Axial_Linear_Load, R2_Point_Moment
 
     log(f"\nProcessing {len(data.get('member_loads', []))} member loads:")
 
     # Process member loads - always convert to SI units
     for member_load in data.get("member_loads", []):
+
+        pprint(member_load)
         element_id = member_load["member_uid"]
         load_type = member_load["load_type"]
 
@@ -394,14 +393,14 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
             if "a_pct" in member_load:
                 a_pct = float(member_load["a_pct"])
                 a_with_units = a_pct / 100.0 * element.length
-                log(f"  Using a_pct={a_pct}% → position a={a:.4f}m")
+                log(f"  Using a_pct={a_pct}% → position a={a_with_units:.4f}")
             else:
                 a_with_units = parse_value_with_units(str(member_load["a"])).to(INTERNAL_LENGTH_UNIT)
 
             if "b_pct" in member_load:
                 b_pct = float(member_load["b_pct"])
                 b_with_units = b_pct / 100.0 * element.length
-                log(f"  Using b_pct={b_pct}% → position b={b:.4f}m")
+                log(f"  Using b_pct={b_pct}% → position b={b_with_units:.4f}")
             else:
                 b_with_units = parse_value_with_units(member_load.get("b", element.length)).to(INTERNAL_LENGTH_UNIT)
 
@@ -409,8 +408,6 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
 
         elif load_type == 1:  # Point load
             # Parse force magnitude with unit conversion
-            from pprint import pprint
-            pprint(member_load)
             from pyMAOS.units_mod import INTERNAL_LENGTH_UNIT, INTERNAL_FORCE_UNIT
             p_with_units = parse_value_with_units(str(member_load.get("p", 0))).to(INTERNAL_FORCE_UNIT)
             # Parse position - use percentage value if available
@@ -419,8 +416,9 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
                 a_with_units = a_pct / 100.0 * element.length
             else:
                 a_with_units = parse_value_with_units(str(member_load["a"])).to(INTERNAL_LENGTH_UNIT)
-            #     a = a_with_units.to(INTERNAL_LENGTH_UNIT).magnitude if isinstance(a_with_units,pint.Quantity) else a_with_units
-
+            if a_with_units > element.length:
+                log(f"Warning: Point load position {a_with_units} exceeds element length {element.length}. Clamping to length.")
+                a_with_units = element.length
             # Remove b_with_units if it exists
             if 'b_with_units' in locals():
                 del b_with_units
@@ -623,14 +621,14 @@ def load_linear_load_reactively(element, member_load, logger=None):
 
 
 from pyMAOS.export_utils import export_results_to_json
-from pyMAOS.units_mod import unit_manager
+from pyMAOS.units_mod import unit_manager, ureg
 
 # Example usage
 if __name__ == "__main__":
 
     # Show all pyMAOS classes
     print_imported_classes('pyMAOS')
-    pp(globals())
+    pprint(globals())
     status = 0
     import argparse
 
@@ -672,19 +670,22 @@ if __name__ == "__main__":
     # Choose the unit system with a simple function call
     logger.info(f"\nSetting {args.units} unit system...")
     if args.units == "imperial":
+        unit_manager.default_preferred_units = IMPERIAL_UNITS
         unit_manager.set_unit_system(IMPERIAL_UNITS, args.units)
         # logger.info("Using imperial unit system")
     elif args.units == "si":
+        unit_manager.default_preferred_units = SI_UNITS
         set_unit_system(SI_UNITS, args.units)
         logger.info("Using SI unit system")
     elif args.units == "metric_kn":
+        unit_manager.default_preferred_units = METRIC_KN_UNITS
         set_unit_system(METRIC_KN_UNITS, args.units)
         logger.info("Using metric kN unit system")
     # Get current unit system directly from the manager
-    current_units = unit_manager.get_current_units();
-    pp(current_units)
-    system_name = unit_manager.get_system_name();
-    print(system_name)
+    current_units = unit_manager.get_current_units(); pprint(current_units)
+
+    system_name = unit_manager.get_system_name(); print(system_name)
+
     try:
         logger.info(f"Loading structural model from file: {input_file}")
         # Pass the VTK flag to control visualization in load_frame_from_file

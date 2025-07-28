@@ -1,12 +1,12 @@
 import pint
 from typing import TYPE_CHECKING, Any
-from pyMAOS.loading.polynomial import Piecewise_Polynomial
+from pyMAOS.loading.piecewisePolinomial import PiecewisePolynomial
 from pprint import pprint
 from display_utils import print_quantity_nested_list
 # Use TYPE_CHECKING to avoid runtime imports
 if TYPE_CHECKING:
     from pyMAOS.frame2d import R2Frame
-
+from pyMAOS.units_mod import ureg
 class R2_Point_Moment:
     def __init__(self, M: pint.Quantity, a: pint.Quantity, member: "Any", loadcase="D"):
         """
@@ -84,14 +84,14 @@ class R2_Point_Moment:
             ],
         ]
         pprint(Dy)
-        self.Wx = Piecewise_Polynomial()  # Axial Load Function
-        self.Wy = Piecewise_Polynomial()  # Vertical Load Function
-        self.Ax = Piecewise_Polynomial()
-        self.Dx = Piecewise_Polynomial()
-        self.Vy = Piecewise_Polynomial(Vy)
-        self.Mz = Piecewise_Polynomial(Mz)
-        self.Sz = Piecewise_Polynomial(Sz)
-        self.Dy = Piecewise_Polynomial(Dy)
+        self.Wx = PiecewisePolynomial()  # Axial Load Function
+        self.Wy = PiecewisePolynomial()  # Vertical Load Function
+        self.Ax = PiecewisePolynomial()
+        self.Dx = PiecewisePolynomial()
+        self.Vy = PiecewisePolynomial(Vy)
+        self.Mz = PiecewisePolynomial(Mz)
+        self.Sz = PiecewisePolynomial(Sz)
+        self.Dy = PiecewisePolynomial(Dy)
 
     def integration_constants(self):
         M = self.M
@@ -117,7 +117,10 @@ class R2_Point_Moment:
         Riy = self.Riy + (Miz / L) + (Mjz / L)
         Rjy = self.Rjy - (Miz / L) - (Mjz / L)
 
-        return [0, Riy, Miz, 0, Rjy, Mjz]
+        # Create zeros with appropriate units
+        zero_force = 0 * ureg(Riy.units)
+
+        return [zero_force, Riy, Miz, zero_force, Rjy, Mjz]
 
 
 class R2_Point_Load:
@@ -135,7 +138,20 @@ class R2_Point_Load:
         self.loadcase = loadcase
 
         # Constants of Integration
-        self.integration_constants()
+        # self.integration_constants()
+        # p = self.p
+        # a = self.a
+        L = self.L
+        import inspect;
+        print(f"{inspect.getfile(inspect.currentframe())}:{inspect.currentframe().f_lineno}")
+
+        from pyMAOS.units_mod import INTERNAL_MOMENT_UNIT, ureg
+        self.c1 = ureg.Quantity(0, INTERNAL_MOMENT_UNIT)
+        self.c2 = -1 * p * a
+        self.c3 = (p * a * (a - (2 * L)) * (a - L)) / (6 * L)
+        self.c4 = (p * a * ((a * a) + (2 * L * L))) / (6 * L)
+        self.c5 = 0
+        self.c6 = (-1 * p * a * a * a) / 6
 
         # Simple End Reactions
         self.Riy = self.p * ((self.a - self.L) / self.L)
@@ -144,24 +160,24 @@ class R2_Point_Load:
         # Piecewise Functions
         # [co....cn x^n] [xa, xb]
         Vy = [
-            [[self.Riy], [0, self.a]],
+            [[self.Riy], [ureg.Quantity(0, self.a.units), self.a]],
             [[self.Riy + self.p], [self.a, self.L]],
         ]
-        print_quantity_nested_list(Vy)
+        print("Vy:"); print_quantity_nested_list(Vy)
         Mz = [
-            [[self.c1, self.Riy], [0, self.a]],
+            [[self.c1, self.Riy], [0 * ureg(self.a.units), self.a]],
             [[self.c2, self.Riy + self.p], [self.a, self.L]],
         ]
-        print_quantity_nested_list(Mz)
+        print("Mz:"); print_quantity_nested_list(Mz)
         Sz = [
-            [[self.c3, self.c1, self.Riy / 2], [0, self.a]],
+            [[self.c3, self.c1, self.Riy / 2], [0 * ureg(self.a.units), self.a]],
             [[self.c4, self.c2, (self.Riy + self.p) / 2], [self.a, self.L]],
         ]
         Sz[0][0] = [i / self.EI for i in Sz[0][0]]
         Sz[1][0] = [i / self.EI for i in Sz[1][0]]
-        print_quantity_nested_list(Sz)
+        print("Sz:"); print_quantity_nested_list(Sz)
         Dy = [
-            [[self.c5, self.c3, self.c1 / 2, self.Riy / 6], [0, self.a]],
+            [[self.c5, self.c3, self.c1 / 2, self.Riy / 6], [0 * ureg(self.a.units), self.a]],
             [
                 [self.c6, self.c4, self.c2 / 2, (self.Riy + self.p) / 6],
                 [self.a, self.L],
@@ -170,46 +186,50 @@ class R2_Point_Load:
         Dy[0][0] = [i / self.EI for i in Dy[0][0]]
         Dy[1][0] = [i / self.EI for i in Dy[1][0]]
         #print(Dy)
-
+        print("Dy:")
         print_quantity_nested_list(Dy, precision=2, width=20)
 
-        self.Wx = Piecewise_Polynomial()
+        self.Wx = PiecewisePolynomial()
         # print(self.Wx) # Axial Load Function
-        self.Wy = Piecewise_Polynomial()  # Vertical Load Function
+        self.Wy = PiecewisePolynomial()  # Vertical Load Function
         # print(self.Wy)
-        self.Ax = Piecewise_Polynomial()
+        self.Ax = PiecewisePolynomial()
         # print(self.Ax)
-        self.Dx = Piecewise_Polynomial()
+        self.Dx = PiecewisePolynomial()
         #print(self.Dx)
-        self.Vy = Piecewise_Polynomial(Vy)
+        from pprint import pprint; pprint(Vy); self.Vy = PiecewisePolynomial(Vy)
         print("Vy:\n", self.Vy)
-        self.Mz = Piecewise_Polynomial(Mz)
+        self.Mz = PiecewisePolynomial(Mz)
         print("Mz:\n", self.Mz)
-        self.Sz = Piecewise_Polynomial(Sz)
+        self.Sz = PiecewisePolynomial(Sz)
         print("Sz:\n", self.Sz)
-        self.Dy = Piecewise_Polynomial(Dy)
+        self.Dy = PiecewisePolynomial(Dy)
         print("Dy:\n",self.Dy)
 
-    def integration_constants(self):
-        P = self.p
-        a = self.a
-        L = self.L
-
-        self.c1 = 0
-        self.c2 = -1 * P * a
-        self.c3 = (P * a * (a - (2 * L)) * (a - L)) / (6 * L)
-        self.c4 = (P * a * ((a * a) + (2 * L * L))) / (6 * L)
-        self.c5 = 0
-        self.c6 = (-1 * P * a * a * a) / 6
+    # def integration_constants(self):
+    #     P = self.p
+    #     a = self.a
+    #     L = self.L
+    #     import inspect;
+    #     print(f"{inspect.getfile(inspect.currentframe())}:{inspect.currentframe().f_lineno}")
+    #     self.c01 = 0
+    #     self.c02 = -1 * P * a
+    #     self.c03 = (P * a * (a - (2 * L)) * (a - L)) / (6 * L)
+    #     self.c04 = (P * a * ((a * a) + (2 * L * L))) / (6 * L)
+    #     self.c05 = 0
+    #     self.c06 = (-1 * P * a * a * a) / 6
 
     def FEF(self):
-        P = self.p
+        p = self.p
         a = self.a
         L = self.L
 
-        Miz = -1 * (P * a * (a - L) * (a - L)) / (L * L)
-        Mjz = -1 * (P * a * a * (a - L)) / (L * L)
+        Miz = -1 * (p * a * (a - L) * (a - L)) / (L * L)
+        Mjz = -1 * (p * a * a * (a - L)) / (L * L)
         Riy = self.Riy + (Miz / L) + (Mjz / L)
         Rjy = self.Rjy - (Miz / L) - (Mjz / L)
 
-        return [0, Riy, Miz, 0, Rjy, Mjz]
+        # Create zeros with the same units as Riy
+        zero_force = 0 * ureg(Riy.units)
+
+        return [zero_force, Riy, Miz, zero_force, Rjy, Mjz]

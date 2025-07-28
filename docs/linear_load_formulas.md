@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document explains the mathematical formulas used in the `R2_Linear_Load` class for structural analysis of linearly varying distributed loads.
+This document explains the mathematical formulas used in the `LinearLoadXY` class for structural analysis of linearly varying distributed loads.
 
 ## Load Model
 

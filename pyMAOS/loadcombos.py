@@ -66,16 +66,12 @@ class LoadCombo:
         """
         Determine the output when print() is called on a load combo
         """
-        print(f"Combo: {self.name}")
-        print(f"Type: {self.combo_type}")
-        print(f"Pattern: {self.patterned}")
+        header=f"Combo: {self.name}\nType: {self.combo_type}\nPattern: {self.patterned}"
 
-        key_loads = ""
+        key_loads = "Principle Loads: "
 
         for key_load in self.principle_loads:
             key_loads += f"{key_load}"
-
-        print(f"Principle Loads: {key_loads}")
 
         combo_formula = ""
         i = 0
@@ -88,7 +84,7 @@ class LoadCombo:
                 combo_formula += f"+{factor}{Load_type}"
             i += 1
 
-        return combo_formula
+        return header+key_loads+combo_formula
 
     def AddLoadCase(self, case_name, factor):
         """
@@ -175,7 +171,7 @@ def ACI_LoadPatterns(n, byspan=True):
     else:
         patterns = [pat1, pat2, pat3, pat4, pat5, pat6]
 
-    if byspan is True:
+    if byspan:
         patterns_transpose = list(map(list, zip(*patterns)))
 
         return patterns_transpose

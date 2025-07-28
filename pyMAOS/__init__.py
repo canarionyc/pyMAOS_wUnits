@@ -25,14 +25,12 @@ pp = pprint.PrettyPrinter(width=999, compact=False)
 
 # Import and expose unit systems and other global constants
 from pyMAOS.units_mod import (SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS,
-    INTERNAL_FORCE_UNIT, INTERNAL_LENGTH_UNIT, INTERNAL_MOMENT_UNIT, INTERNAL_PRESSURE_UNIT, INTERNAL_DISTRIBUTED_LOAD_UNIT,
+    INTERNAL_LENGTH_UNIT, INTERNAL_FORCE_UNIT,  INTERNAL_MOMENT_UNIT, INTERNAL_PRESSURE_UNIT, INTERNAL_DISTRIBUTED_LOAD_UNIT,
     FORCE_DIMENSIONALITY, LENGTH_DIMENSIONALITY, MOMENT_DIMENSIONALITY, PRESSURE_DIMENSIONALITY, DISTRIBUTED_LOAD_DIMENSIONALITY
 )
 
-
-
-
 import pint
+from pint import Quantity
 
 # Add references to the new modules
 from .structure2d import R2Structure
@@ -42,12 +40,11 @@ from .structure2d_utils import __str__
 
 print("pyMAOS package initialized with unit systems and structural analysis tools.")
 
-
 __all__ = [
     'SI_UNITS', 'IMPERIAL_UNITS', 'METRIC_KN_UNITS',
     'INTERNAL_FORCE_UNIT', 'INTERNAL_LENGTH_UNIT', 'INTERNAL_MOMENT_UNIT', 'INTERNAL_PRESSURE_UNIT', 'INTERNAL_DISTRIBUTED_LOAD_UNIT',
     'FORCE_DIMENSIONALITY', 'LENGTH_DIMENSIONALITY', 'MOMENT_DIMENSIONALITY', 'PRESSURE_DIMENSIONALITY', 'DISTRIBUTED_LOAD_DIMENSIONALITY',
-    'R2Structure'  # The module itself
+    'R2Structure',  # The module itself
     'pint',  # Add pint to exports
     'pprint'  # Add pprint to exports
 ]

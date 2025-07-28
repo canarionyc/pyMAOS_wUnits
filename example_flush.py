@@ -1,0 +1,6 @@
+import sys
+# ...existing code...
+print("Message", end="")
+sys.stdout.flush()
+# ...existing code...
+

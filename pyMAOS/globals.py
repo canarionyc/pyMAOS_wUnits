@@ -22,7 +22,7 @@
 # DEFAULT_UNIT_SYSTEM = METRIC_KN_UNITS
 #
 # # Add any other global constants here
-# GRAVITY = 9.81  # m/s^2
+GRAVITY = 9.81  # m/s^2
 #
 # # Unit system definitions (for reference - actual data comes from units.py)
 # # SI_UNITS = {"force": "N", "length": "m", "pressure": "Pa", "distance": "m"}

@@ -99,7 +99,7 @@ class R2Truss(Element):
         Fendlocal = self.end_forces_local.get(load_combination.name, empty_f)
 
         # Empty Piecewise functions to build the total function from the loading
-        ax = loadtypes.Piecewise_Polynomial()
+        ax = loadtypes.PiecewisePolynomial()
 
         # Create "loads" from the end forces and combine with dx and dy
         fxi = loadtypes.R2_Axial_Load(Fendlocal[0, 0], 0, self)
@@ -146,8 +146,8 @@ class R2Truss(Element):
         Fendlocal = self.end_forces_local.get(load_combination.name, empty_f)
 
         # Empty Piecewise functions to build the total function from the loading
-        dx = loadtypes.Piecewise_Polynomial()
-        dy = loadtypes.Piecewise_Polynomial()
+        dx = loadtypes.PiecewisePolynomial()
+        dy = loadtypes.PiecewisePolynomial()
 
         # Create "loads" from the end forces and combine with dx and dy
         fxi = loadtypes.R2_Axial_Load(Fendlocal[0, 0], 0, self)

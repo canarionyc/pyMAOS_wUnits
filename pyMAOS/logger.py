@@ -2,7 +2,6 @@ import logging
 import os
 import sys
 import traceback
-from pathlib import Path
 
 
 class ErrorFormatter(logging.Formatter):
@@ -11,30 +10,14 @@ class ErrorFormatter(logging.Formatter):
     def format(self, record):
         # Use different formats based on log level
         if record.levelno >= logging.ERROR:
-            self._style._fmt = '%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
+            self._style._fmt = '%(asctime)s - %(levelname)s - %(message)s'
         else:
             self._style._fmt = '%(asctime)s - %(levelname)s - %(message)s'
         return super().format(record)
 
 
 def setup_logger(name='pyMAOS', log_file=None, level=logging.INFO):
-    """
-    Set up logger to output to both console and file with enhanced error formatting
-
-    Parameters
-    ----------
-    name : str
-        Name of the logger
-    log_file : str, optional
-        Path to log file. If None, logging will only be to console.
-    level : int
-        Logging level (default: logging.INFO)
-
-    Returns
-    -------
-    logging.Logger
-        Configured logger instance
-    """
+    """Set up logger to output to both console and file with enhanced error formatting"""
     # Create logger
     logger = logging.getLogger(name)
     logger.setLevel(level)
@@ -54,8 +37,7 @@ def setup_logger(name='pyMAOS', log_file=None, level=logging.INFO):
 
     # Create file handler if log_file is provided
     if log_file:
-        log_path = Path(log_file)
-        os.makedirs(log_path.parent, exist_ok=True)  # Create directory if needed
+        os.makedirs(os.path.dirname(log_file), exist_ok=True)  # Create directory if needed
         file_handler = logging.FileHandler(log_file)
         file_handler.setLevel(level)
         file_handler.setFormatter(formatter)
@@ -65,18 +47,7 @@ def setup_logger(name='pyMAOS', log_file=None, level=logging.INFO):
 
 
 def log_exception(logger, exc_info=None, message="An exception occurred"):
-    """
-    Log an exception with traceback showing file and line numbers
-
-    Parameters
-    ----------
-    logger : logging.Logger
-        Logger instance to use
-    exc_info : tuple, optional
-        Exception info from sys.exc_info(). If None, current exception is used.
-    message : str, optional
-        Custom message to prepend to the exception details
-    """
+    """Log an exception with traceback showing file and line numbers"""
     if exc_info is None:
         exc_info = sys.exc_info()
 
@@ -84,10 +55,25 @@ def log_exception(logger, exc_info=None, message="An exception occurred"):
     tb_details = traceback.extract_tb(exc_tb)
 
     if tb_details:
-        last_frame = tb_details[-1]
-        file_name = os.path.basename(last_frame.filename)
-        line_no = last_frame.lineno
-        logger.error(f"{message}: {exc_type.__name__}: {exc_value} [in {file_name}:{line_no}]")
+        # Get the frame where the actual exception occurred
+        error_frame = tb_details[-1]
+        file_name = os.path.basename(error_frame.filename)
+        line_no = error_frame.lineno
+        function = error_frame.name
+
+        # Include the error location in the message
+        error_msg = f"{message}: {exc_type.__name__} in {file_name}:{line_no} (function: {function}): {exc_value}"
+        logger.error(error_msg)
+
+        # Print the entire call stack with clickable file links
+        print(f"DEBUG - Full call stack for exception:")
+        for i, frame in enumerate(tb_details):
+            frame_file = os.path.basename(frame.filename)
+            print(f"  Frame {i}: {frame_file}:{frame.lineno} in {frame.name}()")
+            # Put clickable link at beginning of line
+            print(f"{frame.filename}:{frame.lineno}")
+            if frame.line:
+                print(f"    Code: {frame.line.strip()}")
 
         # Log the full traceback at debug level
         tb_formatted = ''.join(traceback.format_exception(exc_type, exc_value, exc_tb))
