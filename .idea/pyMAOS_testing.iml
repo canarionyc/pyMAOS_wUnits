@@ -19,6 +19,8 @@
       <sourceFolder url="file://$MODULE_DIR$/tests" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/Visual Studio 2022" />
       <excludeFolder url="file://$MODULE_DIR$/Visual Studio 2022Templates" />
+      <excludeFolder url="file://$MODULE_DIR$/.Rproj.user" />
+      <excludeFolder url="file://$MODULE_DIR$/.vs" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.13" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

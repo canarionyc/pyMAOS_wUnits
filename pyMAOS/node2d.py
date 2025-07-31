@@ -3,7 +3,7 @@ import math
 import numpy as np
 import pint
 from pint import Quantity
-from pyMAOS.units_mod import ureg, parse_value_with_units
+from pyMAOS.units_mod import unit_manager, parse_value_with_units
 
 
 class LoadsDict(dict):
@@ -103,7 +103,7 @@ class R2Node:
 
         # If it's a number, create a Quantity in meters
         if isinstance(coordinate, (int, float)):
-            return coordinate * ureg.m
+            return coordinate * unit_manager.ureg.m
 
         # If it's a string, parse units
         if isinstance(coordinate, str):
@@ -114,12 +114,12 @@ class R2Node:
                     return parsed_value.to('m')
                 else:
                     # No units specified, assume meters
-                    return float(parsed_value) * ureg.m
+                    return float(parsed_value) * unit_manager.ureg.m
 
             except Exception as e:
                 print(f"Warning: Could not parse coordinate '{coordinate}': {e}")
                 try:
-                    return float(coordinate) * ureg.m
+                    return float(coordinate) * unit_manager.ureg.m
                 except Exception:
                     raise ValueError(f"Could not parse coordinate value: {coordinate}")
 
@@ -142,15 +142,15 @@ class R2Node:
         # If already a Quantity, return as is
         if isinstance(load_value, pint.Quantity):
             # Check dimensionality to convert to correct units
-            if load_value.dimensionality == ureg.N.dimensionality:
+            if load_value.dimensionality == unit_manager.ureg.N.dimensionality:
                 return load_value.to('N')
-            elif load_value.dimensionality == (ureg.N * ureg.m).dimensionality:
+            elif load_value.dimensionality == (unit_manager.ureg.N * unit_manager.ureg.m).dimensionality:
                 return load_value.to('N*m')
             return load_value
 
         # If it's a number, assume Newtons (force)
         if isinstance(load_value, (int, float)):
-            return float(load_value) * ureg.N
+            return float(load_value) * unit_manager.ureg.N
 
         # If it's a string, parse units
         if isinstance(load_value, str):
@@ -159,19 +159,19 @@ class R2Node:
 
                 if isinstance(parsed_value, pint.Quantity):
                     # Convert to appropriate SI units based on dimensionality
-                    if parsed_value.dimensionality == ureg.N.dimensionality:
+                    if parsed_value.dimensionality == unit_manager.ureg.N.dimensionality:
                         return parsed_value.to('N')
-                    elif parsed_value.dimensionality == (ureg.N * ureg.m).dimensionality:
+                    elif parsed_value.dimensionality == (unit_manager.ureg.N * unit_manager.ureg.m).dimensionality:
                         return parsed_value.to('N*m')
                     return parsed_value
                 else:
                     # No units specified, assume Newtons
-                    return float(parsed_value) * ureg.N
+                    return float(parsed_value) * unit_manager.ureg.N
 
             except Exception as e:
                 print(f"Warning: Could not parse load value '{load_value}': {e}")
                 try:
-                    return float(load_value) * ureg.N
+                    return float(load_value) * unit_manager.ureg.N
                 except Exception:
                     raise ValueError(f"Could not parse load value: {load_value}")
 
@@ -236,13 +236,13 @@ class R2Node:
     def x_displaced(self, combo, scale=1.0):
         """Return X coordinate with displacement applied"""
         if combo.name in self.displacements:
-            return self.x + self.displacements[combo.name][0] * scale * ureg.m
+            return self.x + self.displacements[combo.name][0] * scale * unit_manager.ureg.m
         return self.x
 
     def y_displaced(self, combo, scale=1.0):
         """Return Y coordinate with displacement applied"""
         if combo.name in self.displacements:
-            return self.y + self.displacements[combo.name][1] * scale * ureg.m
+            return self.y + self.displacements[combo.name][1] * scale * unit_manager.ureg.m
         return self.y
 
     def distance(self, other):
@@ -332,7 +332,7 @@ class R2Node:
             Load case identifier. Default is "D" (Dead Load).
         """
         if loadcase not in self.loads:
-            self.loads[loadcase] = [0 * ureg.N, 0 * ureg.N, 0 * ureg.N * ureg.m]
+            self.loads[loadcase] = [0 * unit_manager.ureg.N, 0 * unit_manager.ureg.N, 0 * unit_manager.ureg.N * unit_manager.ureg.m]
 
         # Parse load values with units
         fx_parsed = self._parse_load_value(fx)

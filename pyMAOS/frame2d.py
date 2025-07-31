@@ -12,8 +12,8 @@ from pyMAOS.units_mod import unit_manager, IMPERIAL_UNITS, convert_to_display_un
 from pyMAOS.quantity_utils import QuantityArray
 
 # Create unit registry
-from pyMAOS.units_mod import ureg
-Q_ = ureg.Quantity
+# from pyMAOS.units_mod import ureg
+Q_ = unit_manager.ureg.Quantity
 
 def convert_to_quantity(value, unit_str):
     """Convert a value to a quantity with units if it's not already one"""
@@ -22,12 +22,18 @@ def convert_to_quantity(value, unit_str):
     return Q_(value, unit_str)
 
 class R2Frame(Element):
+    # Class-level flag to control plotting for all instances
+    plot_enabled = True
+
     def __init__(self, uid, inode, jnode, material, section):
         super().__init__(uid, inode, jnode, material, section)
         self.type = "FRAME"
         self.hinges = [0, 0]
         self.loads = []
         self.fixed_end_forces = {}
+
+        # Instance-level flag that can override the class setting
+        self._plot_enabled = None  # None means use the class setting
 
         # Internal Functions
         # Dictionary key for each combination
@@ -45,6 +51,23 @@ class R2Frame(Element):
 
         # Validate hinges after initialization
         self.validate_hinges()
+
+    @property
+    def plot_enabled(self):
+        """Get the plot enabled state for this instance."""
+        if self._plot_enabled is None:
+            return R2Frame.plot_enabled
+        return self._plot_enabled
+
+    @plot_enabled.setter
+    def plot_enabled(self, value):
+        """Set the plot enabled state for this instance."""
+        self._plot_enabled = bool(value)
+
+    def set_plotting(self, enabled=True):
+        """Enable or disable plotting for this element."""
+        self._plot_enabled = bool(enabled)
+        return self  # Allow chaining
 
     def __str__(self):
         """Return string representation of the frame element including hinge status"""
@@ -281,6 +304,11 @@ class R2Frame(Element):
                 load=loadtypes.R2_Point_Load(p, a, self, loadcase=case)
                 self.loads.append(load)
 
+            # Only plot if plotting is enabled
+            if self.plot_enabled:
+                fig = load.plot_all_ppoly_functions()
+                fig.show()  # If you want to display immediately
+
         self._stations = False
         self._loaded = True
 
@@ -358,6 +386,9 @@ class R2Frame(Element):
             if abs(wyyi.magnitude) > 1e-10 or abs(wyyj.magnitude) > 1e-10:  # Also check transverse load
                 load=loadtypes.LinearLoadXY(wyyi, wyyj, a, b, self, loadcase=case); print(load)
                 load.print_detailed_analysis()
+                if self.plot_enabled:
+                    load.plot_all_functions()
+                print(load)
                 self.loads.append(load)
         else:
             # Load is applied in the local member axis
@@ -372,6 +403,8 @@ class R2Frame(Element):
                     wj = (self.jnode.x - self.inode.x) * wj / self.length
                 load = loadtypes.LinearLoadXY(wi, wj, a, b, self, loadcase=case); print(load)
                 load.print_detailed_analysis()
+                if self.plot_enabled:
+                    load.plot_all_functions()
                 self.loads.append(load)
 
         self._stations = False
@@ -493,108 +526,122 @@ class R2Frame(Element):
             [Fi_x, Fi_y, Mi_z, Fj_x, Fj_y, Mj_z]
             where i = start node, j = end node, and x,y,z are local coordinates
         """
-        
         # Initialize fixed end forces vector
-        fef = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=float64).view(QuantityArray)
-        
+        from pyMAOS.units_mod import INTERNAL_FORCE_UNIT, INTERNAL_MOMENT_UNIT
+        zero_force=unit_manager.ureg.Quantity(0, INTERNAL_FORCE_UNIT); zero_moment=unit_manager.ureg.Quantity(0, INTERNAL_MOMENT_UNIT)
+        fef = np.array([zero_force,zero_force,zero_moment,zero_force,zero_force,zero_moment], dtype=object)#np.zeros(self.structure.NJD * 2, dtype=object)
         # Process each load applied to the element
-        print(f"Processing {len(self.loads)} loads on element {self.uid}:", file=sys.stderr)
+        print(f"Processing {len(self.loads)} loads on element {self.uid}:", file=sys.stdout)
         for load_idx, load in enumerate(self.loads):
+            print(f"  Load {load_idx}: {load.kind} (case '{load.loadcase}')", file=sys.stdout)
             load_case = load.loadcase
             load_factor = load_combination.factors.get(load_case, 0)
             
             # Skip loads that don't contribute to this combination
             if load_factor == 0:
-                print(f"  Load {load_idx}: {load.kind} (case '{load_case}') - skipped (factor=0)", file=sys.stderr)
+                print(f"  Load {load_idx}: {load.kind} (case '{load_case}') - skipped (factor=0)", file=sys.stdout)
                 continue
                 
             # Calculate FEF contribution from this load
             load_fef = load.FEF()
-            from pyMAOS.units_mod import convert_to_unit_system
 
-            print(convert_to_unit_system(np.array(load_fef, dtype="object"), "imperial"))
+            from pyMAOS.units_mod import array_convert_to_unit_system
+            _ = array_convert_to_unit_system(load_fef, "imperial")
 
-            factored_fef = np.array([load_factor * i for i in load_fef], dtype=object)
+            factored_fef = np.array([load_factor * f for f in load_fef], dtype=object)
+            # print(factored_fef)  # Shows scaled quantities with preserved units
 
-            print(f"Element {self.uid} load {load_idx}: {load.kind} (case '{load_case}', factor={load_factor})", file=sys.stderr)
-            print(f"    Raw FEF: {load_fef}", file=sys.stderr)
-            print(f"    Factored: {factored_fef}", file=sys.stderr)
+            # print(f"Element {self.uid} load idx {load_idx}: {load.kind} (case '{load_case}', factor={load_factor})", file=sys.stdout)
+            # print(f"    Raw FEF:\n{load_fef}", file=sys.stdout)
+            # print(f"    Factored:\n{factored_fef}", file=sys.stdout)
 
             # Add to total FEF
             fef = fef + factored_fef
-        
+
+        from pyMAOS.units_mod import array_convert_to_unit_system
+
+        # print(f"  Total FEF for element {self.uid} before hinge adjustments:\n{fef}", file=sys.stdout)
+        _ = array_convert_to_unit_system(fef, "imperial")
+
         # Handle hinge conditions - these modify the fixed end forces for partial releases
         if self.hinges == [1, 0]:  # Hinge at start node
             Mi = fef[2]
             L = self.length
-            
-            print(f"  Applying hinge at start node - redistributing moment Mi={Mi}", file=sys.stderr)
+
+            print(f"  Applying hinge at start node - redistributing moment Mi={Mi}", file=sys.stdout)
             fef[1] = fef[1] - ((3 / (2 * L)) * Mi)
-            fef[2] = 0  # Zero moment at hinge
+            fef[2] = zero_moment # Zero moment at hinge
             fef[4] = fef[4] + ((3 / (2 * L)) * Mi)
             fef[5] = fef[5] - (Mi / 2)
             
         elif self.hinges == [0, 1]:  # Hinge at end node
             Mj = fef[5]
             L = self.length
-            
-            print(f"  Applying hinge at end node - redistributing moment Mj={Mj}", file=sys.stderr)
+
+            print(f"  Applying hinge at end node - redistributing moment Mj={Mj}", file=sys.stdout)
             fef[1] = fef[1] - ((3 / (2 * L)) * Mj)
             fef[2] = fef[2] - (Mj / 2)
             fef[4] = fef[4] + ((3 / (2 * L)) * Mj)
-            fef[5] = 0  # Zero moment at hinge
+            fef[5] = zero_moment  # Zero moment at hinge
             
         elif self.hinges == [1, 1]:  # Hinges at both nodes
             Mi = fef[2]
             Mj = fef[5]
             L = self.length
-            
-            print(f"  Applying hinges at both nodes - redistributing moments Mi={Mi}, Mj={Mj}", file=sys.stderr)
-            fef[1] = fef[1] - ((Mj + Mi) / L)
-            fef[2] = 0  # Zero moment at hinge
-            fef[4] = fef[4] + ((Mj + Mi) / L)
-            fef[5] = 0  # Zero moment at hinge
 
-        print(f"  Final FEF for element {self.uid}: {fef}", file=sys.stderr)
-        display_node_load_vector_in_units(fef[0:3], self.uid,
+            print(f"  Applying hinges at both nodes - redistributing moments Mi={Mi}, Mj={Mj}", file=sys.stdout)
+            fef[1] = fef[1] - ((Mj + Mi) / L)
+            fef[2] = zero_moment  # Zero moment at hinge
+            fef[4] = fef[4] + ((Mj + Mi) / L)
+            fef[5] = zero_moment  # Zero moment at hinge
+
+        print(f"  Final FEF for element {self.uid}:\n{fef}", file=sys.stdout)
+        display_node_load_vector_in_units(fef[0:3], self.inode.uid,
                                           force_unit=self.structure.units['force'], 
-                                          length_unit=self.structure.units['length'], 
+                                          length_unit=self.structure.units['distance'],
                                           load_combo_name=None)
-        display_node_load_vector_in_units(fef[3:6], self.uid,   
+        display_node_load_vector_in_units(fef[3:6], self.jnode.uid,
                                           force_unit=self.structure.units['force'], 
-                                          length_unit=self.structure.units['length'], 
+                                          length_unit=self.structure.units['distance'],
                                           load_combo_name=None)
         return fef
 
     def FEFglobal(self, load_combination):
-        """Calculate fixed end forces in the global coordinate system
-    
-        Transforms the local fixed end forces to the global coordinate system
-        using the element's transformation matrix.
-    
-        Parameters
-        ----------
-        load_combination : LoadCombo
-            The load combination object containing load case factors
-        
-        Returns
-        -------
-        numpy.ndarray
-            6-element vector of fixed end forces in global coordinates:
-            [Fi_x, Fi_y, Mi_z, Fj_x, Fj_y, Mj_z]
-            where i = start node, j = end node, and x,y,z are global coordinates
-    
-        Notes
-        -----
-        The global fixed end forces are used when assembling the global
-        load vector during structural analysis.
-        """ 
+        """
+        Transform fixed end forces from local to global coordinates.
+        """
+        # Get fixed end forces in local coordinates
+        fef = self.FEF(load_combination)
+        # fef = np.transpose(fef)
+        print(f"DEBUG: FEF in local coordinates: {fef}")
 
-        fef = np.transpose(self.FEF(load_combination))
+        # Get transformation matrix
         T = self.T()
-        ret_val= np.matmul(np.transpose(T), fef)
-        print("Global fixed end forces (ret_val):", ret_val)
-        return ret_val.A.flatten()
+        T_trans = np.transpose(T)
+
+        # Check if we're dealing with quantities with units
+        if isinstance(fef[0], pint.Quantity):
+            # Store units for each component
+            fef_units = [f.units for f in fef]
+
+            # Extract magnitudes for calculation
+            fef_magnitudes = np.array([f.magnitude for f in fef])
+
+            # Perform the transformation with magnitudes only
+            import scipy.linalg as sla
+            result_magnitudes = sla.blas.dgemv(1.0, T_trans, fef_magnitudes)
+            print(f"DEBUG: Using scipy.linalg.blas: {result_magnitudes.shape}")
+
+            # Option 1: Reattach original units
+            result = np.array([unit_manager.ureg.Quantity(mag, unit)
+                              for mag, unit in zip(result_magnitudes, fef_units)],
+                             dtype=object)
+            from units_mod import array_convert_to_unit_system
+            print(f"FEFglobal for element {self.uid}:"); _ = array_convert_to_unit_system(result, "imperial")
+            return result
+        else:
+            # If no units, proceed with standard matrix multiplication
+            return np.matmul(np.transpose(T), fef)
 
     def k(self, **kwargs):
         """Calculate the local stiffness matrix for the frame element
@@ -621,23 +668,22 @@ class R2Frame(Element):
         numpy.matrix
             6x6 local stiffness matrix for the frame element
         """
-        E: Quantity = self.material.E
+        E: pint.Quantity = self.material.E
         Ixx = self.section.Ixx
         A = self.section.Area
         L = self.length
-        
-        # if self.uid==2:
-        #     print(f"Calculating local stiffness matrix for element {self.uid} with length {L}, E={E}, Ixx={Ixx}, A={A}, hinges={self.hinges}")
 
         # Initialize matrix with zeros
-        k = np.zeros((6, 6), dtype=float64).view(QuantityArray)
-        
+        k = QuantityArray(np.zeros((6, 6), dtype=object))
+
         # Common terms
         AE_L = A * E / L
 
         # Axial terms (common to all hinge configurations)
-        k[0, 0] = k[3, 3] = AE_L
-        k[0, 3] = k[3, 0] = -AE_L
+        k[0, 0] = AE_L
+        k[3, 3] = AE_L
+        k[0, 3] = -AE_L
+        k[3, 0] = -AE_L
 
         EI = E * Ixx
         EI_L = EI / L
@@ -647,32 +693,48 @@ class R2Frame(Element):
         # Apply appropriate bending terms based on hinge configuration
         if self.hinges == [1, 1]:  # Both ends hinged - only axial stiffness
             pass  # No additional terms needed
-            
+
         elif self.hinges == [1, 0]:  # Hinge at i-end
-            k[1, 1] = k[4, 4] = 3 * EI_L3
-            k[1, 4] = k[4, 1] = -3 * EI_L3
-            k[1, 5] = k[5, 1] = 3 * EI_L2
-            k[4, 5] = k[5, 4] = -3 * EI_L2
+            k[1, 1] = 3 * EI_L3
+            k[4, 4] = 3 * EI_L3
+            k[1, 4] = -3 * EI_L3
+            k[4, 1] = -3 * EI_L3
+            k[1, 5] = 3 * EI_L2
+            k[5, 1] = 3 * EI_L2
+            k[4, 5] = -3 * EI_L2
+            k[5, 4] = -3 * EI_L2
             k[5, 5] = 3 * EI_L
-            
+
         elif self.hinges == [0, 1]:  # Hinge at j-end
-            k[1, 1] = k[4, 4] = 3 * EI_L3
-            k[1, 2] = k[2, 1] = 3 * EI_L2
-            k[1, 4] = k[4, 1] = -3 * EI_L3
-            k[2, 4] = k[4, 2] = -3 * EI_L2
+            k[1, 1] = 3 * EI_L3
+            k[4, 4] = 3 * EI_L3
+            k[1, 2] = 3 * EI_L2
+            k[2, 1] = 3 * EI_L2
+            k[1, 4] = -3 * EI_L3
+            k[4, 1] = -3 * EI_L3
+            k[2, 4] = -3 * EI_L2
+            k[4, 2] = -3 * EI_L2
             k[2, 2] = 3 * EI_L
-            
+
         else:  # No hinges - standard beam element
-            k[1, 1] = k[4, 4] = 12 * EI_L3
-            k[1, 2] = k[2, 1] = 6 * EI_L2
-            k[1, 4] = k[4, 1] = -12 * EI_L3
-            k[1, 5] = k[5, 1] = 6 * EI_L2
+            k[1, 1] = 12 * EI_L3
+            k[4, 4] = 12 * EI_L3
+            k[1, 2] = 6 * EI_L2
+            k[2, 1] = 6 * EI_L2
+            k[1, 4] = -12 * EI_L3
+            k[4, 1] = -12 * EI_L3
+            k[1, 5] = 6 * EI_L2
+            k[5, 1] = 6 * EI_L2
             k[2, 2] = 4 * EI_L
-            k[2, 4] = k[4, 2] = -6 * EI_L2
-            k[2, 5] = k[5, 2] = 2 * EI_L
-            k[4, 5] = k[5, 4] = -6 * EI_L2
+            k[2, 4] = -6 * EI_L2
+            k[4, 2] = -6 * EI_L2
+            k[2, 5] = 2 * EI_L
+            k[5, 2] = 2 * EI_L
+            k[4, 5] = -6 * EI_L2
+            k[5, 4] = -6 * EI_L2
             k[5, 5] = 4 * EI_L
-        print(f"Local stiffness matrix for element {self.uid} with hinges {self.hinges}:\n{k}")
+
+        print(f"Local stiffness matrix for element {self.uid} with hinges {self.hinges}:"); k.print_units_matrix()
         # local_stiffness_matrix = np.matrix(k)
         # print(f"Local stiffness matrix for element {self.uid}:\n{local_stiffness_matrix}")
 
@@ -692,98 +754,6 @@ class R2Frame(Element):
         # # self.display_stiffness_matrix_in_units(local_stiffness_matrix, units_dict)
 
         return k
-
-    # def k_with_units(self):
-    #     """Calculate the local stiffness matrix with Pint unit quantities
-    #
-    #     Creates a 6x6 stiffness matrix with appropriate modifications for hinges
-    #     if present. Each entry in the matrix has appropriate units based on its
-    #     physical meaning.
-    #
-    #     Returns
-    #     -------
-    #     numpy.ndarray
-    #         6x6 local stiffness matrix where each element is a Pint quantity
-    #         with appropriate units
-    #     """
-    #     # Import necessary unit components
-    #     from pyMAOS.units_mod import ureg, Q_
-    #
-    #
-    #     # Get material and section properties
-    #     E = Q_(self.material.E, ureg.Pa)  # Young's modulus in Pa
-    #     Ixx = Q_(self.section.Ixx, ureg.m**4)  # Second moment of area in m⁴
-    #     A = Q_(self.section.Area, ureg.m**2)  # Cross-sectional area in m²
-    #     L = Q_(self.length, ureg.m)  # Element length in m
-    #
-    #     from pyMAOS.units_mod import unit_manager as unit_manager
-    #     current_units = unit_manager.get_current_units()
-    #     system_name = unit_manager.get_system_name()
-    #
-    #     E_with_units= E.to(current_units['pressure'])
-    #
-    #     # Initialize matrix with zeros
-    #     k_with_units = np.zeros((6, 6), dtype=object)
-    #
-    #
-    #     A_with_units=A.to('m²')
-    #
-    #     # Common terms to improve readability
-    #     AE_L = A * E / L
-    #     EI = E * Ixx
-    #     EI_L = EI / L
-    #     EI_L2 = EI / (L * L)
-    #     EI_L3 = EI / (L * L * L)
-    #
-    #     AE_L_with_units = AE_L.to('ksi * in')
-    #     EI_with_units = EI.to('ksi * in**4')
-    #     EI_L_with_units = EI_L.to('ksi * in**2 / in')
-    #     EI_L2_with_units = EI_L2.to('ksi * in / in**2')
-    #
-    #     # Axial terms (common to all hinge configurations)
-    #     k_with_units[0, 0] = k_with_units[3, 3] = AE_L
-    #     k_with_units[0, 3] = k_with_units[3, 0] = -AE_L
-    #
-    #     # Apply appropriate bending terms based on hinge configuration
-    #     if self.hinges == [1, 1]:  # Both ends hinged - only axial stiffness
-    #         pass  # No additional terms needed
-    #
-    #     elif self.hinges == [1, 0]:  # Hinge at start node
-    #         # Modified matrix for hinge at i-end
-    #         k_with_units[1, 1] = k_with_units[4, 4] = 3 * EI_L3
-    #         k_with_units[1, 4] = k_with_units[4, 1] = -3 * EI_L3
-    #         k_with_units[1, 5] = k_with_units[5, 1] = 3 * EI_L2
-    #         k_with_units[4, 5] = k_with_units[5, 4] = -3 * EI_L2
-    #         k_with_units[5, 5] = 3 * EI_L
-    #
-    #     elif self.hinges == [0, 1]:  # Hinge at end node
-    #         # Modified matrix for hinge at j-end
-    #         k_with_units[1, 1] = k_with_units[4, 4] = 3 * EI_L3
-    #         k_with_units[1, 4] = k_with_units[4, 1] = -3 * EI_L3
-    #         k_with_units[1, 2] = k_with_units[2, 1] = 3 * EI_L2
-    #         k_with_units[2, 4] = k_with_units[4, 2] = -3 * EI_L2
-    #         k_with_units[2, 2] = 3 * EI_L
-    #
-    #     else:  # No hinges - standard beam element
-    #         k_with_units[1, 1] = k_with_units[4, 4] = 12 * EI_L3
-    #         k_with_units[1, 4] = k_with_units[4, 1] = -12 * EI_L3
-    #         k_with_units[1, 2] = k_with_units[2, 1] = 6 * EI_L2
-    #         k_with_units[1, 5] = k_with_units[5, 1] = 6 * EI_L2
-    #         k_with_units[2, 2] = k_with_units[5, 5] = 4 * EI_L
-    #         k_with_units[2, 4] = k_with_units[4, 2] = -6 * EI_L2
-    #         k_with_units[2, 5] = k_with_units[5, 2] = 2 * EI_L
-    #         k_with_units[4, 5] = k_with_units[5, 4] = -6 * EI_L2
-    #
-    #     # This matrix has mixed units:
-    #     # - Force/length for translational DOFs
-    #     # - Force·length for rotational DOFs
-    #
-    #
-    #
-    #     print(f"Local stiffness matrix in units for element {self.uid}:\n");
-    #     print(k_with_units)
-    #
-    #     return k_with_units
 
     def Flocal(self, load_combination):
         """Calculate element end forces in the local coordinate system
@@ -845,7 +815,30 @@ class R2Frame(Element):
         KG = self.kglobal()
 
 
-        FG = np.matmul(KG, Dglobal).A.flatten()
+        # Replace np.matmul with scipy.linalg.blas.dgemv for proper vector handling
+        import scipy.linalg as sla
+
+        # Check if we're dealing with quantities with units
+        if isinstance(Dglobal[0], pint.Quantity):
+            # Store units for calculation
+            dglobal_units = [d.units for d in Dglobal]
+
+            # Extract magnitudes for calculation
+            kg_magnitudes = np.array([[k.magnitude if isinstance(k, pint.Quantity) else k for k in row] for row in KG])
+            dglobal_magnitudes = np.array([d.magnitude for d in Dglobal])
+
+            # Perform matrix-vector multiplication with SciPy BLAS
+            result_magnitudes = sla.blas.dgemv(1.0, kg_magnitudes, dglobal_magnitudes)
+            print(f"DEBUG: Using scipy.linalg.blas for matrix-vector multiplication: shape={result_magnitudes.shape}")
+
+            # Reattach units to result
+            FG = np.array([unit_manager.ureg.Quantity(mag, unit)
+                           for mag, unit in zip(result_magnitudes, dglobal_units)],
+                          dtype=object)
+        else:
+            # For non-quantity arrays, use scipy.linalg.blas directly
+            FG = sla.blas.dgemv(1.0, KG, Dglobal)
+
         print(f"Global end forces for element {self.uid} under load combination '{load_combination.name}':\n{FG}")
 
         # Store the global end forces

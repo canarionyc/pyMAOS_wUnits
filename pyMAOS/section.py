@@ -21,7 +21,7 @@ class Section(UnitAwareMixin):
 
     def __setstate__(self, state):
         from pint import UnitRegistry
-        from pyMAOS.units_mod import ureg
+        from pyMAOS.units_mod import unit_manager
 
         # Get values from state
         uid = state.get('uid')
@@ -30,14 +30,15 @@ class Section(UnitAwareMixin):
         iyy_value = state.get('iyy', np.nan)
 
         # Convert to Quantity objects or leave as NaN
-        area_qty = ureg(area)
-        ixx_qty = ureg(ixx_value) if not isinstance(ixx_value, float) or not np.isnan(ixx_value) else np.nan
-        iyy_qty = ureg(iyy_value) if not isinstance(iyy_value, float) or not np.isnan(iyy_value) else np.nan
+        area_qty = unit_manager.ureg(area)
+        ixx_qty = unit_manager.ureg(ixx_value) if not isinstance(ixx_value, float) or not np.isnan(ixx_value) else np.nan
+        iyy_qty = unit_manager.ureg(iyy_value) if not isinstance(iyy_value, float) or not np.isnan(iyy_value) else np.nan
 
         # Initialize with processed values
         self.__init__(uid, area_qty, ixx_qty, iyy_qty)
 
-    def _parse_value_with_units(self, value: Union[float, str, Quantity], unit_type: str) -> Quantity:
+    @staticmethod
+    def _parse_value_with_units(value: Union[float, str, Quantity], unit_type: str) -> Quantity:
         """
         Parse a value that may be a float, string with units, or Quantity.
 
@@ -61,12 +62,11 @@ class Section(UnitAwareMixin):
 
         # If it's a number, assume SI units and convert to Quantity
         if isinstance(value, (int, float)):
-            from pyMAOS.units_mod import ureg
             if unit_type == 'area':
-                return value * ureg.m ** 2
+                return value * unit_manager.ureg.m ** 2
             elif unit_type == 'moment_of_inertia':
-                return value * ureg.m ** 4
-            return value * ureg.dimensionless
+                return value * unit_manager.ureg.m ** 4
+            return value * unit_manager.ureg.dimensionless
 
         # If it's a string, parse units
         if isinstance(value, str):
@@ -82,23 +82,21 @@ class Section(UnitAwareMixin):
                     return parsed_value
                 else:
                     # No units in string, create with default units
-                    from pyMAOS.units_mod import ureg
                     if unit_type == 'area':
-                        return parsed_value * ureg.m ** 2
+                        return parsed_value * unit_manager.ureg.m ** 2
                     elif unit_type == 'moment_of_inertia':
-                        return parsed_value * ureg.m ** 4
-                    return parsed_value * ureg.dimensionless
+                        return parsed_value * unit_manager.ureg.m ** 4
+                    return parsed_value * unit_manager.ureg.dimensionless
 
             except Exception as e:
                 print(f"Warning: Could not parse section value '{value}': {e}")
                 try:
-                    from pyMAOS.units_mod import ureg
                     num_value = float(value)
                     if unit_type == 'area':
-                        return num_value * ureg.m ** 2
+                        return num_value * unit_manager.ureg.m ** 2
                     elif unit_type == 'moment_of_inertia':
-                        return num_value * ureg.m ** 4
-                    return num_value * ureg.dimensionless
+                        return num_value * unit_manager.ureg.m ** 4
+                    return num_value * unit_manager.ureg.dimensionless
                 except:
                     raise ValueError(f"Could not parse section value: {value}")
 

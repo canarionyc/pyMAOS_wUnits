@@ -69,7 +69,7 @@ def log_exception(logger, exc_info=None, message="An exception occurred"):
         print(f"DEBUG - Full call stack for exception:")
         for i, frame in enumerate(tb_details):
             frame_file = os.path.basename(frame.filename)
-            print(f"  Frame {i}: {frame_file}:{frame.lineno} in {frame.name}()")
+            print(f"  Frame {i}:\n{frame_file}:{frame.lineno} in {frame.name}()")
             # Put clickable link at beginning of line
             print(f"{frame.filename}:{frame.lineno}")
             if frame.line:

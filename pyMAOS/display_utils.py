@@ -2,8 +2,11 @@
 Utilities for displaying structural engineering values with appropriate units.
 """
 import numpy as np
-from pint import UnitRegistry
-import os
+# from pyMAOS.units_mod import ureg  # Replace this import
+from pyMAOS.units_mod import unit_manager,INTERNAL_LENGTH_UNIT,INTERNAL_FORCE_UNIT,INTERNAL_MOMENT_UNIT
+
+# Replace any direct ureg usage with unit_manager.ureg
+Q_ = unit_manager.ureg.Quantity
 
 def get_unit_registry():
     """Get or create a unit registry for conversions"""
@@ -34,13 +37,13 @@ def display_node_load_vector_in_units(load_vector, node_uid, force_unit=None, le
         Dictionary containing unit definitions (e.g., SI_UNITS)
     """
     # First try specific units, then fall back to units_system if available
-    force_unit = force_unit or (units_system.get("force") if units_system else "N")
-    length_unit = length_unit or (units_system.get("length") if units_system else "m")
+    force_unit = force_unit or (units_system.get("force") if units_system else INTERNAL_FORCE_UNIT)
+    length_unit = length_unit or (units_system.get("length") if units_system else INTERNAL_LENGTH_UNIT)
     
     moment_unit = f"{force_unit}*{length_unit}"
     
     # Get unit registry
-    from pyMAOS.units_mod import ureg
+    #from pyMAOS.units_mod import unit_manager
     
     # Convert load vector to display units
     fx_display = load_vector[0]
@@ -49,9 +52,9 @@ def display_node_load_vector_in_units(load_vector, node_uid, force_unit=None, le
     
     try:
         # Try to convert with pint if needed
-        fx_display = ureg.Quantity(fx_display, "N").to(force_unit).magnitude
-        fy_display = ureg.Quantity(fy_display, "N").to(force_unit).magnitude
-        mz_display = ureg.Quantity(mz_display, "N*m").to(moment_unit).magnitude
+        fx_display = unit_manager.ureg.Quantity(fx_display, INTERNAL_FORCE_UNIT).to(force_unit).magnitude
+        fy_display = unit_manager.ureg.Quantity(fy_display, INTERNAL_FORCE_UNIT).to(force_unit).magnitude
+        mz_display = unit_manager.ureg.Quantity(mz_display, INTERNAL_MOMENT_UNIT).to(moment_unit).magnitude
     except:
         pass
     
@@ -94,8 +97,8 @@ def display_node_displacement_in_units(displacement, node_uid, length_unit=None,
     
     try:
         # Try to convert with pint if needed
-        ux_display = ureg.Quantity(ux_display, "m").to(length_unit).magnitude
-        uy_display = ureg.Quantity(uy_display, "m").to(length_unit).magnitude
+        ux_display = unit_manager.ureg.Quantity(ux_display, "m").to(length_unit).magnitude
+        uy_display = unit_manager.ureg.Quantity(uy_display, "m").to(length_unit).magnitude
     except:
         pass
     
@@ -142,12 +145,12 @@ def display_member_forces_in_units(forces, member_uid, force_unit=None, length_u
     for i, f in enumerate(forces):
         if i % 3 == 2:  # Every 3rd value is a moment
             try:
-                display_forces.append(ureg.Quantity(f, "N*m").to(moment_unit).magnitude)
+                display_forces.append(unit_manager.ureg.Quantity(f, "N*m").to(moment_unit).magnitude)
             except:
                 display_forces.append(f)
         else:  # Other values are forces
             try:
-                display_forces.append(ureg.Quantity(f, "N").to(force_unit).magnitude)
+                display_forces.append(unit_manager.ureg.Quantity(f, "N").to(force_unit).magnitude)
             except:
                 display_forces.append(f)
     
@@ -220,7 +223,7 @@ def print_quantity_nested_list(data, indent=0, precision=4, width=15, simplify_u
                 print(" " * (indent + 2), end="")
                 print_quantity_nested_list(item, indent + 2, precision, width, simplify_units=simplify_units)
                 if i < len(data) - 1:
-                    print(",")
+                    print(" " * indent + ",")
                 else:
                     print("")
             print(" " * indent + "]", end="")
@@ -314,3 +317,29 @@ if __name__ == "__main__":
         print("\nWith custom precision and width:")
         print_quantity_nested_list(Dy, precision=2, width=20)
     example()
+
+    def print_quantity_nested_list(nested_list, indent=0, indent_step=2):
+        """
+        Print a nested list of quantities using str() method for each Quantity object.
+
+        Parameters:
+        -----------
+        nested_list : list
+            The nested list containing Quantity objects
+        indent : int
+            Current indentation level
+        indent_step : int
+            Number of spaces for each indentation level
+        """
+        if isinstance(nested_list, list):
+            print(" " * indent + "[")
+            for item in nested_list:
+                print_quantity_nested_list(item, indent + indent_step, indent_step)
+            print(" " * indent + "]")
+        else:
+            # For quantity objects or other values
+            print(" " * indent + str(nested_list) + ",")
+
+    # Usage example
+    print("Vy:")
+    print_quantity_nested_list(Vy)

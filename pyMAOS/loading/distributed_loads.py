@@ -7,7 +7,8 @@ import numpy as np
 from pyMAOS.loading.piecewisePolinomial import PiecewisePolynomial
 from pyMAOS.units_mod import (SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS,
     INTERNAL_LENGTH_UNIT, INTERNAL_FORCE_UNIT,  INTERNAL_MOMENT_UNIT, INTERNAL_PRESSURE_UNIT, INTERNAL_DISTRIBUTED_LOAD_UNIT,
-    FORCE_DIMENSIONALITY, LENGTH_DIMENSIONALITY, MOMENT_DIMENSIONALITY, PRESSURE_DIMENSIONALITY, DISTRIBUTED_LOAD_DIMENSIONALITY
+    FORCE_DIMENSIONALITY, LENGTH_DIMENSIONALITY, MOMENT_DIMENSIONALITY, PRESSURE_DIMENSIONALITY, DISTRIBUTED_LOAD_DIMENSIONALITY,
+    unit_manager
 )
 
 from pprint import pprint
@@ -43,18 +44,23 @@ class LinearLoadXY:
                 - Continuity of shear, moment, slope, and deflection at load discontinuities
                 - Zero displacement and rotation at member ends (for fixed-end conditions)
                 - Equilibrium of forces and moments
-
-                The constants are used in the piecewise polynomial functions that define:
-                - Vy: Shear force distribution
-                - Mz: Bending moment distribution
-                - Sz: Slope (rotation) distribution
-                - Dy: Deflection distribution
                 """
         # w1 = self.w1
         # w2 = self.w2
         # a = self.a
         # b = self.b
         L = self.L
+
+        #     These constants (c01-c12) are determined by enforcing boundary conditions:
+        #     - Continuity of shear, moment, slope, and deflection at load discontinuities
+        #     - Zero displacement and rotation at member ends (for fixed-end conditions)
+        #     - Equilibrium of forces and moments
+        #
+        #     The constants are used in the piecewise polynomial functions that define:
+        #     - Vy: Shear force distribution
+        #     - Mz: Bending moment distribution
+        #     - Sz: Slope (rotation) distribution
+        #     - Dy: Deflection distribution
 
         # Constants for the shear force function (Vy)
         self.c01 = (
@@ -78,8 +84,8 @@ class LinearLoadXY:
                   ) / (6 * L)
 
         # Constants for the bending moment function (Mz)
-        from pyMAOS.units_mod import INTERNAL_MOMENT_UNIT, ureg
-        self.c04 = ureg.Quantity(0, INTERNAL_MOMENT_UNIT)  # Zero moment at x=0 for fixed-end condition
+        # Use unit_manager.ureg instead of direct import
+        self.c04 = unit_manager.ureg.Quantity(0, INTERNAL_MOMENT_UNIT)  # Zero moment at x=0 for fixed-end condition
         self.c05 = (
                 -1
                 * ((a * a * a * w2) + ((2 * a * a * a - 3 * a * a * b) * w1))
@@ -156,7 +162,7 @@ class LinearLoadXY:
                   ) / (360 * L)
 
         # Constants for the deflection function (Dy)
-        self.c10 = ureg.Quantity(0, f"{INTERNAL_LENGTH_UNIT}**3 * {INTERNAL_FORCE_UNIT}")  # Zero deflection at x=0 for fixed-end condition
+        self.c10 = unit_manager.ureg.Quantity(0, f"{INTERNAL_LENGTH_UNIT}**3 * {INTERNAL_FORCE_UNIT}")  # Zero deflection at x=0 for fixed-end condition
         self.c11 = (
                 -1 /120
                 * (
@@ -210,9 +216,8 @@ class LinearLoadXY:
         #
         # Format: [[coefficients], [domain_bounds]]
         # where coefficients = [c₀, c₁, c₂...] representing c₀ + c₁x + c₂x² + ...
-        from pyMAOS.units_mod import INTERNAL_MOMENT_UNIT, ureg
         Wy = [
-            [[ureg.Quantity(0, INTERNAL_DISTRIBUTED_LOAD_UNIT)], [ureg.Quantity(0, INTERNAL_LENGTH_UNIT), self.a]],
+            [[unit_manager.ureg.Quantity(0, INTERNAL_DISTRIBUTED_LOAD_UNIT)], [unit_manager.ureg.Quantity(0, INTERNAL_LENGTH_UNIT), self.a]],
             [
                 [
                     ((-1 * self.a * self.w2) - (self.c * self.w1) - (self.a * self.w1))
@@ -221,11 +226,11 @@ class LinearLoadXY:
                 ],
                 [self.a, self.b],
             ],
-            [[ureg.Quantity(0, INTERNAL_DISTRIBUTED_LOAD_UNIT)], [self.b, self.L]],
+            [[unit_manager.ureg.Quantity(0, INTERNAL_DISTRIBUTED_LOAD_UNIT)], [self.b, self.L]],
         ]; print("Wy:\n", Wy)
 
         Vy = [
-            [[self.c01], [ureg.Quantity(0, INTERNAL_LENGTH_UNIT), self.a]],
+            [[self.c01], [unit_manager.ureg.Quantity(0, INTERNAL_LENGTH_UNIT), self.a]],
             [
                 [
                     self.c02,
@@ -240,7 +245,7 @@ class LinearLoadXY:
         ]; print("Vy:\n", Vy)
 
         Mz = [
-            [[self.c04, self.c01], [ureg.Quantity(0, INTERNAL_LENGTH_UNIT), self.a]],
+            [[self.c04, self.c01], [unit_manager.ureg.Quantity(0, INTERNAL_LENGTH_UNIT), self.a]],
             [
                 [
                     self.c05,
@@ -256,7 +261,7 @@ class LinearLoadXY:
         ]; print("Mz:\n", Mz)
 
         Sz = [
-            [[self.c07, self.c04, 0.5 * self.c01], [ureg.Quantity(0, INTERNAL_LENGTH_UNIT), self.a]],
+            [[self.c07, self.c04, 0.5 * self.c01], [unit_manager.ureg.Quantity(0, INTERNAL_LENGTH_UNIT), self.a]],
             [
                 [
                     self.c08,
@@ -278,7 +283,7 @@ class LinearLoadXY:
         print("Sz:\n", Sz)
 
         Dy = [
-            [[self.c10, self.c07, 0.5 * self.c04, self.c01 / 6], [ureg.Quantity(0, INTERNAL_LENGTH_UNIT), self.a]],
+            [[self.c10, self.c07, 0.5 * self.c04, self.c01 / 6], [unit_manager.ureg.Quantity(0, INTERNAL_LENGTH_UNIT), self.a]],
             [
                 [
                     self.c11,
@@ -301,11 +306,14 @@ class LinearLoadXY:
         Dy[0][0] = [i / self.EI for i in Dy[0][0]]
         Dy[1][0] = [i / self.EI for i in Dy[1][0]]
         Dy[2][0] = [i / self.EI for i in Dy[2][0]]
-        import inspect; print(f"{inspect.getfile(inspect.currentframe())}:{inspect.currentframe().f_lineno}")
-        print("Dy:", Dy, sep="\n")
 
+        import inspect
+        print(f"{inspect.getfile(inspect.currentframe())}:{inspect.currentframe().f_lineno}")
+        print("Dy:", Dy, sep="\n")
+        from display_utils import print_quantity_nested_list; print_quantity_nested_list(Dy,simplify_units=True)
         # self.Wx = PiecewisePolynomial()  # Axial Load Function
-        self.Wy = PiecewisePolynomial(Wy); print(self.Wy) # Vertical Load Function
+        self.Wy = PiecewisePolynomial(Wy); print("Wy:", self.Wy, sep="\n") # Vertical Load Function
+
         self.Ax = PiecewisePolynomial()
         self.Dx = PiecewisePolynomial()
         from pprint import pprint; pprint(Vy); self.Vy = PiecewisePolynomial(Vy); print("Vy:", self.Vy, sep="\n")
@@ -313,157 +321,28 @@ class LinearLoadXY:
         print("Sz="); pprint(Sz, width=240); self.Sz = PiecewisePolynomial(Sz); print("Sz:", self.Sz,sep="\n") # this is an angle
         print("Dy="); pprint(Dy, width=240); self.Dy = PiecewisePolynomial(Dy); print("Dy:", self.Dy,sep="\n")
 
-    # def integration_constants(self):
-    #     """
-    #     Calculate the integration constants for beam deflection equations.
-    #
-    #     These constants (c01-c12) are determined by enforcing boundary conditions:
-    #     - Continuity of shear, moment, slope, and deflection at load discontinuities
-    #     - Zero displacement and rotation at member ends (for fixed-end conditions)
-    #     - Equilibrium of forces and moments
-    #
-    #     The constants are used in the piecewise polynomial functions that define:
-    #     - Vy: Shear force distribution
-    #     - Mz: Bending moment distribution
-    #     - Sz: Slope (rotation) distribution
-    #     - Dy: Deflection distribution
-    #     """
-    #     w1 = self.w1
-    #     w2 = self.w2
-    #     a = self.a
-    #     b = self.b
-    #     L = self.L
-    #
-    #     # Constants for the shear force function (Vy)
-    #     self.c01 = (
-    #         (((2 * b * b) + ((-a - 3 * L) * b) - (a * a) + (3 * L * a)) * w2)
-    #         + (((b * b) + ((a - 3 * L) * b) - (2 * a * a) + (3 * L * a)) * w1)
-    #     ) / (6 * L)
-    #     self.c02 = (
-    #         (
-    #             (
-    #                 (2 * b * b * b)
-    #                 + ((-3 * a - 3 * L) * b * b)
-    #                 + (6 * L * a * b)
-    #                 + (a * a * a)
-    #             )
-    #             * w2
-    #         )
-    #         + (((b * b * b) - (3 * L * b * b) - (3 * a * a * b) + (2 * a * a * a)) * w1)
-    #     ) / (6 * L * b - 6 * L * a)
-    #     self.c03 = (
-    #         ((2 * b * b - a * b - a * a) * w2) + ((b * b + a * b - 2 * a * a) * w1)
-    #     ) / (6 * L)
-    #
-    #     # Constants for the bending moment function (Mz)
-    #     self.c04 = 0  # Zero moment at x=0 for fixed-end condition
-    #     self.c05 = (
-    #         -1
-    #         * ((a * a * a * w2) + ((2 * a * a * a - 3 * a * a * b) * w1))
-    #         / (6 * b - 6 * a)
-    #     )
-    #     self.c06 = (
-    #         -1
-    #         * ((2 * b * b - a * b - a * a) * w2 + (b * b + a * b - 2 * a * a) * w1)
-    #         / 6
-    #     )
-    #
-    #     # Constants for the slope function (Sz)
-    #     self.c07 = (
-    #         (
-    #             12 * b * b * b * b
-    #             + (-3 * a - 45 * L) * b * b * b
-    #             + (-3 * a * a + 15 * L * a + 40 * L * L) * b * b
-    #             + (-3 * a * a * a + 15 * L * a * a - 20 * L * L * a) * b
-    #             - 3 * a * a * a * a
-    #             + 15 * L * a * a * a
-    #             - 20 * L * L * a * a
-    #         )
-    #         * w2
-    #         + (
-    #             3 * b * b * b * b
-    #             + (3 * a - 15 * L) * b * b * b
-    #             + (3 * a * a - 15 * L * a + 20 * L * L) * b * b
-    #             + (3 * a * a * a - 15 * L * a * a + 20 * L * L * a) * b
-    #             - 12 * a * a * a * a
-    #             + 45 * L * a * a * a
-    #             - 40 * L * L * a * a
-    #         )
-    #         * w1
-    #     ) / (360 * L)
-    #     self.c08 = (
-    #         (
-    #             12 * b * b * b * b * b
-    #             + (-15 * a - 45 * L) * b * b * b * b
-    #             + (60 * L * a + 40 * L * L) * b * b * b
-    #             - 60 * L * L * a * b * b
-    #             + 3 * a * a * a * a * a
-    #             + 20 * L * L * a * a * a
-    #         )
-    #         * w2
-    #         + (
-    #             3 * b * b * b * b * b
-    #             - 15 * L * b * b * b * b
-    #             + 20 * L * L * b * b * b
-    #             + (-15 * a * a * a * a - 60 * L * L * a * a) * b
-    #             + 12 * a * a * a * a * a
-    #             + 40 * L * L * a * a * a
-    #         )
-    #         * w1
-    #     ) / (360 * L * b - 360 * L * a)
-    #     self.c09 = (
-    #         (
-    #             12 * b * b * b * b
-    #             - 3 * a * b * b * b
-    #             + (40 * L * L - 3 * a * a) * b * b
-    #             + (-3 * a * a * a - 20 * L * L * a) * b
-    #             - 3 * a * a * a * a
-    #             - 20 * L * L * a * a
-    #         )
-    #         * w2
-    #         + (
-    #             3 * b * b * b * b
-    #             + 3 * a * b * b * b
-    #             + (3 * a * a + 20 * L * L) * b * b
-    #             + (3 * a * a * a + 20 * L * L * a) * b
-    #             - 12 * a * a * a * a
-    #             - 40 * L * L * a * a
-    #         )
-    #         * w1
-    #     ) / (360 * L)
-    #
-    #     # Constants for the deflection function (Dy)
-    #     self.c10 = 0  # Zero deflection at x=0 for fixed-end condition
-    #     self.c11 = (
-    #         -1
-    #         * (
-    #             a * a * a * a * a * w2
-    #             + (4 * a * a * a * a * a - 5 * a * a * a * a * b) * w1
-    #         )
-    #         / (120 * b - 120 * a)
-    #     )
-    #     self.c12 = (
-    #         -1
-    #         * (
-    #             (
-    #                 4 * b * b * b * b
-    #                 - a * b * b * b
-    #                 - a * a * b * b
-    #                 - a * a * a * b
-    #                 - a * a * a * a
-    #             )
-    #             * w2
-    #             + (
-    #                 b * b * b * b
-    #                 + a * b * b * b
-    #                 + a * a * b * b
-    #                 + a * a * a * b
-    #                 - 4 * a * a * a * a
-    #             )
-    #             * w1
-    #         )
-    #         / 120
-    #     )
+        # After creating all polynomial objects
+        # fig = self.plot_all_functions()
+        # fig.show()  # If you want to display immediately
+
+        from PiecewisePolynomial2 import PiecewisePolynomial2
+        # Create PiecewisePolynomial2 objects for each function
+        self.Wy2 = PiecewisePolynomial2(Wy)
+        self.Vy2 = PiecewisePolynomial2(Vy)
+        self.Mz2 = PiecewisePolynomial2(Mz)
+        self.Sz2 = PiecewisePolynomial2(Sz)
+        self.Dy2 = PiecewisePolynomial2(Dy)
+        # Print the PiecewisePolynomial2 objects
+        print("Wy2:", self.Wy2)
+        print("Vy2:", self.Vy2)
+        print("Mz2:", self.Mz2)
+        print("Sz2:", self.Sz2)
+        print("Dy2:", self.Dy2)
+
+        # After creating PiecewisePolynomial2 objects
+        # ppoly_fig = self.plot_all_ppoly_functions()
+        # ppoly_fig.show()  # If you want to display immediately
+
 
     def FEF(self):
         L = self.L
@@ -473,14 +352,51 @@ class LinearLoadXY:
         c7 = self.c07
         c9 = self.c09
 
+        # Calculate fixed end moments
         Miz = -1 * (c3 * L * L + 2 * c6 * L + 2 * c9 + 4 * c7) / L
         Mjz = -1 * (2 * c3 * L * L + 4 * c6 * L + 4 * c9 + 2 * c7) / L
+
+        # Calculate fixed end forces
         Riy = self.Riy + (Miz / L) + (Mjz / L)
         Rjy = self.Rjy - (Miz / L) - (Mjz / L)
-        
+
+        # Dimension checking
+        print(f"DEBUG: Checking dimensions - Miz: {Miz.dimensionality}, Mjz: {Mjz.dimensionality}")
+        print(f"DEBUG: Checking dimensions - Riy: {Riy.dimensionality}, Rjy: {Rjy.dimensionality}")
+
+        # Verify moment dimensions
+        try:
+            Miz.check(MOMENT_DIMENSIONALITY)
+            Mjz.check(MOMENT_DIMENSIONALITY)
+            print("DEBUG: Moment dimension check passed")
+        except pint.DimensionalityError as e:
+            print(f"ERROR: Dimension error in moments: {e}")
+            # Create correctly dimensioned values as fallback
+            if not Miz.check(MOMENT_DIMENSIONALITY):
+                print(f"WARNING: Fixing dimensions of Miz from {Miz.dimensionality} to {MOMENT_DIMENSIONALITY}")
+                Miz = unit_manager.ureg.Quantity(Miz.magnitude, INTERNAL_MOMENT_UNIT)
+            if not Mjz.check(MOMENT_DIMENSIONALITY):
+                print(f"WARNING: Fixing dimensions of Mjz from {Mjz.dimensionality} to {MOMENT_DIMENSIONALITY}")
+                Mjz = unit_manager.ureg.Quantity(Mjz.magnitude, INTERNAL_MOMENT_UNIT)
+
+        # Verify force dimensions
+        try:
+            Riy.check(FORCE_DIMENSIONALITY)
+            Rjy.check(FORCE_DIMENSIONALITY)
+            print("DEBUG: Force dimension check passed")
+        except pint.DimensionalityError as e:
+            print(f"ERROR: Dimension error in forces: {e}")
+            # Create correctly dimensioned values as fallback
+            if not Riy.check(FORCE_DIMENSIONALITY):
+                print(f"WARNING: Fixing dimensions of Riy from {Riy.dimensionality} to {FORCE_DIMENSIONALITY}")
+                Riy = unit_manager.ureg.Quantity(Riy.magnitude, INTERNAL_FORCE_UNIT)
+            if not Rjy.check(FORCE_DIMENSIONALITY):
+                print(f"WARNING: Fixing dimensions of Rjy from {Rjy.dimensionality} to {FORCE_DIMENSIONALITY}")
+                Rjy = unit_manager.ureg.Quantity(Rjy.magnitude, INTERNAL_FORCE_UNIT)
+
         # Print forces and moments in both SI and display units
         from pyMAOS.units_mod import convert_to_display_units
-        from pyMAOS.units_mod import unit_manager,FORCE_DISPLAY_UNIT, MOMENT_DISPLAY_UNIT
+        from pyMAOS.units_mod import FORCE_DISPLAY_UNIT, MOMENT_DISPLAY_UNIT
         # Get current unit system directly from the manager
         current_units = unit_manager.get_current_units()
         system_name = unit_manager.get_system_name()
@@ -488,14 +404,24 @@ class LinearLoadXY:
         Rjy_display = Rjy.to(FORCE_DISPLAY_UNIT)
         Miz_display = Miz.to(MOMENT_DISPLAY_UNIT)
         Mjz_display = Mjz.to(MOMENT_DISPLAY_UNIT)
-        
+
         print(f"Vertical reactions - SI: Riy={Riy:.3f} N, Rjy={Rjy:.3f} N")
         print(f"Vertical reactions - Display: Riy={Riy_display:.3f}, Rjy={Rjy_display:.3f}")
         print(f"Moments - SI: Miz={Miz:.3f} N*m, Mjz={Mjz:.3f} N*m")
         print(f"Moments - Display: Miz={Miz_display:.3f}, Mjz={Mjz_display:.3f}")
-        from pyMAOS.units_mod import ureg
-        ret_val = np.array([Quantity(0, INTERNAL_FORCE_UNIT), Riy, Miz, Quantity(0, INTERNAL_FORCE_UNIT), Rjy, Mjz], dtype=object)
-        print(f"FEF distributed load results on member {self.member_uid} for Load Case {self.loadcase}:\n", ret_val)
+
+        ret_val = np.array([unit_manager.ureg.Quantity(0, INTERNAL_FORCE_UNIT), Riy, Miz, unit_manager.ureg.Quantity(0, INTERNAL_FORCE_UNIT), Rjy, Mjz], dtype=object)
+        print(f"FEF distributed load results on member {self.member_uid} for Load Case {self.loadcase}:", ret_val, sep="\n")
+
+        # Final dimension check for return values
+        for i, (idx, expected_dim) in enumerate([(0, FORCE_DIMENSIONALITY), (1, FORCE_DIMENSIONALITY),
+                                               (2, MOMENT_DIMENSIONALITY), (3, FORCE_DIMENSIONALITY),
+                                               (4, FORCE_DIMENSIONALITY), (5, MOMENT_DIMENSIONALITY)]):
+            try:
+                ret_val[idx].check(expected_dim)
+            except pint.DimensionalityError as e:
+                print(f"Dimensionality error in ret_val[{idx}]: {e}")
+                print(f"  Actual: {ret_val[idx].dimensionality}, Expected: {expected_dim}")
 
         return ret_val
 
@@ -674,3 +600,174 @@ class LinearLoadXY:
 
         # Print region information
         print(f"Region boundaries: [{Quantity(0, self.a.units)}, {self.a:.2f}, {self.b:.2f}, {self.L:.2f}]")
+
+    def plot_all_functions(self, figsize=(10, 12), convert_x_to=None, convert_y_to=None):
+        """
+        Create a figure with subplots for all non-empty PiecewisePolynomial functions.
+
+        Parameters
+        ----------
+        figsize : tuple
+            Figure size (width, height) in inches
+        convert_x_to : pint.Unit, optional
+            Convert x values to this unit for plotting
+        convert_y_to : dict, optional
+            Dictionary mapping function name to unit for conversion, e.g. {'Vy': 'kN'}
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+            The figure containing all plots
+        """
+        import matplotlib.pyplot as plt
+
+        # Collect all non-empty PiecewisePolynomial objects with their names and colors
+        functions = []
+        if hasattr(self, 'Wy') and self.Wy.functions:
+            functions.append(('Wy', self.Wy, 'blue', 'Distributed Load'))
+        if hasattr(self, 'Vy') and self.Vy.functions:
+            functions.append(('Vy', self.Vy, 'red', 'Shear Force'))
+        if hasattr(self, 'Mz') and self.Mz.functions:
+            functions.append(('Mz', self.Mz, 'green', 'Bending Moment'))
+        if hasattr(self, 'Sz') and self.Sz.functions:
+            functions.append(('Sz', self.Sz, 'purple', 'Rotation'))
+        if hasattr(self, 'Dy') and self.Dy.functions:
+            functions.append(('Dy', self.Dy, 'orange', 'Deflection'))
+
+        # Return early if no functions to plot
+        if not functions:
+            print("No functions to plot")
+            return None
+
+        # Create figure and subplots
+        fig, axes = plt.subplots(len(functions), 1, figsize=figsize, sharex=True)
+
+        # Handle single subplot case
+        if len(functions) == 1:
+            axes = [axes]
+
+        print(f"Plotting {len(functions)} functions")
+
+        # Create each plot
+        for i, (name, func, color, title) in enumerate(functions):
+            # Convert y units if specified
+            y_unit = None
+            if convert_y_to and name in convert_y_to:
+                y_unit = convert_y_to[name]
+
+            # Plot the function on the appropriate subplot
+            func.plot(
+                ax=axes[i],
+                color=color,
+                title=f"{title} ({name})",
+                convert_x_to=convert_x_to,
+                convert_y_to=y_unit,
+                show=False
+            )
+
+            # Add vertical lines at key points
+            for x in [self.a, self.b]:
+                if hasattr(x, 'magnitude'):
+                    x_val = x.to(convert_x_to).magnitude if convert_x_to else x.magnitude
+                else:
+                    x_val = x
+                axes[i].axvline(x=x_val, color='gray', linestyle='--', alpha=0.7)
+
+        # Add overall title
+        fig.suptitle(f"Beam Analysis for {self.__str__()}", fontsize=16)
+
+        # Adjust spacing
+        plt.tight_layout()
+        fig.subplots_adjust(top=0.95)
+
+        # Show the grid on all plots
+        for ax in axes:
+            ax.grid(True, linestyle='--', alpha=0.7)
+
+        return fig
+
+    def plot_all_ppoly_functions(self, figsize=(10, 12), convert_x_to=None, convert_y_to=None):
+        """
+        Create a figure with subplots for all PiecewisePolynomial2 functions.
+        Uses the efficient PPoly representation for better performance.
+
+        Parameters
+        ----------
+        figsize : tuple
+            Figure size (width, height) in inches
+        convert_x_to : pint.Unit, optional
+            Convert x values to this unit for plotting
+        convert_y_to : dict, optional
+            Dictionary mapping function name to unit for conversion, e.g. {'Vy': 'kN'}
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+            The figure containing all plots
+        """
+        import matplotlib.pyplot as plt
+
+        # Collect all non-empty PiecewisePolynomial2 objects
+        functions = []
+        if hasattr(self, 'Wy2') and self.Wy2.ppoly is not None:
+            functions.append(('Wy2', self.Wy2, 'blue', 'Distributed Load'))
+        if hasattr(self, 'Vy2') and self.Vy2.ppoly is not None:
+            functions.append(('Vy2', self.Vy2, 'red', 'Shear Force'))
+        if hasattr(self, 'Mz2') and self.Mz2.ppoly is not None:
+            functions.append(('Mz2', self.Mz2, 'green', 'Bending Moment'))
+        if hasattr(self, 'Sz2') and self.Sz2.ppoly is not None:
+            functions.append(('Sz2', self.Sz2, 'purple', 'Rotation'))
+        if hasattr(self, 'Dy2') and self.Dy2.ppoly is not None:
+            functions.append(('Dy2', self.Dy2, 'orange', 'Deflection'))
+
+        # Return early if no functions to plot
+        if not functions:
+            print("No PiecewisePolynomial2 functions to plot")
+            return None
+
+        # Create figure and subplots
+        fig, axes = plt.subplots(len(functions), 1, figsize=figsize, sharex=True)
+
+        # Handle single subplot case
+        if len(functions) == 1:
+            axes = [axes]
+
+        print(f"Plotting {len(functions)} PiecewisePolynomial2 functions")
+
+        # Create each plot
+        for i, (name, func, color, title) in enumerate(functions):
+            # Convert y units if specified
+            y_unit = None
+            if convert_y_to and name in convert_y_to:
+                y_unit = convert_y_to[name]
+
+            # Plot the function on the appropriate subplot
+            func.plot(
+                ax=axes[i],
+                color=color,
+                title=f"{title} ({name})",
+                convert_x_to=convert_x_to,
+                convert_y_to=y_unit,
+                show=False
+            )
+
+            # Add vertical lines at key load boundaries
+            for x in [self.a, self.b]:
+                if hasattr(x, 'magnitude'):
+                    x_val = x.to(convert_x_to).magnitude if convert_x_to else x.magnitude
+                else:
+                    x_val = x
+                axes[i].axvline(x=x_val, color='gray', linestyle='--', alpha=0.7)
+
+        # Add overall title
+        fig.suptitle(f"Beam Analysis (PPoly) for {self.__str__()}", fontsize=16)
+
+        # Adjust spacing
+        plt.tight_layout()
+        fig.subplots_adjust(top=0.95)
+
+        # Show the grid on all plots
+        for ax in axes:
+            ax.grid(True, linestyle='--', alpha=0.7)
+
+        return fig

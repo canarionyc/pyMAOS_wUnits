@@ -3,6 +3,7 @@ import numpy as np
 import pint
 from pprint import pprint
 from pyMAOS import units_mod
+from pyMAOS.units_mod import array_convert_to_unit_system
 from pyMAOS.display_utils import display_node_load_vector_in_units, display_node_displacement_in_units
 np.set_printoptions(precision=4, suppress=False, floatmode='maxprec_equal',linewidth= 999)
 from pyMAOS.quantity_utils import QuantityArray
@@ -11,22 +12,22 @@ import operator
 import importlib
 
 # # Add custom formatters with explicit type signatures
-# def format_with_dots(x) -> str:
-#     return '.'.center(12) if abs(x) < 1e-10 else f"{x:12.4g}"
-#
-# def format_double(x) -> str:
-#     return '.'.center(13) if abs(x) < 1e-10 else f"{x:13.8g}"  # More precision for doubles
-#
-# # Now use these type-annotated functions in the formatter dictionary
-# np.set_printoptions(precision=4,
-#     suppress=False,
-#     formatter={
-#         'float': format_with_dots,     # For float32 and generic floats
-#         'float_kind': format_with_dots,  # For all floating point types
-#         'float64': format_double       # Specifically for float64 (double precision)
-#     }, # type: ignore
-#     linewidth=120  # Wider output to prevent unnecessary wrapping
-# )
+def format_with_dots(x) -> str:
+    return '.'.center(12) if abs(x) < 1e-10 else f"{x:12.4g}"
+
+def format_double(x) -> str:
+    return '.'.center(13) if abs(x) < 1e-10 else f"{x:13.8g}"  # More precision for doubles
+
+# Now use these type-annotated functions in the formatter dictionary
+np.set_printoptions(precision=4,
+    suppress=False,
+    formatter={
+        'float': format_with_dots,     # For float32 and generic floats
+        'float_kind': format_with_dots,  # For all floating point types
+        'float64': format_double       # Specifically for float64 (double precision)
+    }, # type: ignore
+    linewidth=120  # Wider output to prevent unnecessary wrapping
+)
 
 # Parameters you can adjust:
 # *	precision: Number of decimal places (4 is a good default)
@@ -42,6 +43,8 @@ class R2Structure:
         self.nodes = nodes
         self.members = members
         self.units = units or units_mod.unit_manager.get_current_units()  # Use unit manager as fallback
+
+
 
         # Validate node UIDs are unique
         self._validate_node_uids()
@@ -203,7 +206,7 @@ class R2Structure:
             os.makedirs(output_dir)
 
         # Structure Stiffness Matrix
-        KSTRUCT = np.zeros([self.NJD * self.NJ, self.NJD * self.NJ], dtype=float64).view(QuantityArray)
+        KSTRUCT = QuantityArray(np.zeros([self.NJD * self.NJ, self.NJD * self.NJ], dtype=object))
         print("KSTRUCT shape:", KSTRUCT.shape, flush=True)
 
         for member in self.members:
@@ -240,10 +243,11 @@ class R2Structure:
             for i in range(self.NJD):
                 for j in range(self.NJD): 
                     # print(f"i: {i}, j: {j}, imap[i]: {imap[i]}, imap[j]: {imap[j]}", flush=True)
-                    KSTRUCT[imap[i], imap[j]] += kmglobal[i, j]
-                    KSTRUCT[imap[i + self.NJD], imap[j]] += kmglobal[i + self.NJD, j]
-                    KSTRUCT[imap[i], imap[j + self.NJD]] += kmglobal[i, j + self.NJD]
-                    KSTRUCT[imap[i + self.NJD], imap[j + self.NJD]] += kmglobal[i + self.NJD, j + self.NJD]
+                    KSTRUCT.add_with_units((imap[i], imap[j]), kmglobal[i, j])
+                    KSTRUCT.add_with_units((imap[i + self.NJD], imap[j]), kmglobal[i + self.NJD, j])
+                    KSTRUCT.add_with_units((imap[i], imap[j + self.NJD]), kmglobal[i, j + self.NJD])
+                    KSTRUCT.add_with_units((imap[i + self.NJD], imap[j + self.NJD]),
+                                           kmglobal[i + self.NJD, j + self.NJD])
 
         # Loop through Spring Nodes and add the spring stiffness
         if self._springNodes:
@@ -256,14 +260,27 @@ class R2Structure:
                 kuy = node._spring_stiffness[1]
                 krz = node._spring_stiffness[2]
 
-                KSTRUCT[uxposition, uxposition] += kux
-                KSTRUCT[uyposition, uyposition] += kuy
-                KSTRUCT[rzposition, rzposition] += krz
+                # KSTRUCT[uxposition, uxposition] += kux
+                # KSTRUCT[uyposition, uyposition] += kuy
+                # KSTRUCT[rzposition, rzposition] += krz
+
+                KSTRUCT.add_with_units((uxposition, uxposition), kux)
+                KSTRUCT.add_with_units((uyposition, uyposition), kuy)
+                KSTRUCT.add_with_units((rzposition, rzposition), krz)
         self._Kgenerated = True
 
 
         if verbose:
-            print("KSTRUCT:\n", KSTRUCT); print(KSTRUCT.shape)
+            np.set_printoptions(precision=4,
+                                suppress=False,
+                                formatter={
+                                    'float': format_with_dots,  # For float32 and generic floats
+                                    'float_kind': format_with_dots,  # For all floating point types
+                                    'float64': format_double  # Specifically for float64 (double precision)
+                                },  # type: ignore
+                                linewidth=120  # Wider output to prevent unnecessary wrapping
+                                )
+            print("KSTRUCT:", KSTRUCT, sep="\n"); print(KSTRUCT.shape); KSTRUCT.print_units_matrix()
             KSTRUCT_csv=os.path.join(output_dir, 'KSTRUCT.csv')
             np.savetxt(KSTRUCT_csv, KSTRUCT, delimiter=',', fmt='%lg')
             print(f"Saved KSTRUCT to {KSTRUCT_csv}")
@@ -277,14 +294,19 @@ class R2Structure:
 
         Returns
         -------
-        FG : Numpy Array
-            Structure Nodal Force Vector.
-
+        FG : QuantityArray
+            Structure Nodal Force Vector with proper units.
         """
-        FG = np.zeros(self.NJD * self.NJ, dtype=np.float64).view(QuantityArray)
+        # Create a QuantityArray for the force vector
+        FG = QuantityArray(np.zeros(self.NJD * self.NJ))
 
-        for node_index,node in enumerate(self.nodes):
+        print(f"DEBUG: Initialized FG as QuantityArray, shape={FG.shape}")
+
+        # Apply loads from each node
+        for node_index, node in enumerate(self.nodes):
             for load_case, load in node.loads.items():
+                # Display load information for debugging
+                from pyMAOS.display_utils import display_node_load_vector_in_units
                 display_node_load_vector_in_units(
                     load_vector=load,
                     node_uid=node.uid,
@@ -292,29 +314,97 @@ class R2Structure:
                     length_unit=self.units.get('length', 'm'),
                     load_combo_name=load_combination.name
                 )
+
                 load_factor = load_combination.factors.get(load_case, 0)
-                factored_load = [load_factor * l for l in load]
+
+                # Use list comprehension for pint quantities
+                factored_load = [load_factor * f for f in load]
+                print(f"DEBUG: Node {node.uid}, load_case={load_case}, factor={load_factor}, factored_load={factored_load}")
 
                 for i, f in enumerate(factored_load):
-                    fmindex = node_index * self.NJD + i
-                    FG[int(FM[fmindex])] += f
+                    fm_index = node_index * self.NJD + i
+                    mapped_index = int(FM[fm_index])  # Ensure integer index
 
-        print("Nodal Force Vector:\n", FG)
-        
+                    # Add load component using QuantityArray's add_with_units method
+                    FG.add_with_units((mapped_index,), f)
+                    print(f"DEBUG: Added {f} at position {mapped_index}")
+
+        print("Nodal Force Vector:", sep="\n")
+        from pyMAOS.units_mod import array_convert_to_unit_system
+        _ = array_convert_to_unit_system(FG, "imperial")
+
+        # Display units for debugging
+        print(f"DEBUG: FG units dictionary: {FG._units_dict}")
+
         return FG
 
+    # def member_fixed_end_force_vector(self, FM, load_combination):
+    #     PF = np.zeros(self.NJD * self.NJ)
+    #
+    #     for member in self.members:
+    #         if member.type != "TRUSS":
+    #             # Get fixed end forces in global coordinates
+    #             Ff = member.FEFglobal(load_combination)
+    #
+    #             # Check if we're dealing with quantities with units
+    #             if isinstance(Ff[0], pint.Quantity):
+    #                 # Extract magnitudes for calculation
+    #                 Ff_magnitudes = np.array([f.magnitude for f in Ff])
+    #
+    #                 i_index = self.uid_to_index[member.inode.uid]
+    #                 j_index = self.uid_to_index[member.jnode.uid]
+    #
+    #                 # Use magnitudes for the addition operation
+    #                 PF[FM[i_index * self.NJD:(i_index+1) * self.NJD]] += Ff_magnitudes[0:3]
+    #                 PF[FM[j_index * self.NJD:(j_index+1) * self.NJD]] += Ff_magnitudes[3:6]
+    #
+    #                 print(f"DEBUG: Member {member.uid} - Used Quantity magnitudes for fixed end forces")
+    #             else:
+    #                 # No units, proceed with standard addition
+    #                 i_index = self.uid_to_index[member.inode.uid]
+    #                 j_index = self.uid_to_index[member.jnode.uid]
+    #
+    #                 PF[FM[i_index * self.NJD:(i_index+1) * self.NJD]] += Ff[0:3]
+    #                 PF[FM[j_index * self.NJD:(j_index+1) * self.NJD]] += Ff[3:6]
+    #
+    #     print("Member Fixed End Force Vector PF:", PF, sep="\n")
     def member_fixed_end_force_vector(self, FM, load_combination):
-        PF = np.zeros(self.NJD * self.NJ)
+        # Initialize array with object dtype to store Quantity objects
+        PF = np.zeros(self.NJD * self.NJ, dtype='object')
+
+        print(f"DEBUG: Initial PF dtype = {PF.dtype}")
 
         for member in self.members:
             if member.type != "TRUSS":
+                # Get fixed end forces in global coordinates
                 Ff = member.FEFglobal(load_combination)
+                print("DEBUG: Ff type:", type(Ff), "shape:", np.shape(Ff))
+                from pyMAOS.units_mod import array_convert_to_unit_system
+                _ = array_convert_to_unit_system(Ff, "imperial")
+
                 i_index = self.uid_to_index[member.inode.uid]
                 j_index = self.uid_to_index[member.jnode.uid]
 
-                PF[FM[i_index * self.NJD:(i_index+1)  * self.NJD]] += Ff[0:3]
-                PF[FM[j_index * self.NJD:(j_index+1)  * self.NJD]] += Ff[3:6]
+                # Debug info about the returned forces
+                print(f"DEBUG: Member {member.uid} forces type: {type(Ff)} shape: {np.shape(Ff)}")
+                print(f"DEBUG: First element type: {type(Ff[0])}")
+
+                # Add the forces directly - with object dtype, this should work with Quantity objects
+                PF[FM[i_index * self.NJD:(i_index+1) * self.NJD]] += Ff[0:3]; print(Ff[0:3])
+                PF[FM[j_index * self.NJD:(j_index+1) * self.NJD]] += Ff[3:6]
+
+                # Check units consistency after addition
+                sample_idx = FM[i_index * self.NJD]
+                print(f"DEBUG: PF[{sample_idx}] type after addition: {type(PF[sample_idx])}")
+
+        print("Member Fixed End Force Vector PF:", PF, sep="\n")
+
+        # At the end, you can extract magnitudes if needed for further calculations
+        PF_magnitudes = np.array([f.magnitude if hasattr(f, 'magnitude') else f for f in PF])
+        print(f"DEBUG: Final PF_magnitudes dtype = {PF_magnitudes.dtype}")
+
         return PF
+
 
     def solve_linear_static(self, load_combination, **kwargs):
         """
@@ -331,6 +421,9 @@ class R2Structure:
         verbose = kwargs.get('verbose', False)
         if verbose:
             print("--- Running in Verbose Mode ---")
+        stucture_state_bin = kwargs.get("stucture_state_bin", None)
+
+
 
         # Generate Freedom Map
         FM = self.freedom_map()
@@ -342,59 +435,137 @@ class R2Structure:
         self._verify_stable(FM, KSTRUCT)
 
         if self._unstable:
-            raise ValueError("Structure is unstable")
+            raise ValueError("Structure is unstable"); return None
+
+        # Build Nodal Force Vector
+        FG = self.nodal_force_vector(FM, load_combination)
+        # print("Nodal Force Vector FG:\n", FG); print(FG.shape)
+        from pyMAOS.units_mod import array_convert_to_unit_system
+        _ = array_convert_to_unit_system(FG, "imperial")
+        # Build Member Fixed-end-Force vector
+        PF = self.member_fixed_end_force_vector(FM, load_combination)
+        # print("Member Fixed End Force Vector:\n", PF); print(PF.shape)
+
+        from units_mod import array_convert_to_unit_system
+        _ = array_convert_to_unit_system(PF, "imperial")
+
+        self.Kff = KSTRUCT[0 : self.NDOF, 0 : self.NDOF]; print(self.Kff._units_dict)
+        print("Kff Partition:", self.Kff, sep="\n"); print(self.Kff.shape) # display_stiffness_matrix_in_units(self.Kff)
+        # Slice out the FGf partition from the global nodal force vector
+        self.FGf = FG[0 : self.NDOF]
+        print("FGf Partition:", self.FGf, sep="\n"); print(self.FGf.shape)
+        self.PFf = PF[0 : self.NDOF]
+        print("PFf Partition:", self.PFf, sep="\n"); print(self.PFf.shape)
+        rhs=self.FGf-self.PFf
+        # Extract magnitudes for calculation
+        Kff_magnitudes = np.array([[k.magnitude if hasattr(k, 'magnitude') else float(k) for k in row]
+                                   for row in self.Kff], dtype=np.float64)
+        print("Kff_magnitudes:", Kff_magnitudes, sep="\n")
+        FGf_magnitudes = np.array([f.magnitude if hasattr(f, 'magnitude') else float(f) for f in self.FGf],
+                                  dtype=np.float64)
+        print("FGf_magnitudes:",FGf_magnitudes, sep="\n")
+        PFf_magnitudes = np.array([p.magnitude if hasattr(p, 'magnitude') else float(p) for p in self.PFf],
+                                  dtype=np.float64); print(PFf_magnitudes)
+        print(f"DEBUG: Kff_magnitudes shape: {Kff_magnitudes.shape}")
+        print(f"DEBUG: FGf_magnitudes shape: {FGf_magnitudes.shape}")
+        print(f"DEBUG: PFf_magnitudes shape: {PFf_magnitudes.shape}")
+        # Check if the Kff partition is singular
+        if np.linalg.cond(Kff_magnitudes) > 1.0 / np.finfo(np.float64).eps:
+            print("WARNING: Kff partition is singular or nearly singular. The system may not have a unique solution.")
+            self._unstable = True
+            return None
+        # If we have units, we need to handle them carefully
+        # Use scipy.linalg.solve to solve the linear system
+        # This will return the displacement vector U in the same units as the right-hand side
+        # If the right-hand side is a Pint Quantity, we need to extract the magnitudes
+        # and reattach the units to the result.
+        # If the right-hand side is a numpy array, we can use it directly.
+       # Check if we're working with Pint Quantity objects
+        import scipy.linalg as sla
+
+        if hasattr(self.FGf[0], 'magnitude') or hasattr(self.PFf[0], 'magnitude') or True:
+            from pyMAOS.units_mod import unit_manager, array_convert_to_unit_system
+            # Store units from the right-hand side for later
+            # Extract original units from the right-hand side
+            rhs = self.FGf - self.PFf; print(rhs)
+            _ = array_convert_to_unit_system(rhs, "imperial")
+            rhs_units = rhs.get_units()
+            print(f"DEBUG: Right-hand side units: {rhs_units}")
+            # Get conjugate units for displacement results
+            # Check if rhs_units is iterable (and not a string which is also iterable)
+            if hasattr(rhs_units, '__iter__') and not isinstance(rhs_units, (str, pint.Unit)):
+                # It's an iterable collection of units
+                conjugate_units = [unit_manager.get_conjugate_unit(unit) for unit in rhs_units]
+            else:
+                # It's a single unit
+                conjugate_units = [unit_manager.get_conjugate_unit(rhs_units)]
+
+            print(f"DEBUG: Converted {rhs_units} to conjugate unit(s): {conjugate_units}")
+
+            # Solve using scipy.linalg
+            U_magnitudes = sla.solve(Kff_magnitudes, FGf_magnitudes - PFf_magnitudes)
+
+            # Reattach conjugate units to displacement results
+            self.U = np.array([units_mod.unit_manager.ureg.Quantity(mag, conj_unit)
+                          for mag, conj_unit in zip(U_magnitudes, conjugate_units)], dtype=object)
+
+            print(f"DEBUG: Reattached conjugate units to displacement vector: {U}")
+
         else:
-            # Build Nodal Force Vector
-            FG = self.nodal_force_vector(FM, load_combination)
-            print("Nodal Force Vector FG:\n", FG); print(FG.shape)
-            # Build Member Fixed-end-Force vector
-            PF = self.member_fixed_end_force_vector(FM, load_combination)
-            print("Member Fixed End Force Vector:\n", PF); print(PF.shape)
-            # Slice out the Kff partition from the global structure stiffness
-            # Matrix
-            self.Kff = KSTRUCT[0 : self.NDOF, 0 : self.NDOF]
-            print("Kff Partition:\n", self.Kff); print(self.Kff.shape); # display_stiffness_matrix_in_units(self.Kff)
-            # Slice out the FGf partition from the global nodal force vector
-            self.FGf = FG[0 : self.NDOF]
-            # print("FGf Partition:\n", self.FGf); print(self.FGf.shape)
-            self.PFf = PF[0 : self.NDOF]
-            # print("PFf Partition:\n", self.PFf); print(self.PFf.shape)
+            # No units involved, use scipy.linalg directly
+            print("DEBUG: Using scipy.linalg directly (no units)")
+            self.U = sla.solve(self.Kff, self.FGf - self.PFf)
+        # save state of the structure for a restart point
+        # After analysis is complete:
+        if stucture_state_bin is not None:
+            self.save_structure_state(stucture_state_bin)
 
-            # Use Numpy linear Algebra solve function to solve for the
-            # displacements at the free nodes.
-            U = np.linalg.solve(self.Kff, self.FGf - self.PFf)
-            # print("Displacement Vector U:\n", U); print(U.shape)
-            # Full Displacement Vector
-            # Result is still mapped to DOF via FM
-            USTRUCT = np.zeros(self.NJD * self.NJ)
-            # Add the resulting free displacements to the appropriate spots in
-            # the Full displacement vector
-            USTRUCT += np.pad(U, (0, self.NJD * self.NJ - np.shape(U)[0]))
-            # print("Full Displacement Vector USTRUCT:\n", USTRUCT); print(USTRUCT.shape) 
-            # store displacement results to the current case to the nodes
-            for node_index,node in enumerate(self.nodes):
-                node_displacements=USTRUCT[FM[node_index * self.NJD : (node_index + 1) * self.NJD]].tolist()
-                # print(f"node {node.uid}    Ux: {node_displacements[0]:.4E} -- Uy: {node_displacements[1]:.4E} -- Rz: {node_displacements[2]:.4E}")
-                node.displacements[load_combination.name] = node_displacements
-                # if node.uid==2:
-                #     display_node_displacement_in_units(
-                #         node_displacements,
-                #         node_uid=node.uid,
-                #         load_combo_name=load_combination.name,
-                #         units_system=self.units
-                #     )
+    def further_analysis(self,  load_combination):
+        # Later, to restart from saved state:
+        # if self.load_structure_state("structure_state.bin"):
+        #     print("Successfully restored structure state - ready to continue analysis")
+        # else:
+        #     print("Failed to load state - need to recalculate")
 
-            # In the solve_linear_static method, after computing U:
-            # print(f"DEBUG: Member 2 nodal displacements:")
-            # for node in [node for member in self.members if member.uid == 2 for node in [member.inode, member.jnode]]:
-            #     node_index = self.uid_to_index[node.uid]
-            #     dof_indices = FM[node_index * self.NJD:(node_index+1) * self.NJD]
-            #     print(f"  Node {node.uid}: {[USTRUCT[int(i)] for i in dof_indices]}")
+        print("Displacement Vector U:", self.U, sep="\n"); print(U.shape)
+        # Full Displacement Vector
+        # Result is still mapped to DOF via FM
+        # Create USTRUCT as an object array to hold Quantity objects
+        USTRUCT = QuantityArray(np.zeros(self.NJD * self.NJ, dtype=object))
 
-            # compute reactions
-            self.compute_reactions(load_combination)
+        # Add the resulting free displacements to the appropriate spots
+        # Map each element individually to maintain units
+        for i, u_val in enumerate(U):
+            USTRUCT[i] = u_val
+        print("USTRUCT"); _ = array_convert_to_unit_system(USTRUCT, "imperial")
+        # print("DEBUG: Full Displacement Vector USTRUCT type:", type(USTRUCT), "with first element type:",
+        #       type(USTRUCT[0]) if len(USTRUCT) > 0 else "empty")
 
-            return U
+        # print("Full Displacement Vector USTRUCT:\n", USTRUCT); print(USTRUCT.shape)
+        # store displacement results to the current case to the nodes
+        for node_index,node in enumerate(self.nodes):
+            node_displacements=USTRUCT[FM[node_index * self.NJD : (node_index + 1) * self.NJD]].tolist()
+            # print(f"node {node.uid}    Ux: {node_displacements[0]:.4E} -- Uy: {node_displacements[1]:.4E} -- Rz: {node_displacements[2]:.4E}")
+            node.displacements[load_combination.name] = node_displacements
+            # if node.uid==2:
+            #     display_node_displacement_in_units(
+            #         node_displacements,
+            #         node_uid=node.uid,
+            #         load_combo_name=load_combination.name,
+            #         units_system=self.units
+            #     )
+
+        # In the solve_linear_static method, after computing U:
+        # print(f"DEBUG: Member 2 nodal displacements:")
+        # for node in [node for member in self.members if member.uid == 2 for node in [member.inode, member.jnode]]:
+        #     node_index = self.uid_to_index[node.uid]
+        #     dof_indices = FM[node_index * self.NJD:(node_index+1) * self.NJD]
+        #     print(f"  Node {node.uid}: {[USTRUCT[int(i)] for i in dof_indices]}")
+
+        # compute reactions
+        self.compute_reactions(load_combination)
+
+        return U
 
     def compute_reactions(self, load_combination):
         """Calculate nodal reactions for the given load combination"""
@@ -418,7 +589,7 @@ class R2Structure:
                     
                 # Add forces from j-node if this node is the j-node
                 if member.jnode == node:
-                    reactions += member_FG[self.NJD:(2*self.NJD)]  # Use flatten() to ensure correct shape
+                    reactions += member_FG[self.NJD:(2*self.NJD)]
 
             # Override with spring reactions if applicable
             u = node.displacements.get(load_combination.name, np.zeros(self.NJD))
@@ -661,8 +832,8 @@ class R2Structure:
             raise ImportError(f"Required package not available for Excel export: {e}")
         
         # Create unit registry for conversions
-        from pyMAOS.units_mod import ureg
-        Q_ = ureg.Quantity
+        from pyMAOS.units_mod import unit_manager
+        Q_ = unit_manager.ureg.Quantity
         
         # Process unit system
         unit_system = kwargs.get('unit_system')
@@ -983,3 +1154,6 @@ class R2Structure:
         
         print(f"Successfully exported results to {output_file}")
         return str(output_file)
+
+    # Then import the utility functions directly in the class
+    from pyMAOS.save_utils import save_structure_state, load_structure_state

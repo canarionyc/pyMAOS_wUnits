@@ -927,3 +927,4 @@
 #                 f"w1={self.w1:.3f}, w2={self.w2:.3f}, "
 #                 f"from x={self.a:.3f} to x={self.b:.3f} "
 #                 f"(on member of length {self.L:.3f})")
+

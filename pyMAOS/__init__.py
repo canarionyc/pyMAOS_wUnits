@@ -17,6 +17,24 @@ for i, p in enumerate(sys.path):
 print("=" * 40 + "\n")
 
 import numpy as np
+# Configure numpy printing
+np.set_printoptions(precision=4, suppress=False, floatmode='maxprec_equal')
+
+
+# Add custom formatters for different numeric types
+def format_with_dots(x) -> str: return '.'.center(12) if abs(x) < 1e-10 else f"{x:<12.4g}"
+
+
+def format_double(x) -> str: return '.'.center(16) if abs(x) < 1e-10 else f"{x:<16.8g}"  # More precision for doubles
+
+
+# np.set_printoptions(formatter={
+#     np.float64: format_double,
+#     np.float32: format_with_dots
+# }) # type: ignore
+np.set_printoptions(precision=2, threshold=999, linewidth=120, suppress=True,
+                    formatter={np.float32: lambda x: '.'.center(10) if abs(x) < 1e-10 else f"{x:10.4g}"}) # type: ignore
+
 print(np.get_printoptions())
 
 import pprint

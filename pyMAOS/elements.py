@@ -1,8 +1,8 @@
-﻿
-import numpy as np
+﻿import numpy as np
 from abc import ABC, abstractmethod
 
 import pyMAOS.loading as loadtypes
+from pyMAOS.units_mod import unit_manager
 
 
 # In structural analysis, hinges in frame elements (like beams and columns) serve a distinct purpose from node restraints. Here's what they do:
@@ -85,12 +85,37 @@ class Element(ABC):
     #     # For example, you might convert the matrix to a specific unit system here.
     #     return k
     def kglobal(self):
-        """Calculate the global stiffness matrix for the element"""
-        k = self.k(); print("k:\n", k)
-        T = self.T(); print("T:\n", T)
-        #global_stiffness_matrix = np.matmul(np.matmul(np.transpose(T), k), T)
-        global_stiffness_matrix=np.linalg.multi_dot([np.transpose(T), self.k(), T])
-        print(f"kglobal for element {self.uid}:\n{global_stiffness_matrix}\n")
+        """Calculate the global stiffness matrix for the element
+
+        Transforms the local stiffness matrix to global coordinates using
+        the transformation matrix T: kglobal = T^T * klocal * T
+
+        Returns
+        -------
+        QuantityArray
+            Element stiffness matrix in global coordinates
+        """
+        # Get transformation matrix
+        T = self.T()
+
+        # Get local stiffness matrix (now a QuantityArray)
+        local_k = self.k()
+        # print(f"Units dictionary contents: {local_k._units_dict}")
+        local_k.print_units_matrix()
+        # Perform the transformation while preserving units
+        # First calculate transpose(T) * k
+        temp_result = np.matmul(np.transpose(T), local_k)
+
+        # Then calculate the final result: temp_result * T
+        global_stiffness_matrix = np.matmul(temp_result, T)
+
+        # Ensure the result is a QuantityArray
+        from pyMAOS.quantity_utils import QuantityArray
+        if not isinstance(global_stiffness_matrix, QuantityArray):
+            global_stiffness_matrix = QuantityArray(global_stiffness_matrix, units_dict=local_k._units_dict)
+
+        print(f"Element {self.uid} global stiffness matrix created with shape {global_stiffness_matrix.shape}")
+        global_stiffness_matrix.print_units_matrix()
         return global_stiffness_matrix
 
     def display_stiffness_matrix_in_units(self):
@@ -138,3 +163,4 @@ class Element(ABC):
     def set_structure(self, structure):
         """Attach reference to parent structure for unit access"""
         self.structure = structure
+

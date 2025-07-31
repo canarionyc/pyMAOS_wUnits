@@ -1,7 +1,7 @@
 from pint import Quantity
 from numpy.polynomial import Polynomial
 
-from pyMAOS.units_mod import UnitManager, ureg
+from pyMAOS.units_mod import UnitManager, unit_manager
 
 
 class UnitAwarePolynomial(Polynomial):
@@ -9,9 +9,9 @@ class UnitAwarePolynomial(Polynomial):
         # Store the unit information
         self.coeffs_with_units = list(coeffs_with_units)
         c0 = coeffs_with_units[0]
-        self.y_units = c0.to_base_units().units if isinstance(c0, Quantity) else ureg.dimensionless
+        self.y_units = c0.to_base_units().units if isinstance(c0, Quantity) else unit_manager.ureg.dimensionless
         self.y_units = y_units or self.y_units
-        self.x_units = x_units or ureg.dimensionless
+        self.x_units = x_units or unit_manager.ureg.dimensionless
         # Initialize the base class with magnitude values
         magnitudes = [c.magnitude if isinstance(c, Quantity) else c for c in self.coeffs_with_units]
         super().__init__(magnitudes)
@@ -78,7 +78,7 @@ class UnitAwarePolynomial(Polynomial):
         result = super().deriv(m)
         # Calculate the new unit (e.g., meters → meters/second)
         new_y_units = self.y_units / self.x_units**m
-        return UnitAwarePolynomial([c * new_y_units for c in result.coef], y_units=new_unit, x_units=self.x_units)
+        return UnitAwarePolynomial([c * new_y_units for c in result.coef], y_units=new_y_units, x_units=self.x_units)
 
     def integ(self, m=1, k=0):
         # Override integration to maintain unit awareness

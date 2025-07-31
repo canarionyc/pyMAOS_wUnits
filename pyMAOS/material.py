@@ -36,11 +36,11 @@ class LinearElasticMaterial(UnitAwareMixin):
 
     def __setstate__(self, state):
 
-        from pyMAOS.units_mod import ureg
+
         # Initialize the object properly
         self.__init__(state.get('uid'),
-                      ureg(state.get('density', "0.284 lb/in^3")).to('kg/m^3'),
-                      ureg(state.get('E', "29000.0 ksi")).to('Pa'),
+                      unit_manager.ureg(state.get('density', "0.284 lb/in^3")).to('kg/m^3'),
+                      unit_manager.ureg(state.get('E', "29000.0 ksi")).to('Pa'),
                       state.get('nu', 0.3))
 
     def _parse_value_with_units(self, value: Union[float, str], unit_type: str) -> float:

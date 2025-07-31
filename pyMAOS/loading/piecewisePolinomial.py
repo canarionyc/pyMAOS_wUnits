@@ -27,10 +27,10 @@ def polynomial_evaluation(c_list, x):
 
 from numpy.polynomial import Polynomial
 from pyMAOS.loading.UnitAwarePolynomial import UnitAwarePolynomial
-from pyMAOS.units_mod import ureg
+from pyMAOS.units_mod import unit_manager
 class PiecewisePolynomial:
     def __init__(self, functions=None):
-        from pyMAOS.units_mod import ureg
+        from pyMAOS.units_mod import unit_manager
 
         self.functions = []
         self.x_units = None
@@ -41,33 +41,29 @@ class PiecewisePolynomial:
                 # Convert all coefficients to use our registry
                 unified_coeffs = []
                 for coeff in coeffs_with_units:
-                    if isinstance(coeff, Quantity):
-                        print(f"Converting coefficient {coeff} to unified form")
-                        if(coeff._REGISTRY != ureg):
-                            print("Unit registry mismatch:")
-                            print(f"Coefficient units registry: {coeff.units._REGISTRY}")
-                            print(f"Global ureg registry: {ureg}")
+                    if isinstance(coeff, Quantity) and coeff._REGISTRY != unit_manager.ureg:
+                            # print("Unit registry mismatch:")
+                            # print(f"Coefficient units registry: {coeff._REGISTRY}")
+                            # print(f"Global ureg registry: {unit_manager.ureg}")
                             magnitude = coeff.magnitude
                             unit_str = str(coeff.units)
-                            unified_coeffs.append(magnitude * ureg.parse_expression(unit_str))
-                        else:
-                            unified_coeffs.append(coeff)
+                            unified_coeffs.append(magnitude * unit_manager.ureg.parse_expression(unit_str))
                     else:
                         unified_coeffs.append(coeff)
 
                 # Do the same for interval points
                 unified_interval = []
                 for point in interval:
-                    if isinstance(point, Quantity):
+                    if isinstance(point, Quantity) and point._REGISTRY != unit_manager.ureg:
                         magnitude = point.magnitude
                         unit_str = str(point.units)
-                        unified_interval.append(magnitude * ureg.parse_expression(unit_str))
+                        unified_interval.append(magnitude * unit_manager.ureg.parse_expression(unit_str))
                     else:
                         unified_interval.append(point)
 
                 # Get units from unified quantities
-                segment_y_units = unified_coeffs[0].units if isinstance(unified_coeffs[0], Quantity) else ureg.dimensionless
-                segment_x_units = unified_interval[0].units if isinstance(unified_interval[0], Quantity) else ureg.dimensionless
+                segment_y_units = unified_coeffs[0].units if isinstance(unified_coeffs[0], Quantity) else unit_manager.ureg.dimensionless
+                segment_x_units = unified_interval[0].units if isinstance(unified_interval[0], Quantity) else unit_manager.ureg.dimensionless
 
                 # If this is the first segment, set the class-level units
                 if self.y_units is None:
@@ -96,8 +92,8 @@ class PiecewisePolynomial:
             print(f"Created PiecewisePolynomial with y unit: {self.y_units} x unit: {self.x_units}")
         else:
             # Initialize with default units if no functions provided
-            self.y_units = ureg.dimensionless
-            self.x_units = ureg.dimensionless
+            self.y_units = unit_manager.ureg.dimensionless
+            self.x_units = unit_manager.ureg.dimensionless
 
     def evaluate(self, x):
         for poly, interval, y_units, x_units in self.functions:
@@ -109,6 +105,7 @@ class PiecewisePolynomial:
     def evaluate_vectorized(self, x_array):
         """
         Evaluate the piecewise polynomial at multiple points simultaneously.
+        Handles mixed unit types safely.
 
         Parameters
         ----------
@@ -121,7 +118,9 @@ class PiecewisePolynomial:
             Array of function values at each x
         """
         import numpy as np
-
+        # if isinstance(x_array, pint.Quantity):
+        #     # If x_array is a single Quantity, convert to numpy array
+        #     x_array = np.array([x_array.magnitude]) * x_array.units
         # Convert to numpy array if not already
         if not isinstance(x_array, np.ndarray):
             x_array = np.array(x_array, dtype=object)
@@ -142,7 +141,25 @@ class PiecewisePolynomial:
         # For each point, find which function applies and evaluate
         for i, x in enumerate(x_array):
             for poly, interval, *unit_info in self.functions:
-                if interval[0] <= x <= interval[1]:
+                # Safe comparison with unit handling
+                lower_bound, upper_bound = interval
+
+                # Convert values to compatible units for comparison
+                x_compatible = x
+                lower_compatible = lower_bound
+                upper_compatible = upper_bound
+
+                # Handle case where x has units but bounds don't
+                if hasattr(x, 'units') and not hasattr(lower_bound, 'units'):
+                    lower_compatible = lower_bound * x.units
+                    upper_compatible = upper_bound * x.units
+
+                # Handle case where bounds have units but x doesn't
+                elif not hasattr(x, 'units') and hasattr(lower_bound, 'units'):
+                    x_compatible = x * lower_bound.units
+
+                # Now do the comparison with compatible units
+                if lower_compatible <= x_compatible <= upper_compatible:
                     results[i] = poly(x)
                     break
 
@@ -424,6 +441,136 @@ class PiecewisePolynomial:
                 new_functions.append([new_poly, [start, end]])
 
         self.functions = new_functions
+
+    def plot(self, ax=None, num_points=1000, x_label=None, y_label=None,
+             color='blue', linestyle='-', linewidth=2, alpha=1.0,
+             convert_x_to=None, convert_y_to=None, title=None, legend=True, show=True):
+        """
+        Plot the piecewise polynomial function using matplotlib.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes, optional
+            Axes to plot on. If None, creates a new figure and axes.
+        num_points : int, optional
+            Number of points to use for the plot (default: 1000)
+        x_label : str, optional
+            Label for x-axis. If None, uses x units.
+        y_label : str, optional
+            Label for y-axis. If None, uses y units.
+        color : str, optional
+            Line color (default: 'blue')
+        linestyle : str, optional
+            Line style (default: '-')
+        linewidth : float, optional
+            Line width (default: 2)
+        alpha : float, optional
+            Line transparency (default: 1.0)
+        convert_x_to : pint.Unit, optional
+            Convert x values to this unit for plotting
+        convert_y_to : pint.Unit, optional
+            Convert y values to this unit for plotting
+        title : str, optional
+            Plot title
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+            The axes containing the plot
+
+        Notes
+        -----
+        If the polynomial has units, they will be displayed in the axis labels
+        unless custom labels are provided.
+        """
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        if not self.functions:
+            print("No polynomial segments to plot")
+            return None
+
+        # Create new figure if needed
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(10, 6))
+
+        # Find the full domain range
+        x_min = min(interval[0] for _, interval, *_ in self.functions)
+        x_max = max(interval[1] for _, interval, *_ in self.functions)
+
+        # Generate x points
+        if isinstance(x_min, Quantity):
+            # Create unit-aware array
+            x_values = np.linspace(x_min.magnitude, x_max.magnitude, num_points)
+            x_values = x_values * x_min.units
+
+            if convert_x_to is not None:
+                x_plot = x_values.to(convert_x_to).magnitude
+                x_unit_str = f" ({convert_x_to})"
+            else:
+                x_plot = x_values.magnitude
+                x_unit_str = f" ({x_min.units})"
+        else:
+            x_values = np.linspace(x_min, x_max, num_points)
+            x_plot = x_values
+            x_unit_str = ""
+
+        # Evaluate y values
+        y_values = self.evaluate_vectorized(x_values)
+
+        # Handle y units for plotting
+        if isinstance(y_values[0], Quantity):
+            if convert_y_to is not None:
+                y_plot = np.array([y.to(convert_y_to).magnitude for y in y_values])
+                y_unit_str = f" ({convert_y_to})"
+            else:
+                y_plot = np.array([y.magnitude for y in y_values])
+                y_unit_str = f" ({y_values[0].units})"
+        else:
+            y_plot = y_values
+            y_unit_str = ""
+
+        # Plot the function
+        ax.plot(x_plot, y_plot, color=color, linestyle=linestyle,
+                linewidth=linewidth, alpha=alpha)
+
+        # Add labels
+        if x_label is None:
+            ax.set_xlabel(f"x{x_unit_str}")
+        else:
+            ax.set_xlabel(x_label)
+
+        if y_label is None:
+            ax.set_ylabel(f"f(x){y_unit_str}")
+        else:
+            ax.set_ylabel(y_label)
+
+        if title is not None:
+            ax.set_title(title)
+
+        # Add grid for better readability
+        ax.grid(True, linestyle='--', alpha=0.7)
+
+        # Mark interval boundaries
+        interval_points = sorted(set([interval[0] for _, interval, *_ in self.functions] +
+                                     [interval[1] for _, interval, *_ in self.functions]))
+
+        for point in interval_points:
+            if isinstance(point, Quantity):
+                if convert_x_to is not None:
+                    point_plot = point.to(convert_x_to).magnitude
+                else:
+                    point_plot = point.magnitude
+            else:
+                point_plot = point
+
+            # Plot small vertical lines at interval boundaries
+            ax.axvline(x=point_plot, color='gray', linestyle='--', alpha=0.5, linewidth=0.5)
+
+        # Ensure tight layout
+        plt.tight_layout()
+
+        return ax
 
 def evaluate_with_units(poly, x):
     """Evaluate a NumPy polynomial with unit-aware coefficients"""
