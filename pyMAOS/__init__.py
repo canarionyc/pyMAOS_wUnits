@@ -41,14 +41,64 @@ import pprint
 
 pp = pprint.PrettyPrinter(width=999, compact=False)
 
+from pyMAOS.units_mod import UnitManager
+
+
+# For SI internal units (default)
+# unit_manager = UnitManager("SI")
+
+# OR for Imperial internal units
+unit_manager = UnitManager("imperial")
+
+global FORCE_DIMENSIONALITY, MOMENT_DIMENSIONALITY, LENGTH_DIMENSIONALITY, PRESSURE_DIMENSIONALITY, DISTRIBUTED_LOAD_DIMENSIONALITY
+# Add these definitions to the top of the file after initializing ureg
+# Pre-computed dimensionality constants for efficient type checking
+FORCE_DIMENSIONALITY = unit_manager.ureg.N.dimensionality
+MOMENT_DIMENSIONALITY = (unit_manager.ureg.N * unit_manager.ureg.m).dimensionality
+LENGTH_DIMENSIONALITY = unit_manager.ureg.m.dimensionality
+PRESSURE_DIMENSIONALITY = unit_manager.ureg.Pa.dimensionality
+DISTRIBUTED_LOAD_DIMENSIONALITY = (unit_manager.ureg.N / unit_manager.ureg.m).dimensionality
+
+
+
+# For backward compatibility, define global variables that reference the UnitManager instance
+global INTERNAL_FORCE_UNIT, INTERNAL_LENGTH_UNIT, INTERNAL_TIME_UNIT, INTERNAL_ROTATION_UNIT, INTERNAL_DIMENSION_UNIT, INTERNAL_AREA_UNIT, INTERNAL_VOLUME_UNIT, INTERNAL_MOMENT_OF_INERTIA_UNIT, INTERNAL_DENSITY_UNIT, INTERNAL_MOMENT_UNIT, INTERNAL_PRESSURE_UNIT, INTERNAL_PRESSURE_UNIT_EXPANDED, INTERNAL_DISTRIBUTED_LOAD_UNIT
+INTERNAL_FORCE_UNIT = unit_manager.INTERNAL_FORCE_UNIT
+INTERNAL_LENGTH_UNIT = unit_manager.INTERNAL_LENGTH_UNIT
+INTERNAL_TIME_UNIT = unit_manager.INTERNAL_TIME_UNIT
+INTERNAL_ROTATION_UNIT = unit_manager.INTERNAL_ROTATION_UNIT
+INTERNAL_AREA_UNIT = unit_manager.INTERNAL_AREA_UNIT
+INTERNAL_VOLUME_UNIT = unit_manager.INTERNAL_VOLUME_UNIT
+INTERNAL_MOMENT_OF_INERTIA_UNIT = unit_manager.INTERNAL_MOMENT_OF_INERTIA_UNIT
+INTERNAL_DENSITY_UNIT = unit_manager.INTERNAL_DENSITY_UNIT
+INTERNAL_MOMENT_UNIT = unit_manager.INTERNAL_MOMENT_UNIT
+INTERNAL_PRESSURE_UNIT = unit_manager.INTERNAL_PRESSURE_UNIT
+INTERNAL_PRESSURE_UNIT_EXPANDED = unit_manager.INTERNAL_PRESSURE_UNIT_EXPANDED
+INTERNAL_DISTRIBUTED_LOAD_UNIT = unit_manager.INTERNAL_DISTRIBUTED_LOAD_UNIT
+
+# Common imperial units as constants
+global FOOT, INCH, POUND_FORCE, PSI, KSI
+FOOT = unit_manager.ureg.foot
+INCH = unit_manager.ureg.inch
+POUND_FORCE = unit_manager.ureg.pound_force
+PSI = unit_manager.ureg.psi
+KSI = unit_manager.ureg.ksi
+
 # Import and expose unit systems and other global constants
-from pyMAOS.units_mod import (SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS,
-    INTERNAL_LENGTH_UNIT, INTERNAL_FORCE_UNIT,  INTERNAL_MOMENT_UNIT, INTERNAL_PRESSURE_UNIT, INTERNAL_DISTRIBUTED_LOAD_UNIT,
-    FORCE_DIMENSIONALITY, LENGTH_DIMENSIONALITY, MOMENT_DIMENSIONALITY, PRESSURE_DIMENSIONALITY, DISTRIBUTED_LOAD_DIMENSIONALITY
-)
+# from pyMAOS.units_mod import (SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS,
+#     INTERNAL_LENGTH_UNIT, INTERNAL_FORCE_UNIT,  INTERNAL_MOMENT_UNIT, INTERNAL_PRESSURE_UNIT, INTERNAL_DISTRIBUTED_LOAD_UNIT,
+#     FORCE_DIMENSIONALITY, LENGTH_DIMENSIONALITY, MOMENT_DIMENSIONALITY, PRESSURE_DIMENSIONALITY, DISTRIBUTED_LOAD_DIMENSIONALITY
+# )
 
 import pint
 from pint import Quantity
+
+
+
+# Add the method to the Quantity class
+from pyMAOS.quantity_utils import increment_with_units
+unit_manager.ureg.Quantity.increment_with_units = increment_with_units
+
 
 # Add references to the new modules
 from .structure2d import R2Structure

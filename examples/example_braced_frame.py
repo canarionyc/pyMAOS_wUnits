@@ -15,7 +15,7 @@ from pyMAOS.material import LinearElasticMaterial as Material
 from pyMAOS.section import Section
 import pyMAOS.structure2d as R2Struct
 from pyMAOS.loadcombos import LoadCombo
-from pyMAOS.plot_structure import plot_structure
+from pyMAOS.structure2d_plot import plot_structure
 
 # Open the file with line buffering (buffering=1)
 # f = open(r'C:\dev\pyMAOS_testing\braced_frame_output_ORIG\example_braced_frame.txt', 'w', buffering=1)
@@ -79,8 +79,8 @@ Structure = R2Struct.R2Structure(nodes, members)
 Structure.set_node_uids()
 Structure.set_member_uids()
 
-FM = Structure.freedom_map(); print(FM)
-K = Structure.Kstructure(FM)
+FM = Structure.set_freedom_map(); print(FM)
+K = Structure.Kstructure()
 print(K)
 np.savetxt('K_ORIG.csv', K, delimiter=',', fmt='%f')
 

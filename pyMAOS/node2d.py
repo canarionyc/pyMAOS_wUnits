@@ -42,6 +42,13 @@ class R2Node:
             unique node number.
         """
         self.uid = uid
+        # Ux,Uy, and Rz = 3
+        # Number of possible Joint Displacements
+        self.NJD = 3
+
+        self.is_inode_of_elem_ids = []; self.is_jnode_of_elem_ids = []
+
+        self.is_inode_of_elems=[]; self.is_jnode_of_elems=[]
 
         # Parse and store coordinates as pint.Quantity objects
         self.x = self._parse_coordinate(x)
@@ -357,6 +364,54 @@ class R2Node:
             print(f"Load Case: {loadcase}")
             print(f"  Fx: {forces[0]}, Fy: {forces[1]}, Mz: {forces[2]}")
 
+    def compute_reactions(self, load_combination):
+        """Calculate reactions for a given load combination
+
+        Computes support reactions by summing member end forces
+        at support nodes.
+
+        Parameters
+        ----------
+        load_combination : LoadCombo
+            The load combination for which to calculate reactions
+
+        Returns
+        -------
+        numpy.ndarray
+            Vector of reaction forces/moments at support nodes
+        """
+        # Initialize reactions array with object dtype to store quantities with units
+        reactions = np.zeros(self.NJD, dtype=object)
+
+        # Convert zeros to quantities with appropriate units
+        from pyMAOS.units_mod import unit_manager
+        for i in range(self.NJD):
+            # Use alternating force and moment units based on DOF index
+            unit = unit_manager.get_current_units().get('force' if i % 3 != 2 else 'moment', 'N')
+            reactions[i] = unit_manager.get_zero_quantity(unit)
+
+        print(f"Computing reactions for load combination: {load_combination.name}")
+
+        # For each member, add its contribution to the reactions
+        from pyMAOS.quantity_utils import add_arrays_with_units
+        # First iterate through members where this node is the i-node
+        for member in self.is_inode_of_elems:
+            member_FG = member.set_end_forces_global(load_combination)
+            # Use slice for i-node forces (first part of force vector)
+            reactions = add_arrays_with_units(reactions, member_FG[0:self.NJD])
+            print(f"After adding i-node member {member.uid}, reactions = {reactions}")
+
+        # Then iterate through members where this node is the j-node
+        for member in self.is_jnode_of_elems:
+            member_FG = member.set_end_forces_global(load_combination)
+            # Use slice for j-node forces (second part of force vector)
+            reactions = add_arrays_with_units(reactions, member_FG[self.NJD:(2*self.NJD)])
+            print(f"After adding j-node member {member.uid}, reactions = {reactions}")
+
+        self.reactions = reactions
+        print(f"Node {self.uid} reactions: Rx={reactions[0]:.4E}, Ry={reactions[1]:.4E}, Mz={reactions[2]:.4E}")
+
+        return reactions
 
 # --- Read nodes ---
 def get_nodes_from_csv(csv_file):

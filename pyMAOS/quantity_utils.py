@@ -34,11 +34,47 @@ class QuantityArray(np.ndarray):
     Used to perform calculations with quantities while preserving unit information.
     """
 
-    def __new__(cls, input_array, units_dict=None):
-        # Create a new array from the input
+    def __new__(cls, input_array):
+        """
+        Create a new QuantityArray, preserving units if present.
+
+        Parameters
+        ----------
+        input_array : array_like
+            Input array or list of values, possibly with units
+
+        Returns
+        -------
+        QuantityArray
+            New array with units preserved
+        """
+        print(f"DEBUG: Creating QuantityArray from: {input_array}")
+
+        # Check if we're dealing with a list/array of quantities with units
+        if isinstance(input_array, (list, np.ndarray)) and len(input_array) > 0:
+            has_units = any(hasattr(item, 'units') for item in input_array)
+
+            if has_units:
+                print(f"DEBUG: Input contains units, extracting magnitudes")
+                # Extract magnitudes first
+                magnitudes = np.array([item.magnitude if hasattr(item, 'magnitude') else item
+                                      for item in input_array])
+
+                # Create new array from magnitudes
+                obj = np.asarray(magnitudes).view(cls)
+
+                # Create units dictionary
+                obj._units_dict = {}
+                for i, item in enumerate(input_array):
+                    if hasattr(item, 'units'):
+                        obj._units_dict[i] = str(item.units)
+                        print(f"DEBUG: Item {i} has units: {item.units}")
+
+                return obj
+
+        # Fall back to standard numpy array creation if no units
+        print(f"DEBUG: No units detected, using standard numpy array creation")
         obj = np.asarray(input_array).view(cls)
-        # Store units dictionary
-        obj._units_dict = units_dict if units_dict is not None else {}
         return obj
 
     def __array_finalize__(self, obj):
@@ -277,9 +313,66 @@ class QuantityArray(np.ndarray):
         print("DEBUG: Multiple different units found - using first unit")
         first_unit = next(iter(self._units_dict.values()))
         return unit_manager.ureg.parse_units(first_unit)
+    def __add__(self, other):
+        """
+        Addition operator that handles unit inheritance.
+        When one operand has units and the other doesn't, the result inherits units from the one with units.
+
+        Parameters
+        ----------
+        other : array_like or scalar
+            Value to add to self
+
+        Returns
+        -------
+        QuantityArray
+            Result with appropriate units
+        """
+        # Create result using standard addition
+        result = super().__add__(other)
+
+        # Case 1: Self has units
+        if hasattr(self, '_units_dict') and self._units_dict:
+            print(f"DEBUG: Self has units, copying to result")
+            result._units_dict = self._units_dict.copy()
+
+        # Case 2: Self doesn't have units but other might have units
+        else:
+            # Check if other is a QuantityArray with units
+            if isinstance(other, QuantityArray) and hasattr(other, '_units_dict') and other._units_dict:
+                print(f"DEBUG: Inheriting units from QuantityArray")
+                result._units_dict = other._units_dict.copy()
+
+            # Check if other is a single Quantity with units
+            elif hasattr(other, 'units'):
+                print(f"DEBUG: Inheriting units from single Quantity in addition: {other.units}")
+                result._units_dict = {0: str(other.units)}
+
+            # Check if other is a numpy array containing Quantities
+            elif isinstance(other, np.ndarray) and other.size > 0:
+                # Process all elements in a single pass to find all units
+                result._units_dict = {}
+                has_units = False
+
+                print(f"DEBUG: Checking numpy array for Quantities")
+
+                # Iterate through all elements
+                for i, item in enumerate(other.flat):
+                    if item is not None and hasattr(item, 'units'):
+                        result._units_dict[i] = str(item.units)
+                        has_units = True
+                        print(f"DEBUG: Found unit at position {i}: {item.units}")
+
+                if has_units:
+                    print(f"DEBUG: Inherited {len(result._units_dict)} units from array")
+                else:
+                    print(f"DEBUG: No units found in the array")
+
+        return result
     def __sub__(self, other):
         """
-        Subtraction operator that handles unit inheritance when self has no units but other does.
+        Subtraction operator that handles unit inheritance.
+        When one operand has units and the other doesn't, the result inherits units from the one with units.
 
         Parameters
         ----------
@@ -294,30 +387,43 @@ class QuantityArray(np.ndarray):
         # Create result using standard subtraction
         result = super().__sub__(other)
 
-        # Case where self has no units but other is a numpy array with Quantity objects
-        if (not hasattr(self, '_units_dict') or not self._units_dict):
-            # Handle case where other is a single pint Quantity
-            if hasattr(other, 'units'):
+        # Case 1: Self has units
+        if hasattr(self, '_units_dict') and self._units_dict:
+            print(f"DEBUG: Self has units, copying to result")
+            result._units_dict = self._units_dict.copy()
+
+        # Case 2: Self doesn't have units but other might have units
+        else:
+            # Check if other is a QuantityArray with units
+            if isinstance(other, QuantityArray) and hasattr(other, '_units_dict') and other._units_dict:
+                print(f"DEBUG: Inheriting units from QuantityArray")
+                result._units_dict = other._units_dict.copy()
+
+            # Check if other is a single Quantity with units
+            elif hasattr(other, 'units'):
                 print(f"DEBUG: Inheriting units from single Quantity in subtraction: {other.units}")
                 result._units_dict = {0: str(other.units)}
 
-            # Handle case where other is an array containing pint Quantities
+            # Check if other is a numpy array containing Quantities
+            # Check if other is a numpy array containing Quantities
             elif isinstance(other, np.ndarray) and other.size > 0:
-                # Check first non-None element for Quantity
-                for item in other.flat:
-                    if item is not None and hasattr(item, 'units'):
-                        print(f"DEBUG: Inheriting units from array of Quantities: {item.units}")
-                        # Create units dictionary from array items
-                        result._units_dict = {}
-                        for i, val in enumerate(other.flat):
-                            if val is not None and hasattr(val, 'units'):
-                                result._units_dict[i] = str(val.units)
-                        break
-        else:
-            # Normal case - copy units from self
-            if hasattr(self, '_units_dict'):
-                result._units_dict = self._units_dict.copy()
+                # Process all elements in a single pass to find all units
+                result._units_dict = {}
+                has_units = False
 
+                print(f"DEBUG: Checking numpy array for Quantities")
+
+                # Iterate through all elements
+                for i, item in enumerate(other.flat):
+                    if item is not None and hasattr(item, 'units'):
+                        result._units_dict[i] = str(item.units)
+                        has_units = True
+                        print(f"DEBUG: Found unit at position {i}: {item.units}")
+
+                if has_units:
+                    print(f"DEBUG: Inherited {len(result._units_dict)} units from array")
+                else:
+                    print(f"DEBUG: No units found in the array")
         return result
 
     def __mul__(self, other):
@@ -349,44 +455,9 @@ class QuantityArray(np.ndarray):
         """Representation showing it's a QuantityArray"""
         return f"QuantityArray({np.asarray(self).__repr__()})"
 
-    def print_units_matrix(self):
-        """
-        Print a matrix with its values and units.
-        Uses the _units_dict to display units alongside magnitudes.
-        """
-        try:
-            # Only proceed if it's a 2D array
-            if self.ndim != 2:
-                print(f"Input is not a 2D array. Shape: {self.shape}")
-                return
 
-            rows, cols = self.shape
-            print(f"Matrix {rows}x{cols}:")
 
-            # Format and print each row
-            for i in range(rows):
-                row_str = "["
-                for j in range(cols):
-                    # Calculate flat index for looking up units
-                    flat_idx = i * cols + j
-
-                    # Get value directly from array (magnitude only)
-                    value = super(QuantityArray, self).__getitem__((i, j))
-
-                    # Get unit if available
-                    unit_str = ""
-                    if flat_idx in self._units_dict:
-                        unit_str = f" {self._units_dict[flat_idx]}"
-
-                    row_str += f" {value:+8.3g}{unit_str:25s}"
-                    if j < cols - 1:
-                        row_str += ","
-                row_str += " ]"
-                print(row_str)
-        except Exception as e:
-            print(f"Error printing matrix: {e}")
-
-    def add_with_units(self, position, value):
+    def incremental_add_with_units(self, position, value):
         """
         Add a value to a specific position in the array while preserving units.
         Checks for unit consistency and only adds new units when needed.
@@ -605,32 +676,34 @@ def quantity_array_to_float64(quantity_array):
     Parameters
     ----------
     quantity_array : QuantityArray or array-like
-        Array containing pint.Quantity objects
+        Array containing Pint Quantity objects or numeric values
 
     Returns
     -------
     numpy.ndarray
-        A NumPy array of float64 values
+        Array of float64 values with units stripped
     """
-    # Check if it's already a regular numpy array without units
-    if isinstance(quantity_array, np.ndarray) and not any(isinstance(x, pint.Quantity) for x in quantity_array.flat if hasattr(x, '__class__')):
+    import numpy as np
+
+    # Fast path for arrays that are already numeric
+    if np.issubdtype(quantity_array.dtype, np.number):
+        print(f"DEBUG: Fast path - array already has numeric dtype {quantity_array.dtype}")
         return quantity_array.astype(np.float64)
 
-    # Extract shape to preserve structure
-    original_shape = quantity_array.shape
+    # For single Quantity objects
+    if hasattr(quantity_array, 'magnitude'):
+        print(f"DEBUG: Converting single Quantity with magnitude")
+        return np.float64(quantity_array.magnitude)
 
-    # Create result array
-    result = np.empty(original_shape, dtype=np.float64)
+    # Create output array directly using numpy
+    result = np.zeros(quantity_array.shape, dtype=np.float64)
 
-    # Convert each element
-    for idx in np.ndindex(original_shape):
-        element = quantity_array[idx]
-        if isinstance(element, pint.Quantity):
-            result[idx] = element.magnitude
-        else:
-            # Handle non-Quantity values (like zeros)
-            result[idx] = float(element)
+    # Use flat iteration for efficiency
+    for i, val in enumerate(quantity_array.flat):
+        # Extract magnitude if it's a Quantity, otherwise use the value directly
+        result.flat[i] = val.magnitude if hasattr(val, 'magnitude') else float(val)
 
+    print(f"DEBUG: Converted array with shape {quantity_array.shape} to float64")
     return result
 
 # Alternative vectorized implementation for homogeneous arrays
@@ -642,9 +715,121 @@ def quantity_array_to_float64_vectorized(quantity_array):
         # Fall back to element-wise approach for mixed arrays
         return quantity_array_to_float64(quantity_array)
 
+def convert_array_to_float64(input_array):
+    """
+    Convert an array with mixed types or Quantity objects to a uniform float64 array.
 
+    Parameters
+    ----------
+    input_array : array-like
+        Array that may contain Quantity objects or other numeric types
 
+    Returns
+    -------
+    numpy.ndarray
+        Converted array with dtype=float64
+    """
+    import numpy as np
 
+    # Convert to numpy array if not already
+    array = np.asarray(input_array)
+
+    # If already float64 array, return directly
+    if array.dtype == np.float64:
+        return array
+
+    # Create output array
+    result = np.empty(array.shape, dtype=np.float64)
+
+    # Process each element
+    for idx in np.ndindex(array.shape):
+        val = array[idx]
+
+        # Handle Quantity objects
+        if hasattr(val, 'magnitude'):
+            result[idx] = float(val.magnitude)
+        else:
+            # Handle other types
+            try:
+                result[idx] = float(val)
+            except (TypeError, ValueError):
+                print(f"DEBUG: Cannot convert value at {idx}: {val}")
+                result[idx] = 0.0
+
+    print(f"DEBUG: Converted array to float64: {result}")
+    return result
+
+def quantity_array_to_numpy(quantity_array):
+    """
+    Convert a numpy array of Quantity objects to a numpy array of their
+    magnitude values stored as float64.
+
+    Parameters
+    ----------
+    quantity_array : numpy.ndarray
+        Array containing Pint Quantity objects
+
+    Returns
+    -------
+    numpy.ndarray
+        Array with the same shape as input but with magnitudes as float64 values
+    """
+    import numpy as np
+
+    # Fast path for arrays that are already numeric
+    if np.issubdtype(quantity_array.dtype, np.number):
+        print(f"DEBUG: Array already has numeric dtype {quantity_array.dtype}, converting to float64")
+        return quantity_array.astype(np.float64)
+
+    # For single Quantity objects
+    if hasattr(quantity_array, 'magnitude'):
+        print(f"DEBUG: Converting single Quantity with magnitude")
+        return np.float64(quantity_array.magnitude)
+
+    # Create output array with same shape but float64 dtype
+    result = np.zeros(quantity_array.shape, dtype=np.float64)
+
+    # Use flat iteration to extract magnitude values
+    for i, val in enumerate(quantity_array.flat):
+        # Extract magnitude if it's a Quantity, otherwise use value directly
+        result.flat[i] = val.magnitude if hasattr(val, 'magnitude') else float(val)
+
+    print(f"DEBUG: Converted array with shape {quantity_array.shape} to float64")
+    return result
+
+def extract_units_from_quantities(quantity_array):
+    """
+    Extract unit information from an array of Pint Quantity objects.
+
+    Parameters
+    ----------
+    quantity_array : numpy.ndarray
+        Array containing Pint Quantity objects
+
+    Returns
+    -------
+    numpy.ndarray
+        Array of the same shape containing only the unit information
+    """
+    import numpy as np
+
+    # Create an empty array with object dtype to store unit objects
+    units_array = np.empty_like(quantity_array, dtype=object)
+
+    # Iterate through all elements
+    for idx in np.ndindex(quantity_array.shape):
+        # Get the quantity at this position
+        quantity = quantity_array[idx]
+
+        # Extract just the unit information if it's a Quantity
+        if hasattr(quantity, 'units'):
+            units_array[idx] = quantity.units
+            print(f"DEBUG: Found unit {quantity.units} at position {idx}")
+        else:
+            units_array[idx] = None
+            print(f"DEBUG: No unit at position {idx}")
+
+    return units_array
 
 if __name__ == "__main__":
     # Example usage
@@ -698,3 +883,197 @@ if __name__ == "__main__":
 
     # Use it with your quantity array
     print_units_matrix(local_k)
+
+
+def increment_with_units(self, addend):
+    """
+    Increment a value with another value while ensuring consistent units.
+
+    If self is not a Quantity, it's promoted to a Quantity with internal units.
+    If addend is a Quantity, it's converted to internal units before adding.
+
+    Parameters
+    ----------
+    addend : pint.Quantity or scalar
+        The value to add
+
+    Returns
+    -------
+    pint.Quantity
+        A new Quantity with internal units, incremented by addend
+    """
+    import pint
+    from pyMAOS.units_mod import unit_manager, get_internal_unit
+
+    print(f"DEBUG: Incrementing {self} with {addend}")
+
+    # If addend is not a Quantity, just do regular addition
+    if not isinstance(addend, pint.Quantity):
+        result = self + addend
+        print(f"DEBUG: Added non-Quantity addend, result = {result}")
+        return result
+
+    # Determine the internal unit type based on addend's dimensionality
+    unit_type = None
+    if addend.check('[length]'):
+        unit_type = 'length'
+    elif addend.check('[force]'):
+        unit_type = 'force'
+    elif addend.check('[length] * [force]'):
+        unit_type = 'moment'
+    elif addend.check('[force] / [length]'):
+        unit_type = 'distributed_load'
+    elif addend.check('[force] / [length]^2'):
+        unit_type = 'pressure'
+
+    # Get the appropriate internal unit
+    if unit_type:
+        internal_unit = get_internal_unit(unit_type)
+        print(f"DEBUG: Using internal unit {internal_unit} for {unit_type}")
+    else:
+        # If we can't determine the unit type, use addend's units as fallback
+        internal_unit = addend.units
+        print(f"DEBUG: Could not determine unit type, using addend units {internal_unit}")
+
+    # If self is not a Quantity, promote it to a Quantity with internal units
+    if not isinstance(self, pint.Quantity):
+        self = unit_manager.ureg.Quantity(self, internal_unit)
+        print(f"DEBUG: Promoted self to Quantity with internal units: {self}")
+
+    try:
+        # Convert addend to internal units before adding
+        converted_addend = addend.to(internal_unit)
+        print(f"DEBUG: Converted addend from {addend} to {converted_addend}")
+
+        # Create result with the proper internal units
+        result = type(self)(self.magnitude + converted_addend.magnitude, internal_unit)
+        print(f"DEBUG: Result after increment: {result}")
+
+        return result
+    except pint.DimensionalityError as e:
+        print(f"DEBUG: Dimensionality error - {self.dimensionality} ≠ {addend.dimensionality}")
+        raise e
+
+def add_arrays_with_units(array1, array2):
+    """
+    Add two arrays element-wise while ensuring consistent units for each element.
+
+    For each element pair:
+    - Checks that dimensions agree, or one is a pure number and the other a Quantity
+    - Sums the magnitudes elementwise
+    - Converts the result to a Quantity in the internal unit system
+
+    Parameters
+    ----------
+    array1 : array-like
+        First array, may contain Quantity objects
+    array2 : array-like
+        Second array, may contain Quantity objects
+
+    Returns
+    -------
+    numpy.ndarray
+        Result array with proper internal units for each element
+    """
+    import numpy as np
+    from pyMAOS.quantity_utils import increment_with_units
+
+    # Convert inputs to numpy arrays if they're not already
+    array1 = np.asarray(array1)
+    array2 = np.asarray(array2)
+
+    # Check that shapes are compatible
+    if array1.shape != array2.shape:
+        raise ValueError(f"Arrays must have the same shape, got {array1.shape} and {array2.shape}")
+
+    # Create output array with the same shape
+    result = np.empty_like(array1, dtype=object)
+
+    # Process each element using the existing increment_with_units function
+    for idx in np.ndindex(array1.shape):
+        result[idx] = increment_with_units(array1[idx], array2[idx])
+        print(f"DEBUG: Element-wise addition at {idx}: {array1[idx]} + {array2[idx]} = {result[idx]}")
+
+    return result
+
+def print_units_matrix(array):
+    """
+    Print a matrix with its values and units.
+
+    This function displays the content of a numpy array containing Pint Quantity objects,
+    showing both the magnitude values and their corresponding units.
+
+    For elements without units, only their values are shown.
+
+    Parameters
+    ----------
+    array : numpy.ndarray
+        The array to print, potentially containing Pint Quantity objects
+    """
+    import numpy as np
+
+    # First, print the shape information
+    print(f"Matrix shape: {array.shape}")
+
+    # Helper function for formatting a single value
+    def format_value(val):
+        if val is None:
+            return "None"
+        elif hasattr(val, 'units'):
+            # Format magnitude with appropriate precision
+            if abs(val.magnitude) < 1e-10:
+                return f"0 {val.units}"
+            else:
+                return f"{val.magnitude:.4g} {val.units}"
+        else:
+            # Format plain numbers with appropriate precision
+            if isinstance(val, (int, float)) and abs(val) < 1e-10:
+                return "0"
+            return str(val)
+
+    # Helper function for recursive printing of subarrays
+    def print_array(arr, indent=""):
+        if arr.ndim == 1:
+            elements = [format_value(val) for val in arr]
+            print(indent + "[" + ", ".join(elements) + "]")
+        elif arr.ndim == 2:
+            print(indent + "[")
+            for row in arr:
+                print_array(row, indent + "  ")
+            print(indent + "]")
+        else:
+            print(indent + f"Array with {arr.ndim} dimensions:")
+            for i, subarray in enumerate(arr):
+                print(indent + f"Dimension {i}:")
+                print_array(subarray, indent + "  ")
+
+    # Collect unit information for reporting
+    if array.size > 0:
+        unique_units = set()
+        has_units = False
+
+        # Check for units in the array
+        for idx in np.ndindex(array.shape):
+            val = array[idx]
+            if hasattr(val, 'units'):
+                has_units = True
+                unique_units.add(str(val.units))
+
+        if has_units:
+            print(f"DEBUG: Units found in matrix: {', '.join(sorted(unique_units))}")
+        else:
+            print("DEBUG: No units found in matrix")
+
+    # For empty arrays
+    if array.size == 0:
+        print("[]")
+        return
+
+    # For scalar arrays
+    if array.ndim == 0:
+        val = array.item()
+        print(format_value(val))
+        return
+
+    # Print the array
+    print_array(array)

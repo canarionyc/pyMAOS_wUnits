@@ -126,7 +126,7 @@
         # 2. Structure visualization (if requested)
         if include_visualization:
             try:
-                from pyMAOS.plot_with_matplotlib import plot_structure_matplotlib
+                from pyMAOS.structure2d_plot_with_matplotlib import plot_structure_matplotlib
                 
                 # Use the existing plot function
                 fig, ax = plot_structure_matplotlib(self.nodes, self.members)
@@ -352,7 +352,7 @@ def _get_member_forces(member, combo, combo_name):
     else:
         # Calculate forces if not already available
         try:
-            global_forces = np.asarray(member.Fglobal(combo)).flatten()
+            global_forces = np.asarray(member.set_end_forces_global(combo)).flatten()
         except:
             global_forces = np.zeros(6)
     

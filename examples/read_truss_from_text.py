@@ -149,13 +149,13 @@ if __name__ == "__main__":
      print(f"Total elements: {len(element_list)}")
 
      Structure = R2Struct.R2Structure(node_list, element_list)
-     FM = Structure.freedom_map(); print(FM)
+     FM = Structure.set_freedom_map(); print(FM)
 
      # Create output directory if it doesn't exist
      os.makedirs('example_4_2_output', exist_ok=True)
      
      # Pass output_dir parameter to Kstructure
-     K = Structure.Kstructure(FM, output_dir='example_4_2_output')
+     K = Structure.Kstructure(output_dir='example_4_2_output')
      np.save(os.path.join('example_4_2_output', 'K.npy'), K)  # Save K matrix to file
      np.savetxt(os.path.join('example_4_2_output', 'K.txt'), K) 
      print(f"Global Stiffness Matrix K:\n{K}")

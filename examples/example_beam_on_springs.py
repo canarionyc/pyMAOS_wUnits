@@ -6,7 +6,7 @@ from pyMAOS.material import LinearElasticMaterial as Material
 from pyMAOS.section import Section
 import pyMAOS.structure2d as R2Struct
 from pyMAOS.loadcombos import LoadCombo
-from pyMAOS.plot_structure import plot_structure
+from pyMAOS.structure2d_plot import plot_structure
 
 
 # Units
@@ -67,8 +67,8 @@ Structure.set_member_uids()
 
 Structure.spring_nodes()
 
-FM = Structure.freedom_map()
-K = Structure.Kstructure(FM)
+FM = Structure.set_freedom_map()
+K = Structure.Kstructure()
 U = Structure.solve_linear_static(loadcombo)
 Errors = Structure._ERRORS
 

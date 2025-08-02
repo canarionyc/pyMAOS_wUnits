@@ -1,8 +1,12 @@
 ﻿import numpy as np
 from abc import ABC, abstractmethod
 
+from numpy import ndarray
+
 import pyMAOS.loading as loadtypes
+import quantity_utils
 from pyMAOS.units_mod import unit_manager
+from quantity_utils import QuantityArray, quantity_array_to_float64
 
 
 # In structural analysis, hinges in frame elements (like beams and columns) serve a distinct purpose from node restraints. Here's what they do:
@@ -44,7 +48,7 @@ class Element(ABC):
         """Calculate member length from the i and j nodes"""
         return self.inode.distance(self.jnode)
         
-    def T(self) -> np.matrix:
+    def set_rotation_matrix(self) -> np.matrix:
         """Create transformation matrix from local to global coordinates
     
         Returns
@@ -63,7 +67,8 @@ class Element(ABC):
             [0, 0, 0, c, s, 0],
             [0, 0, 0, -s, c, 0],
             [0, 0, 0, 0, 0, 1],
-        ], dtype=float)
+        ], dtype=np.float64)
+        self.rotation_matrix = T
         return T
 
     @abstractmethod
@@ -92,31 +97,24 @@ class Element(ABC):
 
         Returns
         -------
-        QuantityArray
+        ndarray
             Element stiffness matrix in global coordinates
         """
         # Get transformation matrix
-        T = self.T()
+        T = self.set_rotation_matrix()
 
-        # Get local stiffness matrix (now a QuantityArray)
         local_k = self.k()
-        # print(f"Units dictionary contents: {local_k._units_dict}")
-        local_k.print_units_matrix()
+        localk_float64 = quantity_array_to_float64(local_k)
         # Perform the transformation while preserving units
-        # First calculate transpose(T) * k
-        temp_result = np.matmul(np.transpose(T), local_k)
+        from numpy import linalg
+        # Transform local stiffness to global coordinates efficiently
+        globalk_float64 = linalg.multi_dot([T.T, localk_float64, T])
 
-        # Then calculate the final result: temp_result * T
-        global_stiffness_matrix = np.matmul(temp_result, T)
+        print(f"DEBUG: Element {self.uid} global stiffness matrix created with shape {globalk_float64.shape}")
 
-        # Ensure the result is a QuantityArray
-        from pyMAOS.quantity_utils import QuantityArray
-        if not isinstance(global_stiffness_matrix, QuantityArray):
-            global_stiffness_matrix = QuantityArray(global_stiffness_matrix, units_dict=local_k._units_dict)
+        print(f"Element {self.uid} global stiffness matrix created with shape {globalk_float64.shape}")
 
-        print(f"Element {self.uid} global stiffness matrix created with shape {global_stiffness_matrix.shape}")
-        global_stiffness_matrix.print_units_matrix()
-        return global_stiffness_matrix
+        return globalk_float64
 
     def display_stiffness_matrix_in_units(self):
         """Display the stiffness matrix with appropriate units notation."""
@@ -125,24 +123,30 @@ class Element(ABC):
         print(f"Stiffness Matrix for Element {self.uid}:\n")
         print(k_with_units)
 
-    def Dglobal(self, load_case):
+    def set_displacement_global(self, load_case):
         """Get global nodal displacement vector for the element"""
-        D = np.zeros(6)
-        iD = self.inode.displacements[load_case]
-        jD = self.jnode.displacements[load_case]
 
-        # Populate Displacement Vector
-        displacement_vector_global = np.array([*iD, *jD])
-       
+        iD = self.inode.displacements[load_case]; print(f"iD: {iD}")
+        jD = self.jnode.displacements[load_case]; print(f"jD: {jD}")
 
-        return displacement_vector_global
+        # Convert each QuantityArray to numpy arrays of Quantities
+        # from pyMAOS.quantity_utils import quantity_array_to_numpy
+        # iD_array = quantity_array_to_numpy(iD)
+        # jD_array = quantity_array_to_numpy(jD)
 
-    def Dlocal(self, load_case):
+        # Now you can create a combined displacement vector
+        self.displacement_global = np.concatenate([iD, jD])
+        return self.displacement_global
+
+    def set_displacement_local(self, load_case):
         """Calculate local displacement vector"""
-        Dglobal = self.Dglobal(load_case)
-        displacement_vector_local = np.matmul(self.T(), Dglobal)
+        elem_global_displacement = self.set_displacement_global(load_case)
+        from pyMAOS import quantity_utils
+        from numpy import linalg
+        from pyMAOS.quantity_utils import quantity_array_to_float64
+        self.displacement_local = np.dot(self.set_rotation_matrix(), convert_array_to_float64(elem_global_displacement))
       
-        return displacement_vector_local
+        return self.displacement_local
 
     def stations(self, num_stations=10):
         """Define calculation points along the element"""

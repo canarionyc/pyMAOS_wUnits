@@ -70,14 +70,14 @@ class R2Truss(Element):
         load_combination : LoadCombo
             The load combination for which to calculate forces
         """
-        Dlocal = self.Dlocal(load_combination)
+        Dlocal = self.set_displacement_local(load_combination)
 
         FL = np.matmul(self.k(), Dlocal.T)
         print(f"Element {self.uid} end forces in local coordinates: {FL}")
         self.end_forces_local[load_combination.name] = FL
 
     def Fglobal(self, load_combination):
-        Dglobal = self.Dglobal(load_combination)
+        Dglobal = self.set_displacement_global(load_combination)
 
         # global stiffness matrix
         KG = self.kglobal()
@@ -134,7 +134,7 @@ class R2Truss(Element):
         if not self._stations:
             self.stations()
 
-        Dlocal = self.Dlocal(load_combination)
+        Dlocal = self.set_displacement_local(load_combination)
 
         # Parametric Functions defining a linear relationship for deflection
         # in each axis based on the Ux and Uy nodal displacements

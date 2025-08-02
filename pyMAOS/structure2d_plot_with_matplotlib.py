@@ -201,69 +201,116 @@ def plot_structure(
     return fig, axs
 
 
-def plot_structure_matplotlib(
-    nodes,
-    members,
-    scaling={
-        "axial_load": 100,
-        "normal_load": 100,
-        "point_load": 1,
-        "axial": 2,
-        "shear": 2,
-        "moment": 0.1,
-        "rotation": 5000,
-        "displacement": 100,
-    },
-):
-    # Plot the structure
-    from matplotlib import pyplot as plt
-    fig, ax = plt.subplots(figsize=(10, 8))
+def plot_structure_matplotlib(nodes, members, ax=None, show_labels=True,
+                             node_color='black', member_color='blue',
+                             node_size=50, node_labels=True, member_labels=True):
+    """
+    Plot a 2D structure using matplotlib.
 
-    # Plot nodes and their labels
-    for node in nodes:
-        ax.plot(node.x, node.y, marker="o", markersize=6, color="red", label="Node" if "Node" not in ax.get_legend_handles_labels()[1] else "")
-        ax.text(node.x, node.y + 5, f'N{node.uid}', color='darkred', fontsize=9, ha='center')
+    Parameters
+    ----------
+    nodes : list
+        A list of R2Node objects.
+    members : list
+        A list of R2Truss or R2Frame objects.
+    ax : matplotlib.axes.Axes, optional
+        Axes to plot on. If None, a new figure and axes are created.
+    show_labels : bool, optional
+        Whether to show node and member labels.
+    node_color : str, optional
+        Color for nodes.
+    member_color : str, optional
+        Color for members.
+    node_size : int, optional
+        Size of node markers.
+    node_labels : bool, optional
+        Whether to show node labels.
+    member_labels : bool, optional
+        Whether to show member labels.
 
-        # Visualize restraints
-        if hasattr(node, "restraints"):
-            rx, ry, rz = node.restraints
-            size = 5  # Length of restraint symbol
-            if rx:  # Horizontal restraint
-                ax.plot([node.x - size, node.x + size], [node.y, node.y], color="blue", linewidth=2, label="Restraint (Ux)" if "Restraint (Ux)" not in ax.get_legend_handles_labels()[1] else "")
-            if ry:  # Vertical restraint
-                ax.plot([node.x, node.x], [node.y - size, node.y + size], color="green", linewidth=2, label="Restraint (Uy)" if "Restraint (Uy)" not in ax.get_legend_handles_labels()[1] else "")
-            if rz:  # Rotational restraint
-                theta = np.linspace(0, 2 * np.pi, 100)
-                ax.plot(
-                    node.x + (size / 2) * np.cos(theta),
-                    node.y + (size / 2) * np.sin(theta),
-                    color="purple",
-                    linewidth=1.5,
-                    label="Restraint (Rz)" if "Restraint (Rz)" not in ax.get_legend_handles_labels()[1] else "",
-                )
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The figure object.
+    ax : matplotlib.axes.Axes
+        The axes object.
+    """
+    import matplotlib.pyplot as plt
+    import numpy as np
 
-    # Plot members and their labels
+    # Helper function to extract value from a potential Quantity object
+    def extract_value(val):
+        if hasattr(val, 'magnitude'):  # Check if it's a Pint Quantity
+            return val.magnitude
+        return val
+
+    # Create figure if needed
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(10, 8))
+    else:
+        fig = ax.figure
+
+    # Extract node coordinates, handling potential Quantity objects
+    node_x = [extract_value(node.x) for node in nodes]
+    node_y = [extract_value(node.y) for node in nodes]
+
+    # Plot nodes
+    ax.scatter(node_x, node_y, color=node_color, s=node_size, zorder=10)
+
+    # Plot members
     for member in members:
-        ax.plot(
-            [member.inode.x, member.jnode.x],
-            [member.inode.y, member.jnode.y],
-            color="black",
-            linewidth=1.5,
-            label="Element" if "Element" not in ax.get_legend_handles_labels()[1] else "",
-        )
-        # Calculate midpoint for the label
-        mid_x = (member.inode.x + member.jnode.x) / 2
-        mid_y = (member.inode.y + member.jnode.y) / 2
-        ax.text(mid_x, mid_y, f'M{member.uid}', color='darkblue', fontsize=9, ha='center', va='center', backgroundcolor=(1,1,1,0.7))
+        # Extract coordinates for both nodes, handling potential Quantity objects
+        x1 = extract_value(member.inode.x)
+        y1 = extract_value(member.inode.y)
+        x2 = extract_value(member.jnode.x)
+        y2 = extract_value(member.jnode.y)
 
+        # Plot member as a line
+        ax.plot([x1, x2], [y1, y2], color=member_color, linewidth=1.5)
 
-    # Add grid, labels, and legend
-    ax.grid(True)
-    ax.set_aspect("equal", "box")
-    ax.set_title("Structure Visualization", fontsize=14)
-    ax.set_xlabel("X Coordinate", fontsize=12)
-    ax.set_ylabel("Y Coordinate", fontsize=12)
-    ax.legend()
+        # Add member label at midpoint if requested
+        if show_labels and member_labels:
+            mid_x = (x1 + x2) / 2
+            mid_y = (y1 + y2) / 2
+            ax.text(mid_x, mid_y, f"M{member.uid}", color=member_color,
+                   ha='center', va='center', fontsize=8,
+                   bbox=dict(facecolor='white', alpha=0.7, boxstyle='round,pad=0.1'))
 
-    # Return the figure and axis for further customization or saving
+    # Add node labels if requested
+    if show_labels and node_labels:
+        for i, node in enumerate(nodes):
+            ax.text(node_x[i], node_y[i], f"N{node.uid}", color=node_color,
+                   ha='left', va='bottom', fontsize=8, fontweight='bold')
+
+    # Add hinges for frame members with hinges
+    for member in members:
+        if hasattr(member, 'hinges') and any(member.hinges):
+            x1 = extract_value(member.inode.x)
+            y1 = extract_value(member.inode.y)
+            x2 = extract_value(member.jnode.x)
+            y2 = extract_value(member.jnode.y)
+
+            if member.hinges[0]:  # i-node hinge
+                ax.scatter(x1, y1, marker='o', facecolors='none', edgecolors='red', s=80, zorder=11)
+
+            if member.hinges[1]:  # j-node hinge
+                ax.scatter(x2, y2, marker='o', facecolors='none', edgecolors='red', s=80, zorder=11)
+
+    # Adjust plot appearance
+    ax.set_aspect('equal')
+    ax.grid(True, linestyle='--', alpha=0.7)
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_title('Structure Plot')
+
+    # Add some padding around the structure
+    x_min, x_max = min(node_x), max(node_x)
+    y_min, y_max = min(node_y), max(node_y)
+    padding = max(x_max - x_min, y_max - y_min) * 0.1
+    ax.set_xlim(x_min - padding, x_max + padding)
+    ax.set_ylim(y_min - padding, y_max + padding)
+
+    # Make sure the figure is tight
+    fig.tight_layout()
+
     return fig, ax

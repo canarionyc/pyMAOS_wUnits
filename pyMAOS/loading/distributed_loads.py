@@ -361,54 +361,54 @@ class LinearLoadXY:
         Rjy = self.Rjy - (Miz / L) - (Mjz / L)
 
         # Dimension checking
-        print(f"DEBUG: Checking dimensions - Miz: {Miz.dimensionality}, Mjz: {Mjz.dimensionality}")
-        print(f"DEBUG: Checking dimensions - Riy: {Riy.dimensionality}, Rjy: {Rjy.dimensionality}")
+        # print(f"DEBUG: Checking dimensions - Miz: {Miz.dimensionality}, Mjz: {Mjz.dimensionality}")
+        # print(f"DEBUG: Checking dimensions - Riy: {Riy.dimensionality}, Rjy: {Rjy.dimensionality}")
 
         # Verify moment dimensions
-        try:
-            Miz.check(MOMENT_DIMENSIONALITY)
-            Mjz.check(MOMENT_DIMENSIONALITY)
-            print("DEBUG: Moment dimension check passed")
-        except pint.DimensionalityError as e:
-            print(f"ERROR: Dimension error in moments: {e}")
-            # Create correctly dimensioned values as fallback
-            if not Miz.check(MOMENT_DIMENSIONALITY):
-                print(f"WARNING: Fixing dimensions of Miz from {Miz.dimensionality} to {MOMENT_DIMENSIONALITY}")
-                Miz = unit_manager.ureg.Quantity(Miz.magnitude, INTERNAL_MOMENT_UNIT)
-            if not Mjz.check(MOMENT_DIMENSIONALITY):
-                print(f"WARNING: Fixing dimensions of Mjz from {Mjz.dimensionality} to {MOMENT_DIMENSIONALITY}")
-                Mjz = unit_manager.ureg.Quantity(Mjz.magnitude, INTERNAL_MOMENT_UNIT)
+        # try:
+        #     Miz.check(MOMENT_DIMENSIONALITY)
+        #     Mjz.check(MOMENT_DIMENSIONALITY)
+        #     # print("DEBUG: Moment dimension check passed")
+        # except pint.DimensionalityError as e:
+        #     print(f"ERROR: Dimension error in moments: {e}")
+        #     # Create correctly dimensioned values as fallback
+        #     if not Miz.check(MOMENT_DIMENSIONALITY):
+        #         print(f"WARNING: Fixing dimensions of Miz from {Miz.dimensionality} to {MOMENT_DIMENSIONALITY}")
+        #         Miz = unit_manager.ureg.Quantity(Miz.magnitude, INTERNAL_MOMENT_UNIT)
+        #     if not Mjz.check(MOMENT_DIMENSIONALITY):
+        #         print(f"WARNING: Fixing dimensions of Mjz from {Mjz.dimensionality} to {MOMENT_DIMENSIONALITY}")
+        #         Mjz = unit_manager.ureg.Quantity(Mjz.magnitude, INTERNAL_MOMENT_UNIT)
 
         # Verify force dimensions
-        try:
-            Riy.check(FORCE_DIMENSIONALITY)
-            Rjy.check(FORCE_DIMENSIONALITY)
-            print("DEBUG: Force dimension check passed")
-        except pint.DimensionalityError as e:
-            print(f"ERROR: Dimension error in forces: {e}")
-            # Create correctly dimensioned values as fallback
-            if not Riy.check(FORCE_DIMENSIONALITY):
-                print(f"WARNING: Fixing dimensions of Riy from {Riy.dimensionality} to {FORCE_DIMENSIONALITY}")
-                Riy = unit_manager.ureg.Quantity(Riy.magnitude, INTERNAL_FORCE_UNIT)
-            if not Rjy.check(FORCE_DIMENSIONALITY):
-                print(f"WARNING: Fixing dimensions of Rjy from {Rjy.dimensionality} to {FORCE_DIMENSIONALITY}")
-                Rjy = unit_manager.ureg.Quantity(Rjy.magnitude, INTERNAL_FORCE_UNIT)
+        # try:
+        #     Riy.check(FORCE_DIMENSIONALITY)
+        #     Rjy.check(FORCE_DIMENSIONALITY)
+        #     # print("DEBUG: Force dimension check passed")
+        # except pint.DimensionalityError as e:
+        #     print(f"ERROR: Dimension error in forces: {e}")
+        #     # Create correctly dimensioned values as fallback
+        #     if not Riy.check(FORCE_DIMENSIONALITY):
+        #         print(f"WARNING: Fixing dimensions of Riy from {Riy.dimensionality} to {FORCE_DIMENSIONALITY}")
+        #         Riy = unit_manager.ureg.Quantity(Riy.magnitude, INTERNAL_FORCE_UNIT)
+        #     if not Rjy.check(FORCE_DIMENSIONALITY):
+        #         print(f"WARNING: Fixing dimensions of Rjy from {Rjy.dimensionality} to {FORCE_DIMENSIONALITY}")
+        #         Rjy = unit_manager.ureg.Quantity(Rjy.magnitude, INTERNAL_FORCE_UNIT)
 
         # Print forces and moments in both SI and display units
         from pyMAOS.units_mod import convert_to_display_units
         from pyMAOS.units_mod import FORCE_DISPLAY_UNIT, MOMENT_DISPLAY_UNIT
         # Get current unit system directly from the manager
-        current_units = unit_manager.get_current_units()
-        system_name = unit_manager.get_system_name()
-        Riy_display = Riy.to(FORCE_DISPLAY_UNIT)
-        Rjy_display = Rjy.to(FORCE_DISPLAY_UNIT)
-        Miz_display = Miz.to(MOMENT_DISPLAY_UNIT)
-        Mjz_display = Mjz.to(MOMENT_DISPLAY_UNIT)
-
-        print(f"Vertical reactions - SI: Riy={Riy:.3f} N, Rjy={Rjy:.3f} N")
-        print(f"Vertical reactions - Display: Riy={Riy_display:.3f}, Rjy={Rjy_display:.3f}")
-        print(f"Moments - SI: Miz={Miz:.3f} N*m, Mjz={Mjz:.3f} N*m")
-        print(f"Moments - Display: Miz={Miz_display:.3f}, Mjz={Mjz_display:.3f}")
+        # current_units = unit_manager.get_current_units()
+        # system_name = unit_manager.get_system_name()
+        # Riy_display = Riy.to(FORCE_DISPLAY_UNIT)
+        # Rjy_display = Rjy.to(FORCE_DISPLAY_UNIT)
+        # Miz_display = Miz.to(MOMENT_DISPLAY_UNIT)
+        # Mjz_display = Mjz.to(MOMENT_DISPLAY_UNIT)
+        #
+        # print(f"Vertical reactions - SI: Riy={Riy:.3f} N, Rjy={Rjy:.3f} N")
+        # print(f"Vertical reactions - Display: Riy={Riy_display:.3f}, Rjy={Rjy_display:.3f}")
+        # print(f"Moments - SI: Miz={Miz:.3f} N*m, Mjz={Mjz:.3f} N*m")
+        # print(f"Moments - Display: Miz={Miz_display:.3f}, Mjz={Mjz_display:.3f}")
 
         ret_val = np.array([unit_manager.ureg.Quantity(0, INTERNAL_FORCE_UNIT), Riy, Miz, unit_manager.ureg.Quantity(0, INTERNAL_FORCE_UNIT), Rjy, Mjz], dtype=object)
         print(f"FEF distributed load results on member {self.member_uid} for Load Case {self.loadcase}:", ret_val, sep="\n")

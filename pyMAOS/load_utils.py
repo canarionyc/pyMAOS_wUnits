@@ -15,52 +15,52 @@ except ImportError:
     ureg = UnitRegistry()
     Q_ = ureg.Quantity
 
-def convert_load_value(value: Union[str, float, Q_], 
-                       load_type: str, 
-                       units_system: Dict[str, str]) -> Tuple[float, float, str, str]:
-    """
-    Convert load value to internal units and display units.
-    
-    Parameters
-    ----------
-    value : str, float, or Quantity
-        The load value with or without units
-    load_type : str
-        Type of load (point_load, distributed_load, moment, temperature, etc.)
-    units_system : dict
-        Dictionary of unit definitions
-        
-    Returns
-    -------
-    tuple
-        (internal_value, display_value, internal_unit, display_unit)
-    """
-    # Get appropriate units based on load type
-    internal_unit, display_unit = get_load_units(load_type, units_system)
-    
-    # Parse the value if it's a string
-    if isinstance(value, str):
-        try:
-            # Try parsing as a Quantity with units
-            value = Q_(value)
-        except:
-            # If parsing fails, treat as a dimensionless number
-            value = float(value)
-    
-    # Handle Quantity objects (with units)
-    if isinstance(value, Q_):
-        try:
-            # Convert to internal units
-            internal_value = value.to(internal_unit).magnitude
-            # Convert to display units
-            display_value = value.to(display_unit).magnitude
-            return internal_value, display_value, internal_unit, display_unit
-        except Exception as e:
-            print(f"Warning: Unit conversion error ({e}). Using magnitude directly.")
-            return value.magnitude, value.magnitude, internal_unit, display_unit
-    
-    # Handle numeric values (without units)
-    return value, value, internal_unit, display_unit
+# def convert_load_value(value: Union[str, float, Q_],
+#                        load_type: str,
+#                        units_system: Dict[str, str]) -> Tuple[float, float, str, str]:
+#     """
+#     Convert load value to internal units and display units.
+#
+#     Parameters
+#     ----------
+#     value : str, float, or Quantity
+#         The load value with or without units
+#     load_type : str
+#         Type of load (point_load, distributed_load, moment, temperature, etc.)
+#     units_system : dict
+#         Dictionary of unit definitions
+#
+#     Returns
+#     -------
+#     tuple
+#         (internal_value, display_value, internal_unit, display_unit)
+#     """
+#     # Get appropriate units based on load type
+#     internal_unit, display_unit = get_load_units(load_type, units_system)
+#
+#     # Parse the value if it's a string
+#     if isinstance(value, str):
+#         try:
+#             # Try parsing as a Quantity with units
+#             value = Q_(value)
+#         except:
+#             # If parsing fails, treat as a dimensionless number
+#             value = float(value)
+#
+#     # Handle Quantity objects (with units)
+#     if isinstance(value, Q_):
+#         try:
+#             # Convert to internal units
+#             internal_value = value.to(internal_unit).magnitude
+#             # Convert to display units
+#             display_value = value.to(display_unit).magnitude
+#             return internal_value, display_value, internal_unit, display_unit
+#         except Exception as e:
+#             print(f"Warning: Unit conversion error ({e}). Using magnitude directly.")
+#             return value.magnitude, value.magnitude, internal_unit, display_unit
+#
+#     # Handle numeric values (without units)
+#     return value, value, internal_unit, display_unit
 
 def get_load_units(load_type: str, units_system: Dict[str, str]) -> Tuple[str, str]:
     """

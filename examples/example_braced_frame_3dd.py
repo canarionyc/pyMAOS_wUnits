@@ -369,8 +369,8 @@ Structure = R2Struct.R2Structure(node_list, element_list)
 # Structure.set_node_uids()
 # Structure.set_member_uids()
 
-FM = Structure.freedom_map(); print(FM)
-K = Structure.Kstructure(FM, **vars(args))
+FM = Structure.set_freedom_map(); print(FM)
+K = Structure.Kstructure(**vars(args))
 
 U = Structure.solve_linear_static(loadcombo, **vars(args))
 Errors = Structure._ERRORS
@@ -424,7 +424,7 @@ for element in element_list:
 # --- Choose a plotting library ---
 
 # Use VTK for plotting
-from pyMAOS.plot_structure import get_scaling_from_config, plot_structure_loadcombos_vtk, plot_structure_vtk
+from pyMAOS.structure2d_plot import get_scaling_from_config, plot_structure_loadcombos_vtk, plot_structure_vtk
 # Read scaling parameters from configuration file
 
 scaling = get_scaling_from_config(args.config_file)

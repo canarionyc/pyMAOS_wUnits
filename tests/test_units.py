@@ -20,15 +20,15 @@ class TestUnitConversions(unittest.TestCase):
         original_force = unit_manager.get_current_units().get("force", "N")
         
         # Change to imperial
-        unit_manager.set_unit_system(IMPERIAL_UNITS, "imperial")
+        unit_manager.set_display_unit_system(IMPERIAL_UNITS, "imperial")
         self.assertEqual(unit_manager.get_current_units().get("force", ""), "lbf")
         
         # Change to SI
-        unit_manager.set_unit_system(SI_UNITS, "SI")
+        unit_manager.set_display_unit_system(SI_UNITS, "SI")
         self.assertEqual(unit_manager.get_current_units().get("force", ""), "N")
         
         # Change to metric kN
-        unit_manager.set_unit_system(METRIC_KN_UNITS, "metric_kN")
+        unit_manager.set_display_unit_system(METRIC_KN_UNITS, "metric_kN")
         self.assertEqual(unit_manager.get_current_units().get("force", ""), "kN")
         
         # Restore original

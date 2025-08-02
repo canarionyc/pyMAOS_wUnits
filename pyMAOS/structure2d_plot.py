@@ -42,7 +42,7 @@ def get_scaling_from_config(config_file_path):
 
 
 
-# python pyMAOS/plot_structure.py
+# python pyMAOS/structure2d_plot.py
 
 
 

@@ -6,7 +6,7 @@ from pyMAOS.material import LinearElasticMaterial as Material
 from pyMAOS.section import Section
 import pyMAOS.structure2d as R2Struct
 from pyMAOS.loadcombos import LoadCombo
-from pyMAOS.plot_structure import plot_structure
+from pyMAOS.structure2d_plot import plot_structure
 
 # 5 Element Cantilever beam w/ Point Load
 loadcase = "D"
@@ -67,8 +67,8 @@ Structure = R2Struct.R2Structure(nodes, members)
 Structure.set_node_uids()
 Structure.set_member_uids()
 
-FM = Structure.freedom_map()
-K = Structure.Kstructure(FM)
+FM = Structure.set_freedom_map()
+K = Structure.Kstructure()
 U = Structure.solve_linear_static(loadcombo)
 Errors = Structure._ERRORS
 

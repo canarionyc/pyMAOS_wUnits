@@ -144,7 +144,7 @@ from pyMAOS.units_mod import (
 # from pyMAOS.units_mod import SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS
 
 # Import other modules
-from pyMAOS.plot_structure import plot_structure_vtk
+from pyMAOS.structure2d_plot import plot_structure_vtk
 from pyMAOS.node2d import R2Node
 from pyMAOS.frame2d import R2Frame
 from pyMAOS.material import LinearElasticMaterial as Material
@@ -315,7 +315,16 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
     for member_data in data.get("members", []):
         member_id = member_data["id"]
         i_node = member_data["i_node"]
+
+        inode=nodes_dict[i_node]
+        inode.is_inode_of_elem_ids.append(member_id)
+
+
         j_node = member_data["j_node"]
+        jnode = nodes_dict[j_node]
+        jnode.is_jnode_of_elem_ids.append(member_id)
+
+
         mat_id = member_data["material"]
         sec_id = member_data["section"]
 
@@ -329,6 +338,8 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
         )
         element_list.append(element)
         elements_dict[member_id] = element
+
+        inode.is_inode_of_elems.append(element); jnode.is_inode_of_elems.append(element)
 
     log(f"Read {len(element_list)} elements.")
 
@@ -600,13 +611,13 @@ if __name__ == "__main__":
     # Choose the unit system with a simple function call
     logger.info(f"\nSetting {args.units} unit system...")
     if args.units == "imperial":
-        unit_manager.set_unit_system(IMPERIAL_UNITS, args.units)
+        unit_manager.set_display_unit_system(IMPERIAL_UNITS, args.units)
         logger.info("Using imperial unit system")
     elif args.units == "si":
-        unit_manager.set_unit_system(SI_UNITS, args.units)
+        unit_manager.set_display_unit_system(SI_UNITS, args.units)
         logger.info("Using SI unit system")
     elif args.units == "metric_kn":
-        unit_manager.set_unit_system(METRIC_KN_UNITS, args.units)
+        unit_manager.set_display_unit_system(METRIC_KN_UNITS, args.units)
         logger.info("Using metric kN unit system")
 
     # Get current unit system directly from the manager
@@ -617,58 +628,63 @@ if __name__ == "__main__":
 
     # Import the R2Structure class
     from pyMAOS.structure2d import R2Structure  # Instead of from pyMAOS.R2Structure import R2Structure
-    from pyMAOS.save_utils import load_structure_state
+    from frame2d import R2Frame
+    R2Frame.plot_enabled = False
 
-    R2Structure.load_structure_state = load_structure_state
-
+    loadcombo = LoadCombo("D", {"D": 1.0}, ["D"], False, "SLS")
     structure_state_bin = f"{os.path.splitext(input_file)[0]}_structure_state.bin"
     if os.path.exists(structure_state_bin):
         logger.info(f"Loading structure state from binary file: {structure_state_bin}")
         model_structure = R2Structure([], [])  # Create empty structure initially
         if model_structure.load_structure_state(structure_state_bin):
             print("Successfully loaded structure state")
-            model_structure.further_analysis(); return
+            model_structure.set_node_displacements(loadcombo)
         else:
             print("Failed to load structure state")
+            sys.exit(1)
+    else:
+        try:
+            logger.info(f"Loading structural model from file: {input_file}")
+            # Pass the VTK flag to control visualization in load_frame_from_file
+            node_list, element_list = load_frame_from_file(input_file, logger=logger, show_vtk=args.vtk)
+        except Exception as e:
+            from pyMAOS.logger import log_exception
+            log_exception(logger, message=f"Error loading structural model: {e}")
+            sys.exit(1)
 
+        logger.info(f"Total nodes: {len(node_list)}")
+        logger.info(f"Total elements: {len(element_list)}")
+        # Check if the R2Structure class is available
 
-    try:
-        logger.info(f"Loading structural model from file: {input_file}")
-        # Pass the VTK flag to control visualization in load_frame_from_file
-        node_list, element_list = load_frame_from_file(input_file, logger=logger, show_vtk=args.vtk)
-    except Exception as e:
-        from pyMAOS.logger import log_exception
-        log_exception(logger, message=f"Error loading structural model: {e}")
-        sys.exit(1)
+        # if is_class_imported('R2Structure'):
+        #     print("R2Structure class is available")
 
-    logger.info(f"Total nodes: {len(node_list)}")
-    logger.info(f"Total elements: {len(element_list)}")
-    # Check if the R2Structure class is available
+        # Pass all display units to the structure
+        model_structure = R2Structure(node_list, element_list)
+        # logger.info(model_structure)
 
-    if is_class_imported('R2Structure'):
-        print("R2Structure class is available")
-
-
-    # Pass all display units to the structure
-    model_structure = R2Structure(node_list, element_list)
-    # logger.info(model_structure)
-
-    # Fix the LoadCombo initialization with proper parameters
-    loadcombo = LoadCombo("D", {"D": 1.0}, ["D"], False, "SLS")
-    logger.info("Solving linear static problem...")
-    # Solve the linear static problem
-    try:
-        U = model_structure.solve_linear_static(loadcombo, output_dir=working_dir, structure_state_bin=structure_state_bin, verbose=True); model_structure.further_analysis(loadcombo)
-    except ValueError as e:
-        from pyMAOS.logger import log_exception
-        log_exception(logger, message=f"ValueError solving linear static problem: {e}")
-        sys.exit(1)
-    except Exception as e:
-        from pyMAOS.logger import log_exception
-        log_exception(logger, message="Error solving linear static problem")
-        sys.exit(1)
-
+        logger.info("Solving linear static problem...")
+        # Solve the linear static problem
+        try:
+            U = model_structure.solve_linear_static(loadcombo, output_dir=working_dir, structure_state_bin=structure_state_bin, verbose=True)
+            model_structure.set_node_displacements(loadcombo)
+            model_structure.compute_reactions(loadcombo)
+        except ValueError as e:
+            from pyMAOS.logger import log_exception
+            log_exception(logger, message=f"ValueError solving linear static problem: {e}")
+            sys.exit(1)
+        except Exception as e:
+            from pyMAOS.logger import log_exception
+            log_exception(logger, message="Error solving linear static problem")
+            sys.exit(1)
     logger.info("Linear static problem solved successfully.")
+    # save state of the structure for a restart point
+    # After analysis is complete:
+    # from pyMAOS.structure2d_save import save_structure_state
+    if structure_state_bin is not None:
+        model_structure.save_structure_state(structure_state_bin)
+        logger.info(f"Structure state saved to {structure_state_bin}")
+
     # logger.info(f"Displacements U:\n{U}")
     # logger.info(str(model_structure))
 

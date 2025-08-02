@@ -11,9 +11,10 @@ Q_ = unit_manager.ureg.Quantity
 def get_unit_registry():
     """Get or create a unit registry for conversions"""
     try:
-        from pyMAOS.units_mod import ureg
-        return ureg
+        from pyMAOS.units_mod import unit_manager
+        return unit_manager.ureg
     except ImportError:
+        from pint import UnitRegistry
         return UnitRegistry()
 
 def display_node_load_vector_in_units(load_vector, node_uid, force_unit=None, length_unit=None, 
@@ -97,8 +98,8 @@ def display_node_displacement_in_units(displacement, node_uid, length_unit=None,
     
     try:
         # Try to convert with pint if needed
-        ux_display = unit_manager.ureg.Quantity(ux_display, "m").to(length_unit).magnitude
-        uy_display = unit_manager.ureg.Quantity(uy_display, "m").to(length_unit).magnitude
+        ux_display = unit_manager.ureg.Quantity(ux_display, INTERNAL_LENGTH_UNIT).to(length_unit).magnitude
+        uy_display = unit_manager.ureg.Quantity(uy_display, INTERNAL_LENGTH_UNIT).to(length_unit).magnitude
     except:
         pass
     
