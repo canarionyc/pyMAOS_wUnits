@@ -1,6 +1,6 @@
 """Example of using temperature loads with unit conversion."""
 from pyMAOS.load_utils import LoadConverter
-from pyMAOS.units_mod import SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS
+from pyMAOS.pymaos_units import SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS
 
 # Example with SI units
 si_converter = LoadConverter(SI_UNITS)

@@ -3,16 +3,15 @@ Utilities for displaying structural engineering values with appropriate units.
 """
 import numpy as np
 # from pyMAOS.units_mod import ureg  # Replace this import
-from pyMAOS.units_mod import unit_manager,INTERNAL_LENGTH_UNIT,INTERNAL_FORCE_UNIT,INTERNAL_MOMENT_UNIT
-
+import pyMAOS
 # Replace any direct ureg usage with unit_manager.ureg
-Q_ = unit_manager.ureg.Quantity
+Q_ = pyMAOS.unit_manager.ureg.Quantity
 
 def get_unit_registry():
     """Get or create a unit registry for conversions"""
     try:
-        from pyMAOS.units_mod import unit_manager
-        return unit_manager.ureg
+        import pyMAOS
+        return pyMAOS.unit_manager.ureg
     except ImportError:
         from pint import UnitRegistry
         return UnitRegistry()
@@ -38,13 +37,13 @@ def display_node_load_vector_in_units(load_vector, node_uid, force_unit=None, le
         Dictionary containing unit definitions (e.g., SI_UNITS)
     """
     # First try specific units, then fall back to units_system if available
-    force_unit = force_unit or (units_system.get("force") if units_system else INTERNAL_FORCE_UNIT)
-    length_unit = length_unit or (units_system.get("length") if units_system else INTERNAL_LENGTH_UNIT)
-    
+    force_unit = force_unit or (units_system.get("force") if units_system else pyMAOS.unit_manager.INTERNAL_FORCE_UNIT)
+    length_unit = length_unit or (units_system.get("length") if units_system else pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT)
+
     moment_unit = f"{force_unit}*{length_unit}"
     
     # Get unit registry
-    #from pyMAOS.units_mod import unit_manager
+    #
     
     # Convert load vector to display units
     fx_display = load_vector[0]
@@ -53,9 +52,9 @@ def display_node_load_vector_in_units(load_vector, node_uid, force_unit=None, le
     
     try:
         # Try to convert with pint if needed
-        fx_display = unit_manager.ureg.Quantity(fx_display, INTERNAL_FORCE_UNIT).to(force_unit).magnitude
-        fy_display = unit_manager.ureg.Quantity(fy_display, INTERNAL_FORCE_UNIT).to(force_unit).magnitude
-        mz_display = unit_manager.ureg.Quantity(mz_display, INTERNAL_MOMENT_UNIT).to(moment_unit).magnitude
+        fx_display = pyMAOS.unit_manager.ureg.Quantity(fx_display, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT).to(force_unit).magnitude
+        fy_display = pyMAOS.unit_manager.ureg.Quantity(fy_display, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT).to(force_unit).magnitude
+        mz_display = pyMAOS.unit_manager.ureg.Quantity(mz_display, pyMAOS.unit_manager.INTERNAL_MOMENT_UNIT).to(moment_unit).magnitude
     except:
         pass
     
@@ -98,8 +97,8 @@ def display_node_displacement_in_units(displacement, node_uid, length_unit=None,
     
     try:
         # Try to convert with pint if needed
-        ux_display = unit_manager.ureg.Quantity(ux_display, INTERNAL_LENGTH_UNIT).to(length_unit).magnitude
-        uy_display = unit_manager.ureg.Quantity(uy_display, INTERNAL_LENGTH_UNIT).to(length_unit).magnitude
+        ux_display = pyMAOS.unit_manager.ureg.Quantity(ux_display, pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT).to(length_unit).magnitude
+        uy_display = pyMAOS.unit_manager.ureg.Quantity(uy_display, pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT).to(length_unit).magnitude
     except:
         pass
     
@@ -139,19 +138,19 @@ def display_member_forces_in_units(forces, member_uid, force_unit=None, length_u
     
     moment_unit = f"{force_unit}*{length_unit}"
     
-    from pyMAOS.units_mod import ureg
+    from pyMAOS.pymaos_units import ureg
     
     # Convert force values to display units
     display_forces = []
     for i, f in enumerate(forces):
         if i % 3 == 2:  # Every 3rd value is a moment
             try:
-                display_forces.append(unit_manager.ureg.Quantity(f, "N*m").to(moment_unit).magnitude)
+                display_forces.append(pyMAOS.unit_manager.ureg.Quantity(f, "N*m").to(moment_unit).magnitude)
             except:
                 display_forces.append(f)
         else:  # Other values are forces
             try:
-                display_forces.append(unit_manager.ureg.Quantity(f, "N").to(force_unit).magnitude)
+                display_forces.append(pyMAOS.unit_manager.ureg.Quantity(f, "N").to(force_unit).magnitude)
             except:
                 display_forces.append(f)
     

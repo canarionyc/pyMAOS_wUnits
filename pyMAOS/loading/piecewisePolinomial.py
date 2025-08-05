@@ -4,7 +4,8 @@ from numpy.polynomial import Polynomial, Chebyshev
 import pint
 from pint import Quantity
 from typing import List, Union
-
+import pyMAOS
+from pyMAOS import unit_manager
 from pyMAOS.loading.UnitAwarePolynomial import UnitAwarePolynomial
 
 # from pyMAOS.units_mod import SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS
@@ -27,10 +28,10 @@ def polynomial_evaluation(c_list, x):
 
 from numpy.polynomial import Polynomial
 from pyMAOS.loading.UnitAwarePolynomial import UnitAwarePolynomial
-from pyMAOS.units_mod import unit_manager
+
 class PiecewisePolynomial:
     def __init__(self, functions=None):
-        from pyMAOS.units_mod import unit_manager
+        
 
         self.functions = []
         self.x_units = None

@@ -45,7 +45,7 @@ pip install pyMAOS
 
 ```python
 import pyMAOS
-from pyMAOS.units_mod import set_unit_system, IMPERIAL_UNITS
+from pyMAOS.pymaos_units import set_unit_system, IMPERIAL_UNITS
 
 # Set preferred unit system
 set_unit_system(IMPERIAL_UNITS, "imperial")

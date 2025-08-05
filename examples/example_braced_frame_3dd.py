@@ -18,8 +18,8 @@ from context import pyMAOS
 from pyMAOS.node2d import R2Node, get_nodes_from_csv
 from pyMAOS.truss2d import R2Truss
 from pyMAOS.frame2d import R2Frame
-from pyMAOS.material import LinearElasticMaterial as Material
-from pyMAOS.section import Section
+from pyMAOS.pymaos_linear_elastic_material import LinearElasticMaterial as Material
+from pyMAOS.pymaos_sections import Section
 import pyMAOS.structure2d as R2Struct
 from pyMAOS.loadcombos import LoadCombo
 

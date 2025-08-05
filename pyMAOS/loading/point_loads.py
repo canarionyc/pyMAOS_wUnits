@@ -3,10 +3,10 @@ from typing import TYPE_CHECKING, Any
 from pyMAOS.loading.piecewisePolinomial import PiecewisePolynomial
 from pprint import pprint
 from display_utils import print_quantity_nested_list
+import pyMAOS
 # Use TYPE_CHECKING to avoid runtime imports
 if TYPE_CHECKING:
     from pyMAOS.frame2d import R2Frame
-from pyMAOS.units_mod import unit_manager
 
 class R2_Point_Moment:
     def __init__(self, M: pint.Quantity, a: pint.Quantity, member: "Any", loadcase="D"):
@@ -146,12 +146,12 @@ class R2_Point_Load:
         import inspect;
         print(f"{inspect.getfile(inspect.currentframe())}:{inspect.currentframe().f_lineno}")
 
-        from pyMAOS.units_mod import INTERNAL_LENGTH_UNIT,INTERNAL_FORCE_UNIT,INTERNAL_MOMENT_UNIT
-        self.c1 = unit_manager.ureg.Quantity(0, INTERNAL_MOMENT_UNIT)
+        from pyMAOS import INTERNAL_LENGTH_UNIT,INTERNAL_FORCE_UNIT,INTERNAL_MOMENT_UNIT
+        self.c1 = pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_MOMENT_UNIT)
         self.c2 = -1 * p * a
         self.c3 = (p * a * (a - (2 * L)) * (a - L)) / (6 * L)
         self.c4 = (p * a * ((a * a) + (2 * L * L))) / (6 * L)
-        self.c5 = unit_manager.ureg.Quantity(0, f"{INTERNAL_FORCE_UNIT} * {INTERNAL_LENGTH_UNIT}**3")
+        self.c5 = pyMAOS.unit_manager.ureg.Quantity(0, f"{pyMAOS.unit_manager.INTERNAL_FORCE_UNIT} * {pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT}**3")
         self.c6 = (-1 * p * a * a * a) / 6
 
         # Simple End Reactions
@@ -161,24 +161,24 @@ class R2_Point_Load:
         # Piecewise Functions
         # [co....cn x^n] [xa, xb]
         Vy = [
-            [[self.Riy], [unit_manager.ureg.Quantity(0, self.a.units), self.a]],
+            [[self.Riy], [pyMAOS.unit_manager.ureg.Quantity(0, self.a.units), self.a]],
             [[self.Riy + self.p], [self.a, self.L]],
         ]
         print("Vy:"); print_quantity_nested_list(Vy)
         Mz = [
-            [[self.c1, self.Riy], [unit_manager.ureg.Quantity(0, self.a.units), self.a]],
+            [[self.c1, self.Riy], [pyMAOS.unit_manager.ureg.Quantity(0, self.a.units), self.a]],
             [[self.c2, self.Riy + self.p], [self.a, self.L]],
         ]
         print("Mz:"); print_quantity_nested_list(Mz)
         Sz = [
-            [[self.c3, self.c1, self.Riy / 2], [unit_manager.ureg.Quantity(0, self.a.units), self.a]],
+            [[self.c3, self.c1, self.Riy / 2], [pyMAOS.unit_manager.ureg.Quantity(0, self.a.units), self.a]],
             [[self.c4, self.c2, (self.Riy + self.p) / 2], [self.a, self.L]],
         ]
         Sz[0][0] = [i / self.EI for i in Sz[0][0]]
         Sz[1][0] = [i / self.EI for i in Sz[1][0]]
         print("Sz:"); print_quantity_nested_list(Sz)
         Dy = [
-            [[self.c5, self.c3, self.c1 / 2, self.Riy / 6], [unit_manager.ureg.Quantity(0, self.a.units), self.a]],
+            [[self.c5, self.c3, self.c1 / 2, self.Riy / 6], [pyMAOS.unit_manager.ureg.Quantity(0, self.a.units), self.a]],
             [
                 [self.c6, self.c4, self.c2 / 2, (self.Riy + self.p) / 6],
                 [self.a, self.L],
@@ -238,11 +238,11 @@ class R2_Point_Load:
         Rjy = self.Rjy - (Miz / L) - (Mjz / L)
 
         # Import dimension constants
-        from pyMAOS.units_mod import INTERNAL_MOMENT_UNIT, INTERNAL_FORCE_UNIT
+        from pyMAOS import INTERNAL_MOMENT_UNIT, INTERNAL_FORCE_UNIT
 
         # Define expected dimensionalities
-        FORCE_DIMENSIONALITY = unit_manager.ureg.parse_units(INTERNAL_FORCE_UNIT).dimensionality
-        MOMENT_DIMENSIONALITY = unit_manager.ureg.parse_units(INTERNAL_MOMENT_UNIT).dimensionality
+        FORCE_DIMENSIONALITY = pyMAOS.unit_manager.ureg.parse_units(pyMAOS.unit_manager.INTERNAL_FORCE_UNIT).dimensionality
+        MOMENT_DIMENSIONALITY = pyMAOS.unit_manager.ureg.parse_units(pyMAOS.unit_manager.INTERNAL_MOMENT_UNIT).dimensionality
 
         # Debug prints showing actual dimensionality
         print(f"DEBUG: Checking dimensions - Miz: {Miz.dimensionality}, Mjz: {Mjz.dimensionality}")
@@ -258,10 +258,10 @@ class R2_Point_Load:
             # Create correctly dimensioned values as fallback
             if not Miz.check(MOMENT_DIMENSIONALITY):
                 print(f"WARNING: Fixing dimensions of Miz from {Miz.dimensionality} to {MOMENT_DIMENSIONALITY}")
-                Miz = unit_manager.ureg.Quantity(Miz.magnitude, INTERNAL_MOMENT_UNIT)
+                Miz = pyMAOS.unit_manager.ureg.Quantity(Miz.magnitude, pyMAOS.unit_manager.INTERNAL_MOMENT_UNIT)
             if not Mjz.check(MOMENT_DIMENSIONALITY):
                 print(f"WARNING: Fixing dimensions of Mjz from {Mjz.dimensionality} to {MOMENT_DIMENSIONALITY}")
-                Mjz = unit_manager.ureg.Quantity(Mjz.magnitude, INTERNAL_MOMENT_UNIT)
+                Mjz = pyMAOS.unit_manager.ureg.Quantity(Mjz.magnitude, pyMAOS.unit_manager.INTERNAL_MOMENT_UNIT)
 
         # Verify force dimensions
         try:
@@ -273,13 +273,13 @@ class R2_Point_Load:
             # Create correctly dimensioned values as fallback
             if not Riy.check(FORCE_DIMENSIONALITY):
                 print(f"WARNING: Fixing dimensions of Riy from {Riy.dimensionality} to {FORCE_DIMENSIONALITY}")
-                Riy = unit_manager.ureg.Quantity(Riy.magnitude, INTERNAL_FORCE_UNIT)
+                Riy = pyMAOS.unit_manager.ureg.Quantity(Riy.magnitude, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT)
             if not Rjy.check(FORCE_DIMENSIONALITY):
                 print(f"WARNING: Fixing dimensions of Rjy from {Rjy.dimensionality} to {FORCE_DIMENSIONALITY}")
-                Rjy = unit_manager.ureg.Quantity(Rjy.magnitude, INTERNAL_FORCE_UNIT)
+                Rjy = pyMAOS.unit_manager.ureg.Quantity(Rjy.magnitude, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT)
 
         # Create zeros with appropriate units
-        zero_force = unit_manager.ureg.Quantity(0, Riy.units)
+        zero_force = pyMAOS.unit_manager.ureg.Quantity(0, Riy.units)
 
         # Print forces and moments for debugging
         print(f"Point load FEF - Forces: Riy={Riy:.3f}, Rjy={Rjy:.3f}")

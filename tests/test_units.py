@@ -1,5 +1,5 @@
 import unittest
-from pyMAOS.units_mod import unit_manager, SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS
+, SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS
 
 class TestUnitConversions(unittest.TestCase):
     def test_force_conversions(self):
@@ -32,7 +32,7 @@ class TestUnitConversions(unittest.TestCase):
         self.assertEqual(unit_manager.get_current_units().get("force", ""), "kN")
         
         # Restore original
-        from pyMAOS.units_mod import FORCE_UNIT
+        from pyMAOS.pymaos_units import FORCE_UNIT
         self.assertEqual(FORCE_UNIT, "kN")
 
 if __name__ == "__main__":

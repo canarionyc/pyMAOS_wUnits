@@ -8,8 +8,8 @@ np.set_printoptions(precision=2, suppress=True, linewidth=np.nan, threshold=sys.
 
 from pyMAOS.node2d import R2Node
 from pyMAOS.truss2d import R2Truss
-from pyMAOS.material import LinearElasticMaterial as Material
-from pyMAOS.section import Section
+from pyMAOS.pymaos_linear_elastic_material import LinearElasticMaterial as Material
+from pyMAOS.pymaos_sections import Section
 import pyMAOS.structure2d as R2Struct
 from pyMAOS.loadcombos import LoadCombo
 

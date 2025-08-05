@@ -5,7 +5,9 @@ from typing import TYPE_CHECKING, Any
 # from pyMAOS.display_utils import display_node_load_vector_in_units
 import numpy as np
 from pyMAOS.loading.piecewisePolinomial import PiecewisePolynomial
-from pyMAOS.units_mod import (SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS,
+import pyMAOS
+from pyMAOS import unit_manager, INTERNAL_LENGTH_UNIT
+from pyMAOS import (# SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS,
     INTERNAL_LENGTH_UNIT, INTERNAL_FORCE_UNIT,  INTERNAL_MOMENT_UNIT, INTERNAL_PRESSURE_UNIT, INTERNAL_DISTRIBUTED_LOAD_UNIT,
     FORCE_DIMENSIONALITY, LENGTH_DIMENSIONALITY, MOMENT_DIMENSIONALITY, PRESSURE_DIMENSIONALITY, DISTRIBUTED_LOAD_DIMENSIONALITY,
     unit_manager
@@ -30,8 +32,8 @@ class LinearLoadXY:
         self.E = member.material.E
         self.I = member.section.Ixx
 
-        self.EI = self.E * self.I
-
+        EI = self.E * self.I
+        EI = EI.to_reduced_units()
         self.kind = "LINE"
         self.loadcase = loadcase
 
@@ -85,7 +87,7 @@ class LinearLoadXY:
 
         # Constants for the bending moment function (Mz)
         # Use unit_manager.ureg instead of direct import
-        self.c04 = unit_manager.ureg.Quantity(0, INTERNAL_MOMENT_UNIT)  # Zero moment at x=0 for fixed-end condition
+        self.c04 = pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_MOMENT_UNIT)  # Zero moment at x=0 for fixed-end condition
         self.c05 = (
                 -1
                 * ((a * a * a * w2) + ((2 * a * a * a - 3 * a * a * b) * w1))
@@ -162,7 +164,7 @@ class LinearLoadXY:
                   ) / (360 * L)
 
         # Constants for the deflection function (Dy)
-        self.c10 = unit_manager.ureg.Quantity(0, f"{INTERNAL_LENGTH_UNIT}**3 * {INTERNAL_FORCE_UNIT}")  # Zero deflection at x=0 for fixed-end condition
+        self.c10 = pyMAOS.unit_manager.ureg.Quantity(0, f"{pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT}**3 * {pyMAOS.unit_manager.INTERNAL_FORCE_UNIT}")  # Zero deflection at x=0 for fixed-end condition
         self.c11 = (
                 -1 /120
                 * (
@@ -217,7 +219,7 @@ class LinearLoadXY:
         # Format: [[coefficients], [domain_bounds]]
         # where coefficients = [c₀, c₁, c₂...] representing c₀ + c₁x + c₂x² + ...
         Wy = [
-            [[unit_manager.ureg.Quantity(0, INTERNAL_DISTRIBUTED_LOAD_UNIT)], [unit_manager.ureg.Quantity(0, INTERNAL_LENGTH_UNIT), self.a]],
+            [[pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_DISTRIBUTED_LOAD_UNIT)], [pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT), self.a]],
             [
                 [
                     ((-1 * self.a * self.w2) - (self.c * self.w1) - (self.a * self.w1))
@@ -226,7 +228,7 @@ class LinearLoadXY:
                 ],
                 [self.a, self.b],
             ],
-            [[unit_manager.ureg.Quantity(0, INTERNAL_DISTRIBUTED_LOAD_UNIT)], [self.b, self.L]],
+            [[pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_DISTRIBUTED_LOAD_UNIT)], [self.b, self.L]],
         ]; print("Wy:\n", Wy)
 
         Vy = [
@@ -276,9 +278,9 @@ class LinearLoadXY:
             ],
             [[self.c09, self.c06, 0.5 * self.c03], [self.b, self.L]],
         ]
-        Sz[0][0] = [i / self.EI for i in Sz[0][0]]
-        Sz[1][0] = [i / self.EI for i in Sz[1][0]]
-        Sz[2][0] = [i / self.EI for i in Sz[2][0]]
+        Sz[0][0] = [i / EI for i in Sz[0][0]]
+        Sz[1][0] = [i / EI for i in Sz[1][0]]
+        Sz[2][0] = [i / EI for i in Sz[2][0]]
 
         print("Sz:\n", Sz)
 
@@ -303,10 +305,10 @@ class LinearLoadXY:
             ],
         ]
 
-        Dy[0][0] = [i / self.EI for i in Dy[0][0]]
-        Dy[1][0] = [i / self.EI for i in Dy[1][0]]
-        Dy[2][0] = [i / self.EI for i in Dy[2][0]]
-
+        Dy[0][0] = [i / EI for i in Dy[0][0]]
+        Dy[1][0] = [i / EI for i in Dy[1][0]]
+        Dy[2][0] = [i / EI for i in Dy[2][0]]
+        print("Dy:\n", Dy)
         import inspect
         print(f"{inspect.getfile(inspect.currentframe())}:{inspect.currentframe().f_lineno}")
         print("Dy:", Dy, sep="\n")
@@ -345,6 +347,9 @@ class LinearLoadXY:
 
 
     def FEF(self):
+        """
+        Compute and return the fixed and forces
+        """
         L = self.L
 
         c3 = self.c03
@@ -395,8 +400,8 @@ class LinearLoadXY:
         #         Rjy = unit_manager.ureg.Quantity(Rjy.magnitude, INTERNAL_FORCE_UNIT)
 
         # Print forces and moments in both SI and display units
-        from pyMAOS.units_mod import convert_to_display_units
-        from pyMAOS.units_mod import FORCE_DISPLAY_UNIT, MOMENT_DISPLAY_UNIT
+        #from pyMAOS.units_mod import convert_to_display_units
+        from pyMAOS.pymaos_units import FORCE_DISPLAY_UNIT, MOMENT_DISPLAY_UNIT
         # Get current unit system directly from the manager
         # current_units = unit_manager.get_current_units()
         # system_name = unit_manager.get_system_name()
@@ -410,7 +415,10 @@ class LinearLoadXY:
         # print(f"Moments - SI: Miz={Miz:.3f} N*m, Mjz={Mjz:.3f} N*m")
         # print(f"Moments - Display: Miz={Miz_display:.3f}, Mjz={Mjz_display:.3f}")
 
-        ret_val = np.array([unit_manager.ureg.Quantity(0, INTERNAL_FORCE_UNIT), Riy, Miz, unit_manager.ureg.Quantity(0, INTERNAL_FORCE_UNIT), Rjy, Mjz], dtype=object)
+        # Create zeros with appropriate units
+        zero_force = 0 * pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT)
+
+        ret_val = np.array([pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT), Riy, Miz, pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT), Rjy, Mjz], dtype=object)
         print(f"FEF distributed load results on member {self.member_uid} for Load Case {self.loadcase}:", ret_val, sep="\n")
 
         # Final dimension check for return values
@@ -452,17 +460,17 @@ class LinearLoadXY:
         chart_height : int
             Height of ASCII charts in characters
         """
-        from pyMAOS.units_mod import convert_to_display_units
-        from pyMAOS.units_mod import unit_manager
+
+        
         import numpy as np
 
         # Get current unit system directly from the manager
         current_units = unit_manager.get_current_units()
         system_name = unit_manager.get_system_name()
-        print(f"\n===== DETAILED ANALYSIS FOR {self.__str__()} =====")
-        print(f"Total Load W = {self.W:.3f} {INTERNAL_FORCE_UNIT} ({convert_to_display_units(self.W, 'force'):.3f} {current_units['force']})")
-        print(f"Load centroid from left: {self.a + self.cbar:.3f}")
-        print(f"Reactions: Riy = {self.Riy:.3f} {INTERNAL_FORCE_UNIT} ({convert_to_display_units(self.Riy, 'force'):.3f} {current_units['force']}), Rjy = {self.Rjy:.3f} {INTERNAL_FORCE_UNIT} ({convert_to_display_units(self.Rjy, 'force'):.3f} {current_units['force']})", end="\n")
+        # print(f"\n===== DETAILED ANALYSIS FOR {self.__str__()} =====")
+        # print(f"Total Load W = {self.W:.3f} {INTERNAL_FORCE_UNIT} ({convert_to_display_units(self.W, 'force'):.3f} {current_units['force']})")
+        # print(f"Load centroid from left: {self.a + self.cbar:.3f}")
+        # print(f"Reactions: Riy = {self.Riy:.3f} {INTERNAL_FORCE_UNIT} ({convert_to_display_units(self.Riy, 'force'):.3f} {current_units['force']}), Rjy = {self.Rjy:.3f} {INTERNAL_FORCE_UNIT} ({convert_to_display_units(self.Rjy, 'force'):.3f} {current_units['force']})", end="\n")
 
         # Sample points across all regions
         regions = [(0, self.a), (self.a, self.b), (self.b, self.L)]

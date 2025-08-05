@@ -1,4 +1,4 @@
-from pyMAOS.units_mod import unit_manager
+
 
 class UnitAwareMixin:
     """

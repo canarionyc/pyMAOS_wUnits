@@ -1,7 +1,7 @@
 import os
 import yaml
-from pyMAOS.material import LinearElasticMaterial
-from pyMAOS.units_mod import set_unit_system, IMPERIAL_UNITS
+from pyMAOS.pymaos_linear_elastic_material import LinearElasticMaterial
+from pyMAOS.pymaos_units import set_unit_system, IMPERIAL_UNITS
 
 print(os.getcwd())
 

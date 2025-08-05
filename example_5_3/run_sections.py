@@ -1,8 +1,8 @@
 import os
 import yaml
 import numpy as np
-from pyMAOS.section import Section
-from pyMAOS.units_mod import set_unit_system, IMPERIAL_UNITS
+from pyMAOS.pymaos_sections import Section
+from pyMAOS.pymaos_units import set_unit_system, IMPERIAL_UNITS
 
 print(os.getcwd())
 

@@ -1,7 +1,7 @@
 from pint import Quantity
 from numpy.polynomial import Polynomial
 
-from pyMAOS.units_mod import UnitManager, unit_manager
+import pyMAOS
 
 
 class UnitAwarePolynomial(Polynomial):

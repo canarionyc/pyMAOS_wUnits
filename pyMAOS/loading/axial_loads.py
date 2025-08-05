@@ -73,10 +73,10 @@ class R2_Axial_Load:
         Rjx = (-1 * p * a) / L
 
         # Print forces in both SI and display units
-        from pyMAOS.units_mod import convert_to_display_units
+        from pyMAOS.pymaos_units import convert_to_display_units
         Rix_display = convert_to_display_units(Rix, 'force')
         Rjx_display = convert_to_display_units(Rjx, 'force')
-        import pyMAOS.units_mod as units
+        import pyMAOS.pymaos_units as units
         # Then use units.DISPLAY_UNITS which will reflect the current value
         print(f"Axial reactions - SI: Rix={Rix:.3f} N, Rjx={Rjx:.3f} N")
         print(f"Axial reactions - Display: Rix={Rix_display:.3f} {units.DISPLAY_UNITS['force']}, "

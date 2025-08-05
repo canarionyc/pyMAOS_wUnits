@@ -1,7 +1,7 @@
 import os
 import csv
 
-from pyMAOS.material import LinearElasticMaterial as Material 
+from pyMAOS.pymaos_linear_elastic_material import LinearElasticMaterial as Material
 
 
 # --- Read materials ---
@@ -58,7 +58,7 @@ def get_materials_from_csv(csv_file):
     return materials
 
 # --- Read sections ---
-from pyMAOS.section import Section
+from pyMAOS.pymaos_sections import Section
 def get_sections_from_csv(csv_file):
     """
     Read sections from CSV file using pandas for improved handling of whitespace and empty lines.

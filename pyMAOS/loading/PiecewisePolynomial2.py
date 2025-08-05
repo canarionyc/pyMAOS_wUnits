@@ -2,7 +2,8 @@ import numpy as np
 from scipy.interpolate import PPoly
 from pint import Quantity
 
-from pyMAOS.units_mod import unit_manager
+import pyMAOS
+from pyMAOS import unit_manager
 
 
 class PiecewisePolynomial2:

@@ -4,14 +4,15 @@ import sys
 import numpy as np
 import pint
 from pprint import pprint
-from pyMAOS import units_mod
-from pyMAOS.units_mod import array_convert_to_unit_system
+import pyMAOS
+from pyMAOS import pymaos_units, unit_manager
+from pyMAOS.pymaos_units import array_convert_to_unit_system
 from pyMAOS.display_utils import display_node_load_vector_in_units, display_node_displacement_in_units
 from quantity_utils import extract_units_from_quantities
-from units_mod import unit_manager
+
 
 np.set_printoptions(precision=4, suppress=False, floatmode='maxprec_equal', linewidth=999)
-from pyMAOS.quantity_utils import QuantityArray
+
 import ast
 import operator
 import importlib
@@ -51,7 +52,7 @@ class R2Structure:
     def __init__(self, nodes, members, units=None):
         self.nodes = nodes
         self.members = members
-        self.units = units or units_mod.unit_manager.get_current_units()  # Use unit manager as fallback
+        self.units = units or pyMAOS.unit_manager.get_current_units()  # Use unit manager as fallback
 
         # Validate node UIDs are unique
         self._validate_node_uids()
@@ -94,7 +95,7 @@ class R2Structure:
         self._springNodes = None
         self._nonlinearNodes = None
         self._D = {}  # Structure Displacement Vector Dictionary
-
+        self.U=[]
         # Flags
         self._unstable = False
         self._Kgenerated = False
@@ -230,7 +231,7 @@ class R2Structure:
 
             # Member global stiffness matrix
             kmglobal = member.kglobal()
-            # print(f"Member {member.uid}:\tkmglobal (Internal Units)\n{kmglobal}\n", flush=True)
+            print(f"Member {member.uid}:\tkmglobal (Internal Units)\n{kmglobal}\n", flush=True)
 
             # Check if the member is a truss
             if member.type == "TRUSS":
@@ -372,7 +373,7 @@ class R2Structure:
                     print(f"DEBUG: Added {f} at position {mapped_index}")
 
         print("Nodal Force Vector:", sep="\n")
-        from pyMAOS.units_mod import array_convert_to_unit_system
+        from pyMAOS.pymaos_units import array_convert_to_unit_system
         _ = array_convert_to_unit_system(FG, "imperial")
 
         return FG
@@ -390,7 +391,7 @@ class R2Structure:
                 # Get fixed end forces in global coordinates
                 elem_fef_global = member.FEFglobal(load_combination)
                 # print("DEBUG: Ff type:", type(Ff), "shape:", np.shape(Ff))
-                from pyMAOS.units_mod import array_convert_to_unit_system;
+                from pyMAOS.pymaos_units import array_convert_to_unit_system;
                 # print(f"Member {member.uid} fixed end forces before conversion: {Ff.view(QuantityArray)}")
                 _ = array_convert_to_unit_system(elem_fef_global, "imperial")
 
@@ -446,16 +447,17 @@ class R2Structure:
         """
         # Extract arguments from kwargs
         verbose = kwargs.get('verbose', False)
-        if verbose:
-            print("--- Running in Verbose Mode ---")
+        # if verbose:
+        #     print("--- Running in Verbose Mode ---")
         structure_state_bin = kwargs.get("structure_state_bin", None)
 
         # Generate Freedom Map
-        self.FM = self.set_freedom_map()
-        print("Freedom Map:\n", self.FM)
+        self.FM = self.set_freedom_map(); print("Freedom Map:", self.FM, sep="\n")
 
         # Generate Full Structure Stiffness Matrix
         self.KSTRUCT = self.Kstructure(**kwargs)
+        from pyMAOS.quantity_utils import numpy_array_of_quantity_to_numpy_array_of_float64
+
 
         self._verify_stable(self.FM, self.KSTRUCT)
 
@@ -465,27 +467,27 @@ class R2Structure:
 
         # Build Nodal Force Vector
         self.FG = self.nodal_force_vector(self.FM, load_combination)
-        # print("Nodal Force Vector FG:\n", FG); print(FG.shape)
-        from pyMAOS.units_mod import array_convert_to_unit_system
+        # print("Nodal Force Vector FG:\n", self.FG); print(self.FG.shape)
+        from pyMAOS.pymaos_units import array_convert_to_unit_system; print("Structure nodal global forces")
         _ = array_convert_to_unit_system(self.FG, "imperial")
         # Build Member Fixed-end-Force vector
         self.structure_fef = self.assemble_fixed_end_force(load_combination)
         # print("Structure Fixed End Force Vector:\n", structure_fef); print(structure_fef.shape)
 
-        from units_mod import array_convert_to_unit_system
+        from pymaos_units import array_convert_to_unit_system; print("Structure Fixed-end Forces")
         _ = array_convert_to_unit_system(self.structure_fef, "imperial")
 
         self.Kff = self.KSTRUCT[0: self.NDOF, 0: self.NDOF]; print("Kff Partition:", self.Kff, sep="\n");
         print(self.Kff.shape)  # display_stiffness_matrix_in_units(self.Kff)
         # Slice out the FGf partition from the global nodal force vector
         self.FGf = self.FG[0: self.NDOF];  print("FGf Partition:", self.FGf, sep="\n");
-        print(self.FGf.shape)
+        print(self.FGf.shape);  _ = array_convert_to_unit_system(self.FGf, "imperial")
         self.PFf = self.structure_fef[0: self.NDOF]
         print("PFf Partition:", self.PFf, sep="\n");
         print(self.PFf.shape)
-        from pyMAOS.quantity_utils import quantity_array_to_numpy
+        from pyMAOS.quantity_utils import numpy_array_of_quantity_to_numpy_array_of_float64
         # Extract magnitudes for calculation
-        Kff_magnitudes = quantity_array_to_numpy(self.Kff)
+        Kff_magnitudes = numpy_array_of_quantity_to_numpy_array_of_float64(self.Kff)
         print("Kff_magnitudes:", Kff_magnitudes, sep="\n")
         # FGf_magnitudes = np.array([f.magnitude if hasattr(f, 'magnitude') else float(f) for f in self.FGf],
         #                           dtype=np.float64)
@@ -511,7 +513,7 @@ class R2Structure:
         import scipy.linalg as sla
 
         if hasattr(self.FGf[0], 'magnitude') or hasattr(self.PFf[0], 'magnitude') or True:
-            from pyMAOS.units_mod import unit_manager, array_convert_to_unit_system
+
             # Store units from the right-hand side for later
             # Extract original units from the right-hand side
             rhs = self.FGf - self.PFf; print(rhs)
@@ -520,8 +522,8 @@ class R2Structure:
 
 
             # Convert to numpy array of Quantity objects
-            from pyMAOS.quantity_utils import quantity_array_to_numpy
-            rhs_quantities = quantity_array_to_numpy(rhs)
+            from pyMAOS.quantity_utils import numpy_array_of_quantity_to_numpy_array_of_float64
+            rhs_quantities = numpy_array_of_quantity_to_numpy_array_of_float64(rhs)
             print(f"DEBUG: Converted to array of Quantities with shape {rhs_quantities.shape}")
 
             # Solve using scipy.linalg
@@ -533,14 +535,27 @@ class R2Structure:
             # for idx, unit in np.ndenumerate(rhs_units):
             #     if unit is not None:
             #         print(f"Element at {idx} has unit: {unit}")
+            # Define and immediately apply the lambda function for each unit
+            conjugate_units_container_list = [(lambda u: unit_manager.ureg.UnitsContainer(
+                {'[length]': 2, '[mass]': 1, '[time]': -2}) / u.dimensionality)(u)
+                               for u in rhs_units]
+            # Create quantities with value 1.0 and the container units
+            quantities = [unit_manager.ureg.Quantity(1.0, container) for container in conjugate_units_container_list]
+            print(f"DEBUG: Created {len(quantities)} quantities from containers")
 
-            conjugate_units = [unit_manager.get_conjugate_unit(unit) for unit in rhs_units]
+            # Convert to imperial system
+            imperial_quantities = array_convert_to_unit_system(quantities, "imperial")
+            print(f"DEBUG: Converted to imperial: {imperial_quantities}")
 
-            print(f"DEBUG: Converted {rhs_units} to conjugate unit(s): {conjugate_units}")
+            # Extract just the units
+            imperial_units = [q.units for q in imperial_quantities]
+            print(f"DEBUG: Extracted units: {imperial_units}")
+
+            print(f"DEBUG: Converted {rhs_units} to conjugate unit(s): {conjugate_units_container_list}")
 
             # Reattach conjugate units to displacement results
-            self.U = np.array([units_mod.unit_manager.ureg.Quantity(mag, conj_unit)
-                               for mag, conj_unit in zip(U_magnitudes, conjugate_units)], dtype=object)
+            self.U = np.array([pyMAOS.unit_manager.ureg.Quantity(mag, conj_unit)
+                               for mag, conj_unit in zip(U_magnitudes, conjugate_units_container_list)], dtype=object)
 
             print(f"DEBUG: Reattached conjugate units to displacement vector: {self.U}")
 
@@ -548,7 +563,8 @@ class R2Structure:
             # No units involved, use scipy.linalg directly
             print("DEBUG: Using scipy.linalg directly (no units)")
             self.U = sla.solve(self.Kff, self.FGf - self.PFf)
-
+        print(self.U)
+        return self.U
 
     def set_node_displacements(self, load_combination=None):
         # Later, to restart from saved state:
@@ -557,27 +573,26 @@ class R2Structure:
         # else:
         #     print("Failed to load state - need to recalculate")
 
-        print("Structure displacementU:", self.U, sep="\n"); print(self.U.shape)
+        print("Structure displacementU:", self.U, sep="\n")#; print(self.U.shape)
 
         # Full Displacement Vector
         # Result is still mapped to DOF via FM
         # Create USTRUCT as an object array to hold Quantity objects
         # Create USTRUCT as self.U padded with zeros up to self.NJD * self.NJ elements
-        USTRUCT = np.zeros(self.NJD * self.NJ, dtype=object)
+        USTRUCT = np.zeros(self.DIM, dtype=object)
 
         # Copy values from self.U to the beginning of padded_array
         USTRUCT[:len(self.U)] = self.U
 
         # Debug information
-        print(
-            f"DEBUG: Created USTRUCT by padding self.U ({len(self.U)} elements) to full size ({self.NJD * self.NJ} elements)")
+        print( f"DEBUG: Created USTRUCT by padding self.U ({len(self.U)} elements) to full size ({self.DIM} elements)")
 
         print("USTRUCT")
         _ = array_convert_to_unit_system(USTRUCT, "imperial")
         # store displacement results to the current case to the nodes
         for node in self.nodes:
             node_index = self.uid_to_index[node.uid]
-            keys = self.FM[node_index * self.NJD: (node_index + 1) * self.NJD]
+            keys = self.FM[node_index * node.NJD: (node_index + 1) * self.NJD]
             node_displacements = USTRUCT[keys]
 
             print(f"node {node.uid}    Ux: {node_displacements[0]:.4E} -- Uy: {node_displacements[1]:.4E} -- Rz: {node_displacements[2]:.4E}")
@@ -699,7 +714,7 @@ class R2Structure:
 
         # Create a ureg for conversions if not already available
         try:
-            from pyMAOS.units_mod import ureg
+            from pyMAOS.pymaos_units import ureg
             Q_ = ureg.Quantity
         except:
             # Fall back if pint is not available
@@ -864,18 +879,18 @@ class R2Structure:
             raise ImportError(f"Required package not available for Excel export: {e}")
 
         # Create unit registry for conversions
-        from pyMAOS.units_mod import unit_manager
+        
         Q_ = unit_manager.ureg.Quantity
 
         # Process unit system
         unit_system = kwargs.get('unit_system')
         if unit_system:
             # Import unit systems
-            from pyMAOS.units_mod import SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS, set_unit_system
+            from pyMAOS.pymaos_units import SI_UNITS, IMPERIAL_DISPLAY_UNITS, METRIC_KN_UNITS, set_unit_system
 
             # Use the specified unit system for display
             if unit_system == "imperial":
-                display_units = IMPERIAL_UNITS
+                display_units = IMPERIAL_DISPLAY_UNITS
                 system_name = "Imperial"
             elif unit_system == "si":
                 display_units = SI_UNITS
@@ -1187,37 +1202,112 @@ class R2Structure:
         print(f"Successfully exported results to {output_file}")
         return str(output_file)
 
+    def verify_structure_state(self, state_data):
+        """
+        Verify that the loaded structure state is complete and consistent.
+        Checks if K·U = F-P equation is satisfied.
+
+        Parameters
+        ----------
+        state_data : dict
+            Dictionary containing the loaded structure state
+
+        Returns
+        -------
+        bool
+            True if verification passes, False otherwise
+        """
+        print("Verifying structure state completeness and consistency...")
+
+        # 1. Check if all essential components are present
+        essential_keys = ['nodes', 'members', 'U', 'KSTRUCT', 'FG', 'structure_fef']
+        missing_keys = [key for key in essential_keys if key not in state_data]
+        if missing_keys:
+            print(f"ERROR: Missing essential data: {missing_keys}")
+            return False
+
+        # 2. Check stiffness equation K·U = F-P for free DOFs
+        if all(hasattr(self, attr) for attr in ['Kff', 'U', 'FGf', 'PFf']):
+            try:
+                # Convert quantities to numerical values for calculation
+                from pyMAOS.quantity_utils import numpy_array_of_quantity_to_numpy_array_of_float64
+                import numpy as np
+
+                # Extract magnitudes for calculation
+                Kff_mag = numpy_array_of_quantity_to_numpy_array_of_float64(self.Kff)
+                U_mag = numpy_array_of_quantity_to_numpy_array_of_float64(self.U)
+                FGf_mag = numpy_array_of_quantity_to_numpy_array_of_float64(self.FGf)
+                PFf_mag = numpy_array_of_quantity_to_numpy_array_of_float64(self.PFf)
+
+                # Calculate left and right sides of equation
+                KU = np.matmul(Kff_mag, U_mag)
+                F_minus_P = FGf_mag - PFf_mag
+
+                # Calculate residual and relative error
+                residual = KU - F_minus_P
+                error_norm = np.linalg.norm(residual)
+                rel_error = error_norm / np.linalg.norm(F_minus_P) if np.linalg.norm(F_minus_P) > 1e-10 else error_norm
+
+                print(f"Stiffness equation verification:")
+                print(f"  Norm of K·U:   {np.linalg.norm(KU):.6e}")
+                print(f"  Norm of F-P:   {np.linalg.norm(F_minus_P):.6e}")
+                print(f"  Residual norm: {error_norm:.6e}")
+                print(f"  Relative error: {rel_error:.6e}")
+
+                # Check if error is acceptably small (adjust tolerance as needed)
+                if rel_error > 1e-6:
+                    print("WARNING: Relative error in stiffness equation exceeds tolerance")
+                    return False
+
+                print("✓ Stiffness equation verified successfully")
+
+            except Exception as e:
+                print(f"ERROR during verification: {e}")
+                import traceback
+                traceback.print_exc()
+                return False
+        else:
+            print("WARNING: Cannot verify stiffness equation - missing required data")
+
+        # 3. Check node equilibrium by verifying reactions match applied loads + member forces
+        # (This would require gathering all member end forces for each node)
+
+        print("Structure state verification completed")
+        return True
+
     def save_structure_state(self, filename):
         """
-        Save the current state of the structure to a binary file for later restart.
+        Save the entire structure object to a binary file in one operation.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the binary output file
+
+        Returns
+        -------
+        bool
+            True if saving was successful, False otherwise
         """
         import pickle
-        import datetime
         import zlib
 
-        print(f"Saving structure state to {filename}...")
-
-        # Set plot_enabled to False before saving
-        self.plot_enabled = False
-
-        # Create a dictionary with all the state we want to save
-        state = {
-            # All your existing state items...
-            # Adding plot_enabled flag
-            'plot_enabled': False,
-        }
+        print(f"Saving complete structure state to {filename}...")
 
         try:
-            # Pickle and compress the data
-            pickled_data = pickle.dumps(state, protocol=pickle.HIGHEST_PROTOCOL)
+            # Pickle the entire object
+            pickled_data = pickle.dumps(self)
+
+            # Compress the pickled data
             compressed_data = zlib.compress(pickled_data)
 
-            with open(filename, 'wb') as f:
-                f.write(compressed_data)
+            # Write compressed data to file
+            with open(filename, 'wb') as file:
+                file.write(compressed_data)
 
-            print(f"Structure state saved successfully to {filename}")
-            print(f"File size: {len(compressed_data) / 1024:.2f} KB")
+            print(f"Structure state saved successfully ({len(compressed_data):,} bytes compressed, {len(pickled_data):,} bytes uncompressed)")
             return True
+
         except Exception as e:
             print(f"Error saving structure state: {e}")
             import traceback
@@ -1226,60 +1316,74 @@ class R2Structure:
 
     def load_structure_state(self, filename):
         """
-        Load the structure state from a binary file previously saved with save_structure_state.
+        Load structure state from a binary file
 
         Parameters
         ----------
         filename : str
-            Filename where the state was saved
+            Path to the binary file
 
         Returns
         -------
         bool
-            True if successful, False otherwise
+            True if loading was successful, False otherwise
         """
         import pickle
         import zlib
-        import os
+        import io
+        import pint
+        import sys
 
-        if not os.path.exists(filename):
-            print(f"Error: Structure state file not found: {filename}")
-            return False
+        print(f"Loading structure state from {filename}...")
 
         try:
-            print(f"Loading structure state from {filename}...")
+            # Read the compressed data
+            with open(filename, 'rb') as file:
+                compressed_data = file.read()
 
-            # Read and decompress the data
-            with open(filename, 'rb') as f:
-                compressed_data = f.read()
+            # Define a custom unpickler for Pint Quantity objects
+            class QuantityUnpickler(pickle.Unpickler):
+                def find_class(self, module, name):
+                    # Handle Pint Quantity objects specially
+                    if module == 'pint.quantity' and name == 'Quantity':
+                        return pyMAOS.unit_manager.ureg.Quantity
+                    return super().find_class(module, name)
 
-            # Decompress and unpickle
-            pickled_data = zlib.decompress(compressed_data)
-            state = pickle.loads(pickled_data)
+            try:
+                # Try to decompress the data
+                pickled_data = zlib.decompress(compressed_data)
+                print("Data is compressed, decompressing...")
 
-            # Restore all state items to the structure
-            for key, value in state.items():
-                # Skip metadata items that don't need to be restored
-                if key in ['timestamp', 'description']:
-                    continue
+                # Use custom unpickler
+                unpickler = QuantityUnpickler(io.BytesIO(pickled_data))
+                loaded_structure = unpickler.load()
+                print("Successfully loaded compressed state data")
 
-                # Set the attribute on the structure object
-                setattr(self, key, value)
+            except zlib.error:
+                # If decompression fails, try as raw pickle
+                print("Data doesn't appear to be compressed, trying direct pickle")
+                unpickler = QuantityUnpickler(io.BytesIO(compressed_data))
+                loaded_structure = unpickler.load()
 
-            # Add this property to disable plotting
-            self.plot_enabled = False
+            # Transfer all attributes from the loaded structure to self
+            for attr_name, attr_value in vars(loaded_structure).items():
+                setattr(self, attr_name, attr_value)
 
-            # Print confirmation
-            print(f"Structure state loaded successfully from {filename}")
-            print(f"Structure has {state.get('NJ', '?')} nodes, {state.get('NM', '?')} members")
-            print(f"Structure state was saved at {state.get('timestamp', 'unknown time')}")
+            # Verify the state is consistent
+            if hasattr(self, 'verify_structure_state'):
+                if self.verify_structure_state(vars(self)):
+                    print("Structure state verified successfully")
+                else:
+                    print("Warning: Structure state verification failed")
 
+            # Rebuild node and member mappings
+            self.create_uid_maps()
+
+            print("Structure state loaded successfully")
             return True
+
         except Exception as e:
             print(f"Error loading structure state: {e}")
-            # Print more detailed error info for debugging
             import traceback
             traceback.print_exc()
             return False
-
-

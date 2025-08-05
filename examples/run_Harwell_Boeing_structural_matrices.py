@@ -52,8 +52,8 @@ def create_structure_from_matrix(K, force_vector=None):
     # Create dummy nodes and elements
     from pyMAOS.node2d import R2Node
     from pyMAOS.frame2d import R2Frame
-    from pyMAOS.material import LinearElasticMaterial
-    from pyMAOS.section import Section
+    from pyMAOS.pymaos_linear_elastic_material import LinearElasticMaterial
+    from pyMAOS.pymaos_sections import Section
 
     nodes = [R2Node(i, x=i, y=0) for i in range(n_nodes)]
 

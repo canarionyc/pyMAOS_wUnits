@@ -6,13 +6,13 @@ import os
 
 from pyMAOS.node2d import R2Node
 from pyMAOS.elements import R2Frame
-from pyMAOS.material import LinearElasticMaterial as Material
-from pyMAOS.section import Section
+from pyMAOS.pymaos_linear_elastic_material import LinearElasticMaterial as Material
+from pyMAOS.pymaos_sections import Section
 import pyMAOS.structure2d as R2Struct
 from pyMAOS.loadcombos import LoadCombo
 
 # Import unit system utilities
-from pyMAOS.units_mod import set_unit_system, IMPERIAL_UNITS
+from pyMAOS.pymaos_units import set_unit_system, IMPERIAL_UNITS
 
 # Create a simple 2-span beam example
 def demo_excel_export():

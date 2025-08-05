@@ -3,7 +3,8 @@ import math
 import numpy as np
 import pint
 from pint import Quantity
-from pyMAOS.units_mod import unit_manager, parse_value_with_units
+import pyMAOS
+from pyMAOS.pymaos_units import parse_value_with_units
 
 
 class LoadsDict(dict):
@@ -91,26 +92,13 @@ class R2Node:
         self._isNonLinear = False
 
     def _parse_coordinate(self, coordinate):
-        """
-        Parse a coordinate value and return as pint.Quantity.
-
-        Parameters
-        ----------
-        coordinate : float, str, or pint.Quantity
-            Coordinate value
-
-        Returns
-        -------
-        pint.Quantity
-            Coordinate value as a Quantity in meters
-        """
-        # If already a Quantity, convert to meters
+        # If already a Quantity, convert to internal length units
         if isinstance(coordinate, pint.Quantity):
-            return coordinate.to('m')
+            return coordinate.to(pyMAOS.INTERNAL_LENGTH_UNIT)
 
-        # If it's a number, create a Quantity in meters
+        # If it's a number, create a Quantity in internal length units
         if isinstance(coordinate, (int, float)):
-            return coordinate * unit_manager.ureg.m
+            return coordinate * pyMAOS.unit_manager.ureg(pyMAOS.INTERNAL_LENGTH_UNIT)
 
         # If it's a string, parse units
         if isinstance(coordinate, str):
@@ -118,46 +106,33 @@ class R2Node:
                 parsed_value = parse_value_with_units(coordinate)
 
                 if isinstance(parsed_value, pint.Quantity):
-                    return parsed_value.to('m')
+                    return parsed_value.to(pyMAOS.INTERNAL_LENGTH_UNIT)
                 else:
-                    # No units specified, assume meters
-                    return float(parsed_value) * unit_manager.ureg.m
+                    # No units specified, assume internal length units
+                    return float(parsed_value) * pyMAOS.unit_manager.ureg(pyMAOS.INTERNAL_LENGTH_UNIT)
 
             except Exception as e:
                 print(f"Warning: Could not parse coordinate '{coordinate}': {e}")
                 try:
-                    return float(coordinate) * unit_manager.ureg.m
+                    return float(coordinate) * pyMAOS.unit_manager.ureg(pyMAOS.INTERNAL_LENGTH_UNIT)
                 except Exception:
                     raise ValueError(f"Could not parse coordinate value: {coordinate}")
 
         raise ValueError(f"Unsupported coordinate type: {type(coordinate)}")
 
     def _parse_load_value(self, load_value):
-        """
-        Parse a load value and return as pint.Quantity.
-
-        Parameters
-        ----------
-        load_value : float, str, or pint.Quantity
-            Load value
-
-        Returns
-        -------
-        pint.Quantity
-            Load value as a Quantity in N or N*m
-        """
-        # If already a Quantity, return as is
+        # If already a Quantity, convert to appropriate internal units
         if isinstance(load_value, pint.Quantity):
             # Check dimensionality to convert to correct units
-            if load_value.dimensionality == unit_manager.ureg.N.dimensionality:
-                return load_value.to('N')
-            elif load_value.dimensionality == (unit_manager.ureg.N * unit_manager.ureg.m).dimensionality:
-                return load_value.to('N*m')
+            if load_value.dimensionality == pyMAOS.FORCE_DIMENSIONALITY:
+                return load_value.to(pyMAOS.INTERNAL_FORCE_UNIT)
+            elif load_value.dimensionality == pyMAOS.MOMENT_DIMENSIONALITY:
+                return load_value.to(pyMAOS.INTERNAL_MOMENT_UNIT)
             return load_value
 
-        # If it's a number, assume Newtons (force)
+        # If it's a number, assume internal force units
         if isinstance(load_value, (int, float)):
-            return float(load_value) * unit_manager.ureg.N
+            return float(load_value) * pyMAOS.unit_manager.ureg(pyMAOS.INTERNAL_FORCE_UNIT)
 
         # If it's a string, parse units
         if isinstance(load_value, str):
@@ -165,20 +140,20 @@ class R2Node:
                 parsed_value = parse_value_with_units(load_value)
 
                 if isinstance(parsed_value, pint.Quantity):
-                    # Convert to appropriate SI units based on dimensionality
-                    if parsed_value.dimensionality == unit_manager.ureg.N.dimensionality:
-                        return parsed_value.to('N')
-                    elif parsed_value.dimensionality == (unit_manager.ureg.N * unit_manager.ureg.m).dimensionality:
-                        return parsed_value.to('N*m')
+                    # Convert to appropriate internal units based on dimensionality
+                    if parsed_value.dimensionality == pyMAOS.FORCE_DIMENSIONALITY:
+                        return parsed_value.to(pyMAOS.INTERNAL_FORCE_UNIT)
+                    elif parsed_value.dimensionality == pyMAOS.MOMENT_DIMENSIONALITY:
+                        return parsed_value.to(pyMAOS.INTERNAL_MOMENT_UNIT)
                     return parsed_value
                 else:
-                    # No units specified, assume Newtons
-                    return float(parsed_value) * unit_manager.ureg.N
+                    # No units specified, assume internal force units
+                    return float(parsed_value) * pyMAOS.unit_manager.ureg(pyMAOS.INTERNAL_FORCE_UNIT)
 
             except Exception as e:
                 print(f"Warning: Could not parse load value '{load_value}': {e}")
                 try:
-                    return float(load_value) * unit_manager.ureg.N
+                    return float(load_value) * pyMAOS.unit_manager.ureg(pyMAOS.INTERNAL_FORCE_UNIT)
                 except Exception:
                     raise ValueError(f"Could not parse load value: {load_value}")
 
@@ -243,13 +218,13 @@ class R2Node:
     def x_displaced(self, combo, scale=1.0):
         """Return X coordinate with displacement applied"""
         if combo.name in self.displacements:
-            return self.x + self.displacements[combo.name][0] * scale * unit_manager.ureg.m
+            return self.x + self.displacements[combo.name][0] * scale * pyMAOS.unit_manager.ureg(pyMAOS.INTERNAL_LENGTH_UNIT)
         return self.x
 
     def y_displaced(self, combo, scale=1.0):
         """Return Y coordinate with displacement applied"""
         if combo.name in self.displacements:
-            return self.y + self.displacements[combo.name][1] * scale * unit_manager.ureg.m
+            return self.y + self.displacements[combo.name][1] * scale * pyMAOS.unit_manager.ureg(pyMAOS.INTERNAL_LENGTH_UNIT)
         return self.y
 
     def distance(self, other):
@@ -324,22 +299,10 @@ class R2Node:
             self._isNonLinear = True
 
     def add_nodal_load(self, fx, fy, mz, loadcase="D"):
-        """
-        Add a nodal load to the node.
-
-        Parameters
-        ----------
-        fx : float, str, or pint.Quantity
-            Force in x-direction.
-        fy : float, str, or pint.Quantity
-            Force in y-direction.
-        mz : float, str, or pint.Quantity
-            Moment around z-axis.
-        loadcase : str, optional
-            Load case identifier. Default is "D" (Dead Load).
-        """
         if loadcase not in self.loads:
-            self.loads[loadcase] = [0 * unit_manager.ureg.N, 0 * unit_manager.ureg.N, 0 * unit_manager.ureg.N * unit_manager.ureg.m]
+            zero_force = 0 * pyMAOS.unit_manager.ureg(pyMAOS.INTERNAL_FORCE_UNIT)
+            zero_moment = 0 * pyMAOS.unit_manager.ureg(pyMAOS.INTERNAL_MOMENT_UNIT)
+            self.loads[loadcase] = [zero_force, zero_force, zero_moment]
 
         # Parse load values with units
         fx_parsed = self._parse_load_value(fx)
@@ -384,11 +347,11 @@ class R2Node:
         reactions = np.zeros(self.NJD, dtype=object)
 
         # Convert zeros to quantities with appropriate units
-        from pyMAOS.units_mod import unit_manager
+        import pyMAOS
         for i in range(self.NJD):
             # Use alternating force and moment units based on DOF index
-            unit = unit_manager.get_current_units().get('force' if i % 3 != 2 else 'moment', 'N')
-            reactions[i] = unit_manager.get_zero_quantity(unit)
+            unit = pyMAOS.unit_manager.get_current_units().get('force' if i % 3 != 2 else 'moment', 'N')
+            reactions[i] = pyMAOS.unit_manager.get_zero_quantity(unit)
 
         print(f"Computing reactions for load combination: {load_combination.name}")
 

@@ -9,9 +9,9 @@ import os
 # Add the project root to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from pyMAOS.material import LinearElasticMaterial as Material
-from pyMAOS.section import Section
-from pyMAOS.units_mod import set_unit_system, IMPERIAL_UNITS, SI_UNITS
+from pyMAOS.pymaos_linear_elastic_material import LinearElasticMaterial as Material
+from pyMAOS.pymaos_sections import Section
+from pyMAOS.pymaos_units import set_unit_system, IMPERIAL_UNITS, SI_UNITS
 
 def test_material_and_section_units():
     """Test Material and Section creation with various unit formats"""

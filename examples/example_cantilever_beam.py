@@ -2,8 +2,8 @@ from signal import pause
 
 from pyMAOS.node2d import R2Node
 from pyMAOS.elements import R2Frame
-from pyMAOS.material import LinearElasticMaterial as Material
-from pyMAOS.section import Section
+from pyMAOS.pymaos_linear_elastic_material import LinearElasticMaterial as Material
+from pyMAOS.pymaos_sections import Section
 import pyMAOS.structure2d as R2Struct
 from pyMAOS.loadcombos import LoadCombo
 from pyMAOS.structure2d_plot import plot_structure

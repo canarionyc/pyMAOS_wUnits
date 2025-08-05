@@ -9,9 +9,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from pyMAOS.node2d import R2Node
 from pyMAOS.elements import R2Frame
-from pyMAOS.material import LinearElasticMaterial as Material
-from pyMAOS.section import Section
-from pyMAOS.units_mod import set_unit_system, IMPERIAL_UNITS
+from pyMAOS.pymaos_linear_elastic_material import LinearElasticMaterial as Material
+from pyMAOS.pymaos_sections import Section
+from pyMAOS.pymaos_units import set_unit_system, IMPERIAL_UNITS
 
 def test_point_load_with_units():
     """Test add_point_load with string inputs containing units"""

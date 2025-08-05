@@ -5,9 +5,7 @@ from numpy import ndarray
 
 import pyMAOS.loading as loadtypes
 import quantity_utils
-from pyMAOS.units_mod import unit_manager
-from quantity_utils import QuantityArray, quantity_array_to_float64
-
+import pyMAOS
 
 # In structural analysis, hinges in frame elements (like beams and columns) serve a distinct purpose from node restraints. Here's what they do:
 # Node restraints (rx, ry, rz) control whether a node can move or rotate in the global coordinate system. These apply to the node itself.
@@ -103,16 +101,16 @@ class Element(ABC):
         # Get transformation matrix
         T = self.set_rotation_matrix()
 
-        local_k = self.k()
-        localk_float64 = quantity_array_to_float64(local_k)
+        local_k = self.k(); print("local_k", local_k, sep="\n")
+        localk_float64 = quantity_utils.numpy_array_of_quantity_to_numpy_array_of_float64(local_k)
         # Perform the transformation while preserving units
         from numpy import linalg
         # Transform local stiffness to global coordinates efficiently
         globalk_float64 = linalg.multi_dot([T.T, localk_float64, T])
+        print(f"Element {self.uid} globalk_float64", globalk_float64, sep="\n")
+        # print(f"DEBUG: Element {self.uid} global stiffness matrix created with shape {globalk_float64.shape}")
 
-        print(f"DEBUG: Element {self.uid} global stiffness matrix created with shape {globalk_float64.shape}")
 
-        print(f"Element {self.uid} global stiffness matrix created with shape {globalk_float64.shape}")
 
         return globalk_float64
 
@@ -141,10 +139,9 @@ class Element(ABC):
     def set_displacement_local(self, load_case):
         """Calculate local displacement vector"""
         elem_global_displacement = self.set_displacement_global(load_case)
-        from pyMAOS import quantity_utils
         from numpy import linalg
-        from pyMAOS.quantity_utils import quantity_array_to_float64
-        self.displacement_local = np.dot(self.set_rotation_matrix(), convert_array_to_float64(elem_global_displacement))
+        from pyMAOS.quantity_utils import numpy_array_of_quantity_to_numpy_array_of_float64
+        self.displacement_local = np.dot(self.rotation_matrix, numpy_array_of_quantity_to_numpy_array_of_float64(elem_global_displacement))
       
         return self.displacement_local
 
@@ -167,4 +164,3 @@ class Element(ABC):
     def set_structure(self, structure):
         """Attach reference to parent structure for unit access"""
         self.structure = structure
-

@@ -1,0 +1,261 @@
+{
+  "units": {
+    "force": "klbf",
+    "length": "foot",
+    "moment": "klbf*foot",
+    "pressure": "klbf/foot**2",
+    "area": "foot^2",
+    "moment_of_inertia": "foot^4",
+    "distributed_load": "klbf/foot",
+    "rotation": "rad"
+  },
+  "nodes": {
+    "1": {
+      "coordinates": {
+        "x": {
+          "value": 0.0,
+          "unit": "foot"
+        },
+        "y": {
+          "value": 0.0,
+          "unit": "foot"
+        }
+      },
+      "restraints": [
+        1,
+        1,
+        1
+      ],
+      "displacements": {
+        "D": {
+          "ux": {
+            "value": 0.0,
+            "unit": "foot"
+          },
+          "uy": {
+            "value": 0.0,
+            "unit": "foot"
+          },
+          "rz": {
+            "value": 0.0,
+            "unit": "rad"
+          }
+        }
+      },
+      "reactions": {}
+    },
+    "2": {
+      "coordinates": {
+        "x": {
+          "value": 30.0,
+          "unit": "foot"
+        },
+        "y": {
+          "value": 0.0,
+          "unit": "foot"
+        }
+      },
+      "restraints": [
+        1,
+        1,
+        0
+      ],
+      "displacements": {
+        "D": {
+          "ux": {
+            "value": 0.0,
+            "unit": "foot"
+          },
+          "uy": {
+            "value": 0.0,
+            "unit": "foot"
+          },
+          "rz": {
+            "value": -0.004894581280788174,
+            "unit": "rad"
+          }
+        }
+      },
+      "reactions": {}
+    },
+    "3": {
+      "coordinates": {
+        "x": {
+          "value": 60.0,
+          "unit": "foot"
+        },
+        "y": {
+          "value": 0.0,
+          "unit": "foot"
+        }
+      },
+      "restraints": [
+        1,
+        1,
+        1
+      ],
+      "displacements": {
+        "D": {
+          "ux": {
+            "value": 0.0,
+            "unit": "foot"
+          },
+          "uy": {
+            "value": 0.0,
+            "unit": "foot"
+          },
+          "rz": {
+            "value": 0.0,
+            "unit": "rad"
+          }
+        }
+      },
+      "reactions": {}
+    }
+  },
+  "members": {
+    "1": {
+      "connectivity": {
+        "i_node": 1,
+        "j_node": 2
+      },
+      "properties": {
+        "length": {
+          "value": 30.0,
+          "unit": "foot"
+        },
+        "type": "FRAME",
+        "material": {
+          "id": "1",
+          "E": {
+            "value": 4176000.000000002,
+            "unit": "klbf/foot**2"
+          }
+        },
+        "section": {
+          "id": "1",
+          "area": {
+            "value": 0.06944444444444446,
+            "unit": "foot^2"
+          },
+          "Ixx": {
+            "value": 0.0421971450617284,
+            "unit": "foot^4"
+          }
+        },
+        "hinges": [
+          0,
+          0
+        ]
+      },
+      "forces": {
+        "D": {
+          "global": {
+            "i_node": {
+              "fx": {
+                "value": 0.0,
+                "unit": "klbf"
+              },
+              "fy": {
+                "value": 24.250000000000007,
+                "unit": "klbf"
+              },
+              "mz": {
+                "value": 92.5,
+                "unit": "klbf*foot"
+              }
+            },
+            "j_node": {
+              "fx": {
+                "value": 0.0,
+                "unit": "klbf"
+              },
+              "fy": {
+                "value": 35.75000000000002,
+                "unit": "klbf"
+              },
+              "mz": {
+                "value": -265.00000000000017,
+                "unit": "klbf*foot"
+              }
+            }
+          }
+        }
+      }
+    },
+    "2": {
+      "connectivity": {
+        "i_node": 2,
+        "j_node": 3
+      },
+      "properties": {
+        "length": {
+          "value": 30.0,
+          "unit": "foot"
+        },
+        "type": "FRAME",
+        "material": {
+          "id": "1",
+          "E": {
+            "value": 4176000.000000002,
+            "unit": "klbf/foot**2"
+          }
+        },
+        "section": {
+          "id": "1",
+          "area": {
+            "value": 0.06944444444444446,
+            "unit": "foot^2"
+          },
+          "Ixx": {
+            "value": 0.0421971450617284,
+            "unit": "foot^4"
+          }
+        },
+        "hinges": [
+          0,
+          0
+        ]
+      },
+      "forces": {
+        "D": {
+          "global": {
+            "i_node": {
+              "fx": {
+                "value": 0.0,
+                "unit": "klbf"
+              },
+              "fy": {
+                "value": 37.58333333333334,
+                "unit": "klbf"
+              },
+              "mz": {
+                "value": 115.00000000000001,
+                "unit": "klbf*foot"
+              }
+            },
+            "j_node": {
+              "fx": {
+                "value": 0.0,
+                "unit": "klbf"
+              },
+              "fy": {
+                "value": 40.416666666666686,
+                "unit": "klbf"
+              },
+              "mz": {
+                "value": -247.50000000000017,
+                "unit": "klbf*foot"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "analysis_info": {
+    "dof": 1,
+    "num_nodes": 3,
+    "num_members": 2
+  }
+}

@@ -7,13 +7,13 @@ from pyMAOS.display_utils import display_node_load_vector_in_units
 import pyMAOS.loading as loadtypes
 from pyMAOS.elements import Element
 
-from pyMAOS.units_mod import unit_manager, IMPERIAL_UNITS, convert_to_display_units
+import pyMAOS
+from pyMAOS import unit_manager
 
-from pyMAOS.quantity_utils import QuantityArray
 
 # Create unit registry
 # from pyMAOS.units_mod import ureg
-Q_ = unit_manager.ureg.Quantity
+Q_ = pyMAOS.unit_manager.ureg.Quantity
 
 def convert_to_quantity(value, unit_str):
     """Convert a value to a quantity with units if it's not already one"""
@@ -437,7 +437,7 @@ class R2Frame(Element):
         if isinstance(load_value, str):
             try:
                 # Import the parse function from units_mod
-                from pyMAOS.units_mod import parse_value_with_units
+                from pyMAOS.pymaos_units import parse_value_with_units
                 import pint
                 
                 # Parse the distributed load string
@@ -532,9 +532,10 @@ class R2Frame(Element):
             where i = start node, j = end node, and x,y,z are local coordinates
         """
         # Initialize fixed end forces vector
-        from pyMAOS.units_mod import INTERNAL_FORCE_UNIT, INTERNAL_MOMENT_UNIT
-        zero_force=unit_manager.ureg.Quantity(0, INTERNAL_FORCE_UNIT); zero_moment=unit_manager.ureg.Quantity(0, INTERNAL_MOMENT_UNIT)
-        fef = np.array([zero_force,zero_force,zero_moment,zero_force,zero_force,zero_moment], dtype=object)#np.zeros(self.structure.NJD * 2, dtype=object)
+        from pyMAOS import INTERNAL_FORCE_UNIT, INTERNAL_MOMENT_UNIT
+        zero_force=pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT)
+        zero_moment=pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_MOMENT_UNIT)
+        fef = np.array([zero_force,zero_force,zero_moment,zero_force,zero_force,zero_moment], dtype=object)
         # Process each load applied to the element
         print(f"Processing {len(self.loads)} loads on element {self.uid}:", file=sys.stdout)
         for load_idx, load in enumerate(self.loads):
@@ -550,7 +551,7 @@ class R2Frame(Element):
             # Calculate FEF contribution from this load
             load_fef = load.FEF()
 
-            from pyMAOS.units_mod import array_convert_to_unit_system
+            from pyMAOS.pymaos_units import array_convert_to_unit_system
             _ = array_convert_to_unit_system(load_fef, "imperial")
 
             factored_fef = np.array([load_factor * f for f in load_fef], dtype=object)
@@ -563,7 +564,7 @@ class R2Frame(Element):
             # Add to total FEF
             fef = fef + factored_fef
 
-        from pyMAOS.units_mod import array_convert_to_unit_system
+        from pyMAOS.pymaos_units import array_convert_to_unit_system
 
 
 
@@ -639,7 +640,7 @@ class R2Frame(Element):
             elem_global_fef = np.array([unit_manager.ureg.Quantity(mag, unit)
                               for mag, unit in zip(elem_global_fef_magnitudes, fef_units)],
                              dtype=object)
-            from units_mod import array_convert_to_unit_system
+            from pymaos_units import array_convert_to_unit_system
             print(f"FEFglobal for element {self.uid}:"); _ = array_convert_to_unit_system(elem_global_fef, "imperial")
 
         else:
@@ -751,7 +752,7 @@ class R2Frame(Element):
         # if hasattr(self, 'structure') and hasattr(self.structure, 'units'):
         #     units_dict = self.structure.units
         # else:            # Option 2: Use unit manager to get current units
-        #     from pyMAOS.units_mod import unit_manager
+        #     
         #     units_dict = unit_manager.get_current_units()
         # # Get current unit system directly from the manager
         #
@@ -824,25 +825,22 @@ class R2Frame(Element):
         # Check if we're dealing with quantities with units
         if True or isinstance(Dglobal[0], pint.Quantity):
             # Store units for calculation
-            from pyMAOS.quantity_utils import quantity_array_to_float64, extract_units_from_quantities
-            dglobal_units=extract_units_from_quantities(Dglobal)
+            from pyMAOS.quantity_utils import numpy_array_of_quantity_to_numpy_array_of_float64, extract_units_from_quantities
+            dglobal_units = extract_units_from_quantities(Dglobal)
 
             # Extract magnitudes for calculation
-            kg_magnitudes = quantity_array_to_float64(KG)
-            dglobal_magnitudes=quantity_array_to_float64(Dglobal)
+            kg_magnitudes = numpy_array_of_quantity_to_numpy_array_of_float64(KG)
+            dglobal_magnitudes = numpy_array_of_quantity_to_numpy_array_of_float64(Dglobal)
 
             # Perform matrix-vector multiplication with SciPy BLAS
             result_magnitudes = sla.blas.dgemv(1.0, kg_magnitudes, dglobal_magnitudes)
             print(f"DEBUG: Using scipy.linalg.blas for matrix-vector multiplication: shape={result_magnitudes.shape}")
-            import pyMAOS.units_mod
-            from pyMAOS.units_mod import unit_manager
-            from importlib import reload
-            reload(pyMAOS.units_mod)
-            dglobal_units_conjugate=unit_manager.get_conjugate_units_array(dglobal_units)
+
+            dglobal_units_conjugate = unit_manager.get_conjugate_units_array(dglobal_units)
             # Reattach units to result
-            tmp_list=[unit_manager.ureg.Quantity(mag, unit)
-                           for mag, unit in zip(result_magnitudes, dglobal_units_conjugate)]
-            FG = np.array(tmp_list,dtype=object)
+            tmp_list = [unit_manager.ureg.Quantity(mag, unit)
+                        for mag, unit in zip(result_magnitudes, dglobal_units_conjugate)]
+            FG = np.array(tmp_list, dtype=object)
         else:
             # For non-quantity arrays, use scipy.linalg.blas directly
             FG = sla.blas.dgemv(1.0, KG, Dglobal)

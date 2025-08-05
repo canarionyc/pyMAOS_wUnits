@@ -13,7 +13,7 @@ def test_direct_assignment_with_units():
     
     try:
         from pyMAOS.node2d import R2Node
-        from pyMAOS.units_mod import set_unit_system, IMPERIAL_UNITS
+        from pyMAOS.pymaos_units import set_unit_system, IMPERIAL_UNITS
         
         print("✓ Imports successful")
         
