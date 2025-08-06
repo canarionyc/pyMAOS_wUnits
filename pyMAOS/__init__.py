@@ -5,9 +5,34 @@ This package provides tools for structural engineering analysis,
 with a focus on frame structures.
 """
 import os
-import sys
 
-from pint.testsuite.benchmarks.test_10_registry import cache_folder
+# Import essential modules first
+from . import logger
+
+# Create package-level logger objects for easy import
+log = logger.default_logger
+
+# Provide convenience functions at package level
+def debug(msg, *args, **kwargs):
+    log.debug(msg, *args, **kwargs)
+
+def info(msg, *args, **kwargs):
+    log.info(msg, *args, **kwargs)
+
+def warning(msg, *args, **kwargs):
+    log.warning(msg, *args, **kwargs)
+
+def error(msg, *args, **kwargs):
+    log.error(msg, *args, **kwargs)
+
+def critical(msg, *args, **kwargs):
+    log.critical(msg, *args, **kwargs)
+
+def log_exception(message="An exception occurred", exc_info=None):
+    logger.log_exception(log, exc_info, message)
+
+# Import other modules after logger is set up
+# ... other imports ...
 
 if False:
     # Print module search paths and loading information
@@ -129,7 +154,6 @@ unit_manager.register_for_unit_updates(_update_global_units)
 # )
 
 import pint
-from pint import Quantity
 
 # Add the method to the Quantity class
 from pyMAOS.quantity_utils import increment_with_units
@@ -137,9 +161,6 @@ unit_manager.ureg.Quantity.increment_with_units = increment_with_units
 
 # Add references to the new modules
 from .structure2d import R2Structure
-from .structure2d_to_excel import export_results_to_excel
-from .structure2d_viz import plot_loadcombos_vtk
-from .structure2d_utils import __str__
 
 print("pyMAOS package initialized with unit systems and structural analysis tools.")
 
@@ -150,6 +171,7 @@ __all__ = [
     'R2Structure',  # The module itself
     'pint',  # Add pint to exports
     'pprint'  # Add pprint to exports
+    'debug','info','warning','error','critical','log_exception'
 ]
 # Package version
 __version__ = '0.1.0'

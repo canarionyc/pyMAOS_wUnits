@@ -1,5 +1,6 @@
 import sys
-import numpy as np; from pprint import pprint;
+import numpy as np;
+
 np.set_printoptions(suppress=True,linewidth=np.nan,threshold=sys.maxsize,precision=2)
 
 # Near the top of the script, after the imports but before plotting
@@ -7,15 +8,13 @@ import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
 matplotlib.rcParams['figure.max_open_warning'] = 0  # Suppress warnins about too many fi
 
-from context import pyMAOS
-
 from pyMAOS.node2d import R2Node
 from pyMAOS.elements import R2Truss, R2Frame
 from pyMAOS.pymaos_linear_elastic_material import LinearElasticMaterial as Material
 from pyMAOS.pymaos_sections import Section
 import pyMAOS.structure2d as R2Struct
 from pyMAOS.loadcombos import LoadCombo
-from pyMAOS.structure2d_plot import plot_structure
+from structure2d_vtk import plot_structure
 
 # Open the file with line buffering (buffering=1)
 # f = open(r'C:\dev\pyMAOS_testing\braced_frame_output_ORIG\example_braced_frame.txt', 'w', buffering=1)

@@ -1,0 +1,10 @@
+{
+        "axial_load": 100,
+        "normal_load": 100,
+        "point_load": 1,
+        "axial": 2,
+        "shear": 2,
+        "moment": 0.1,
+        "rotation": 5000,
+        "displacement": 100
+    }

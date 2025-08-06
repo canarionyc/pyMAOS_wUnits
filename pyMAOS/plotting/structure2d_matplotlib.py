@@ -41,7 +41,7 @@ def plot_element(element, loadcombo, scaling={
         
         try:
             # Get deformed shape (global displacements) and overlay it.c v
-            dglobal = element.Dglobal_plot(loadcombo, disp_scale)
+            dglobal = element.dglobal_span(loadcombo, disp_scale)
             ax.plot(dglobal[:, 0] + element.inode.x,
                     dglobal[:, 1] + element.inode.y,
                     linestyle="--", color="gray", label="Deformed Shape")
@@ -65,7 +65,7 @@ def plot_element(element, loadcombo, scaling={
     fig.tight_layout()
     return fig, ax
 
-def plot_structure(
+def plot_structure_matplotlib_no_units(
     nodes,
     members,
     loadcombo,
@@ -131,7 +131,7 @@ def plot_structure(
             markersize=10,
             color="gray",
         )
-
+        axs[0, 0].show()
         # --- Visualize restraints ---
         size = 6  # length of restraint symbol
         if hasattr(node, "restraints"):
@@ -158,7 +158,7 @@ def plot_structure(
             )
 
         aglobal = member.Aglobal_plot(loadcombo, axial_scale)
-        dglobal = member.Dglobal_plot(loadcombo, displace_scale)
+        dglobal = member.dglobal_span(loadcombo, displace_scale)
 
         axs[0, 2].plot(
             (aglobal[:, 0] + member.inode.x),

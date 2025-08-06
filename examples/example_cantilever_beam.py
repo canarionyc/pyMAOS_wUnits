@@ -6,7 +6,7 @@ from pyMAOS.pymaos_linear_elastic_material import LinearElasticMaterial as Mater
 from pyMAOS.pymaos_sections import Section
 import pyMAOS.structure2d as R2Struct
 from pyMAOS.loadcombos import LoadCombo
-from pyMAOS.structure2d_plot import plot_structure
+from structure2d_vtk import plot_structure
 
 # 5 Element Cantilever beam w/ Point Load
 loadcase = "D"

@@ -5,7 +5,6 @@
     unit_system = kwargs.get('unit_system')
     if unit_system:
         # Import unit systems
-        from pyMAOS import unit_manager
         from unit_manager import SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS, set_unit_system
 
         # Use the specified unit system for display
@@ -128,7 +127,7 @@
         # Modify _export_results_to_excel to convert coordinates for plotting
         if include_visualization:
             try:
-                from pyMAOS.structure2d_plot_with_matplotlib import plot_structure_matplotlib
+                from structure2d_matplotlib import plot_structure_matplotlib
 
                 # Create temporary lists of nodes with converted coordinates for plotting
                 class TempNode:
@@ -244,7 +243,6 @@
 
 def _export_fixed_end_forces(structure, writer, combo, combo_name, display_units, convert_value):
     """Helper function to export fixed end forces to Excel"""
-    import numpy as np
     import pandas as pd
 
     fef_data = []
@@ -310,7 +308,6 @@ def _export_fixed_end_forces(structure, writer, combo, combo_name, display_units
 
 def _export_member_forces(structure, writer, combo, combo_name, display_units, convert_value):
     """Helper function to export member forces to Excel"""
-    import numpy as np
     import pandas as pd
     
     forces_data = []

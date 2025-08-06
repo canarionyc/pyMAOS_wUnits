@@ -1,12 +1,10 @@
 ﻿# -*- coding: utf-8 -*-
 import sys
 import os
-from tkinter import NO
 import numpy as np
-import json  # Added for reading configuration file
+
 np.set_printoptions(precision=2, suppress=True, linewidth=np.nan, threshold=sys.maxsize)
 
-from contextlib import redirect_stdout
 import argparse
 
 import matplotlib
@@ -15,11 +13,9 @@ matplotlib.use("QtAgg")
 
 from context import pyMAOS
 
-from pyMAOS.node2d import R2Node, get_nodes_from_csv
+from pyMAOS.node2d import get_nodes_from_csv
 from pyMAOS.truss2d import R2Truss
 from pyMAOS.frame2d import R2Frame
-from pyMAOS.pymaos_linear_elastic_material import LinearElasticMaterial as Material
-from pyMAOS.pymaos_sections import Section
 import pyMAOS.structure2d as R2Struct
 from pyMAOS.loadcombos import LoadCombo
 
@@ -169,7 +165,8 @@ for node in node_list:
     print(node)
     node.display_loads()  # Display loads for each node
 
-from pyMAOS.database import get_materials_from_csv, get_sections_from_csv
+from pyMAOS.database import get_materials_from_csv
+
 get_materials_from_csv = pyMAOS.database.get_materials_from_csv
 get_sections_from_csv = pyMAOS.database.get_sections_from_csv   
 
@@ -424,7 +421,7 @@ for element in element_list:
 # --- Choose a plotting library ---
 
 # Use VTK for plotting
-from pyMAOS.structure2d_plot import get_scaling_from_config, plot_structure_loadcombos_vtk, plot_structure_vtk
+from structure2d_vtk import get_scaling_from_config, plot_structure_loadcombos_vtk, plot_structure_vtk
 # Read scaling parameters from configuration file
 
 scaling = get_scaling_from_config(args.config_file)

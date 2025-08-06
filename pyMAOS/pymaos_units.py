@@ -846,6 +846,37 @@ def to_quantity(value, default_unit=None):
     # Couldn't convert
     raise TypeError(f"Cannot convert {type(value)} to pint.Quantity: {value}")
 
+    def ensure_same_registry(self, base_quantity, value_to_add):
+        """
+        Ensures that value_to_add uses the same registry as base_quantity
+
+        Parameters
+        ----------
+        base_quantity : pint.Quantity
+            Reference quantity with desired registry
+        value_to_add : float or pint.Quantity
+            Value to convert to compatible quantity
+
+        Returns
+        -------
+        pint.Quantity
+            Compatible quantity for mathematical operations
+        """
+        if isinstance(value_to_add, (int, float)):
+            return base_quantity._REGISTRY.Quantity(value_to_add, base_quantity.units)
+        elif hasattr(value_to_add, '_REGISTRY') and base_quantity._REGISTRY is not value_to_add._REGISTRY:
+            return base_quantity._REGISTRY.Quantity(value_to_add.magnitude, str(value_to_add.units))
+        return value_to_add
+
+    def ensure_compatible(self, quantity1, quantity2):
+        """Ensures quantity2 is compatible with quantity1 (same registry and units)"""
+        # First handle different registries
+        if quantity1._REGISTRY is not quantity2._REGISTRY:
+            quantity2 = quantity1._REGISTRY.Quantity(quantity2.magnitude, str(quantity2.units))
+
+        # Then handle unit conversion
+        return quantity2.to(quantity1.units)
+
 if __name__ == "__main__":
     # Example usage
     set_unit_system(IMPERIAL_UNITS, "imperial")

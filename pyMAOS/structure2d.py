@@ -2,20 +2,13 @@
 import sys
 
 import numpy as np
-import pint
-from pprint import pprint
 import pyMAOS
-from pyMAOS import pymaos_units, unit_manager
+from pyMAOS import unit_manager
 from pyMAOS.pymaos_units import array_convert_to_unit_system
-from pyMAOS.display_utils import display_node_load_vector_in_units, display_node_displacement_in_units
-from quantity_utils import extract_units_from_quantities
-
 
 np.set_printoptions(precision=4, suppress=False, floatmode='maxprec_equal', linewidth=999)
 
-import ast
 import operator
-import importlib
 
 
 # # Add custom formatters with explicit type signatures
@@ -456,8 +449,6 @@ class R2Structure:
 
         # Generate Full Structure Stiffness Matrix
         self.KSTRUCT = self.Kstructure(**kwargs)
-        from pyMAOS.quantity_utils import numpy_array_of_quantity_to_numpy_array_of_float64
-
 
         self._verify_stable(self.FM, self.KSTRUCT)
 
@@ -573,7 +564,7 @@ class R2Structure:
         # else:
         #     print("Failed to load state - need to recalculate")
 
-        print("Structure displacementU:", self.U, sep="\n")#; print(self.U.shape)
+        print("Structure displacement U:", self.U, sep="\n")#; print(self.U.shape)
 
         # Full Displacement Vector
         # Result is still mapped to DOF via FM
@@ -886,7 +877,7 @@ class R2Structure:
         unit_system = kwargs.get('unit_system')
         if unit_system:
             # Import unit systems
-            from pyMAOS.pymaos_units import SI_UNITS, IMPERIAL_DISPLAY_UNITS, METRIC_KN_UNITS, set_unit_system
+            from pyMAOS.pymaos_units import SI_UNITS, IMPERIAL_DISPLAY_UNITS, METRIC_KN_UNITS
 
             # Use the specified unit system for display
             if unit_system == "imperial":
@@ -975,7 +966,7 @@ class R2Structure:
             # 2. Structure visualization (if requested)
             if include_visualization:
                 try:
-                    from pyMAOS.structure2d_plot_with_matplotlib import plot_structure_matplotlib
+                    from structure2d_matplotlib import plot_structure_matplotlib
 
                     # Use the existing plot function
                     fig, ax = plot_structure_matplotlib(self.nodes, self.members)
@@ -1331,8 +1322,6 @@ class R2Structure:
         import pickle
         import zlib
         import io
-        import pint
-        import sys
 
         print(f"Loading structure state from {filename}...")
 
@@ -1366,24 +1355,97 @@ class R2Structure:
                 loaded_structure = unpickler.load()
 
             # Transfer all attributes from the loaded structure to self
-            for attr_name, attr_value in vars(loaded_structure).items():
-                setattr(self, attr_name, attr_value)
+            # for attr_name, attr_value in vars(loaded_structure).items():
+            #     setattr(self, attr_name, attr_value)
 
             # Verify the state is consistent
             if hasattr(self, 'verify_structure_state'):
                 if self.verify_structure_state(vars(self)):
                     print("Structure state verified successfully")
                 else:
-                    print("Warning: Structure state verification failed")
+                    raise ValueError("Warning: Structure state verification failed")
 
             # Rebuild node and member mappings
-            self.create_uid_maps()
-
-            print("Structure state loaded successfully")
-            return True
+            # self.create_uid_maps()
+            #
+            # print("Structure state loaded successfully")
+            return loaded_structure
 
         except Exception as e:
             print(f"Error loading structure state: {e}")
             import traceback
             traceback.print_exc()
+            return None
+
+def external_verify_structure_state(self, state_data):
+    """
+    Verify that the loaded structure state is complete and consistent.
+    Checks if K·U = F-P equation is satisfied.
+
+    Parameters
+    ----------
+    state_data : dict
+        Dictionary containing the loaded structure state
+
+    Returns
+    -------
+    bool
+        True if verification passes, False otherwise
+    """
+    print("Verifying structure state completeness and consistency...")
+
+    # 1. Check if all essential components are present
+    # essential_keys = ['nodes', 'members', 'U', 'KSTRUCT', 'FG', 'structure_fef']
+    # missing_keys = [key for key in essential_keys if key not in state_data]
+    # if missing_keys:
+    #     print(f"ERROR: Missing essential data: {missing_keys}")
+    #     return False
+
+    # 2. Check stiffness equation K·U = F-P for free DOFs
+    if all(hasattr(self, attr) for attr in ['Kff', 'U', 'FGf', 'PFf']):
+        try:
+            # Convert quantities to numerical values for calculation
+            from pyMAOS.quantity_utils import numpy_array_of_quantity_to_numpy_array_of_float64
+            import numpy as np
+
+            # Extract magnitudes for calculation
+            Kff_mag = numpy_array_of_quantity_to_numpy_array_of_float64(self.Kff)
+            U_mag = numpy_array_of_quantity_to_numpy_array_of_float64(self.U)
+            FGf_mag = numpy_array_of_quantity_to_numpy_array_of_float64(self.FGf)
+            PFf_mag = numpy_array_of_quantity_to_numpy_array_of_float64(self.PFf)
+
+            # Calculate left and right sides of equation
+            KU = np.matmul(Kff_mag, U_mag)
+            F_minus_P = FGf_mag - PFf_mag
+
+            # Calculate residual and relative error
+            residual = KU - F_minus_P
+            error_norm = np.linalg.norm(residual)
+            rel_error = error_norm / np.linalg.norm(F_minus_P) if np.linalg.norm(F_minus_P) > 1e-10 else error_norm
+
+            print(f"Stiffness equation verification:")
+            print(f"  Norm of K·U:   {np.linalg.norm(KU):.6e}")
+            print(f"  Norm of F-P:   {np.linalg.norm(F_minus_P):.6e}")
+            print(f"  Residual norm: {error_norm:.6e}")
+            print(f"  Relative error: {rel_error:.6e}")
+
+            # Check if error is acceptably small (adjust tolerance as needed)
+            if rel_error > 1e-6:
+                print("WARNING: Relative error in stiffness equation exceeds tolerance")
+                return False
+
+            print("✓ Stiffness equation verified successfully")
+
+        except Exception as e:
+            print(f"ERROR during verification: {e}")
+            import traceback
+            traceback.print_exc()
             return False
+    else:
+        print("WARNING: Cannot verify stiffness equation - missing required data")
+
+    # 3. Check node equilibrium by verifying reactions match applied loads + member forces
+    # (This would require gathering all member end forces for each node)
+
+    print("Structure state verification completed")
+    return True

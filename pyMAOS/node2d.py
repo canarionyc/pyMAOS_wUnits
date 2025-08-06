@@ -218,14 +218,34 @@ class R2Node:
     def x_displaced(self, combo, scale=1.0):
         """Return X coordinate with displacement applied"""
         if combo.name in self.displacements:
-            return self.x + self.displacements[combo.name][0] * scale * pyMAOS.unit_manager.ureg(pyMAOS.INTERNAL_LENGTH_UNIT)
+            # Get displacement in compatible form
+            raw_disp = self.displacements[combo.name][0]
+
+            # Convert the displacement to the same unit as self.x
+            disp_in_x_units = raw_disp.to(self.x.units) * scale
+
+            # Add using the same registry
+            return self.x + disp_in_x_units
         return self.x
 
     def y_displaced(self, combo, scale=1.0):
         """Return Y coordinate with displacement applied"""
         if combo.name in self.displacements:
-            return self.y + self.displacements[combo.name][1] * scale * pyMAOS.unit_manager.ureg(pyMAOS.INTERNAL_LENGTH_UNIT)
+            # Get displacement in compatible form
+            raw_disp = self.displacements[combo.name][1]
+
+            # Convert the displacement to the same unit as self.x
+            disp_in_y_units = raw_disp.to(self.y.units) * scale
+
+            # Add using the same registry
+            return self.y + disp_in_y_units
         return self.y
+
+    def z_rotated(self, combo, scale=1.0):
+        """Return Z rotation angle with displacement applied"""
+        if combo.name in self.displacements:
+            return self.displacements[combo.name][2] * scale
+        return 0
 
     def distance(self, other):
         """

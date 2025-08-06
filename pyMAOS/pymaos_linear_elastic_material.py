@@ -5,7 +5,7 @@ import pyMAOS
 from typing import Union
 import pint
 from pint import Quantity
-from pyMAOS import unit_manager
+from pyMAOS import unit_manager, info, debug, error
 
 class LinearElasticMaterial():
     def __init__(self, uid: int,
@@ -30,6 +30,27 @@ class LinearElasticMaterial():
         self.uid = uid
         self.nu = nu
 
+        # Get internal units directly from unit_manager (force refresh)
+        import pyMAOS
+
+        # Debug the unit manager state
+        info(f"Unit manager system: {pyMAOS.unit_manager.system_name}")
+        info(f"Unit manager base units: Force={pyMAOS.unit_manager.INTERNAL_FORCE_UNIT}, Length={pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT}")
+
+        # Force update derived units before accessing them
+        # pyMAOS.unit_manager._update_derived_units()
+
+        # Now get the updated internal units
+        internal_pressure_unit = pyMAOS.unit_manager.INTERNAL_PRESSURE_UNIT
+        internal_density_unit = pyMAOS.unit_manager.INTERNAL_DENSITY_UNIT
+        system_name = pyMAOS.unit_manager.system_name
+
+
+        info(f"Using internal unit system: {system_name}")
+        info(f"Internal pressure unit: {internal_pressure_unit}")
+        info(f"Internal pressure unit expanded: {pyMAOS.unit_manager.INTERNAL_PRESSURE_UNIT_EXPANDED}")
+        info(f"Internal density unit: {internal_density_unit}")
+
         # Process Young's modulus
         if isinstance(E, (int, float)):
             raise TypeError("Young's modulus E must be provided as a string with units or a Quantity object")
@@ -43,6 +64,7 @@ class LinearElasticMaterial():
                              f"Expected dimensions: [length]^-1 [mass]^1 [time]^-2")
 
         self.E = E.to_reduced_units()
+        self.E.ito(internal_pressure_unit)
 
         # Process density
         if isinstance(density, (int, float)):
@@ -51,12 +73,14 @@ class LinearElasticMaterial():
         if not isinstance(density, pint.Quantity):
             density = unit_manager.ureg(density)
 
+
         # Validate dimensions for density
         if not density.check({'[length]': -3, '[mass]': 1}):
             raise ValueError(f"Density has incorrect dimensions: {density.dimensionality}. "
                              f"Expected dimensions: [length]^-3 [mass]^1")
 
         self.density = density.to_reduced_units()
+        self.density.ito(internal_density_unit)
 
         print(f"LinearElasticMaterial uid {self.uid} initialized with "
               f"density={self.density:.4g}, E={self.E:.3g}, nu={self.nu}")
@@ -150,7 +174,7 @@ class LinearElasticMaterial():
 
 def get_materials_from_yaml(materials_yml, logger=None):
     """
-    Loads materials from a YAML file and converts properties to internal units
+    Loads materials from a YAML file with proper object deserialization
 
     Parameters
     ----------
@@ -164,59 +188,17 @@ def get_materials_from_yaml(materials_yml, logger=None):
     dict
         Dictionary of materials with uid as key
     """
-    materials_dict = {}
+    from pyMAOS import info
 
-    # Use print or logger.info based on what's available
-    def log(message):
-        if logger:
-            logger.info(message)
-        else:
-            print(message)
+    info(f"Loading materials from: {materials_yml}")
 
-    # Get internal units directly from unit_manager (force refresh)
-    import pyMAOS
-
-    # Debug the unit manager state
-    log(f"Unit manager system: {pyMAOS.unit_manager.system_name}")
-    log(f"Unit manager base units: Force={pyMAOS.unit_manager.INTERNAL_FORCE_UNIT}, Length={pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT}")
-
-    # Force update derived units before accessing them
-    # pyMAOS.unit_manager._update_derived_units()
-
-    # Now get the updated internal units
-    internal_pressure_unit = pyMAOS.unit_manager.INTERNAL_PRESSURE_UNIT
-    internal_density_unit = pyMAOS.unit_manager.INTERNAL_DENSITY_UNIT
-    system_name = pyMAOS.unit_manager.system_name
-
-    log(f"Loading materials from: {materials_yml}")
-    log(f"Using internal unit system: {system_name}")
-    log(f"Internal pressure unit: {internal_pressure_unit}")
-    log(f"Internal pressure unit expanded: {pyMAOS.unit_manager.INTERNAL_PRESSURE_UNIT_EXPANDED}")
-    log(f"Internal density unit: {internal_density_unit}")
-
-    # Rest of the function...
-
+    # Load YAML file with object deserialization
     with open(materials_yml, 'r') as file:
         import yaml
         materials_list = yaml.unsafe_load(file)
 
-    # Process each material and convert units to internal units
-    for material in materials_list:
-        # If the material is already a LinearElasticMaterial instance, update its units
-        if hasattr(material, 'E') and hasattr(material, 'density'):
-            # Convert E to internal pressure units if it's a Quantity
-            import pint
-            if isinstance(material.E, pint.Quantity):
-                material.E = material.E.to(internal_pressure_unit)
+    # Convert list to dictionary keyed by UID
+    materials_dict = {material.uid: material for material in materials_list}
 
-            # Convert density to internal density units if it's a Quantity
-            if isinstance(material.density, pint.Quantity):
-                material.density = material.density.to(internal_density_unit)
-
-            log(f"Material {material.uid}: E={material.E}, density={material.density}")
-
-        # Add material to dictionary
-        materials_dict[material.uid] = material
-
-    log(f"Loaded {len(materials_dict)} materials")
+    info(f"Loaded {len(materials_dict)} materials")
     return materials_dict

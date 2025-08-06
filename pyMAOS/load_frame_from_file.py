@@ -1,134 +1,16 @@
-﻿from ast import Constant
-import os
-from os import path
+﻿import os
 import sys
 
-import numpy as np
-from contextlib import redirect_stdout
 import pint
 
-from PyQt6 import QtQml  # Import the module without the non-existent kwargs
 from rx.subject.subject import Subject
-import rx
-import logging  # Add logging module
 
 import pyMAOS
-
-from pprint import pprint
 
 from pymaos_linear_elastic_material import get_materials_from_yaml
 
 
-def is_class_imported(class_name):
-    """
-    Check if a class has been imported in the current namespace
-    
-    Parameters
-    ----------
-    class_name : str
-        Name of the class to check
-        
-    Returns
-    -------
-    bool
-        True if class exists, False otherwise
-    """
-    return class_name in globals() or class_name in locals()
 
-
-def check_class_exists(class_name):
-    """Check if a class is available in the current namespace"""
-    try:
-        # Try to evaluate the class name
-        return eval(class_name) is not None
-    except (NameError, AttributeError):
-        return False
-
-
-def is_class_available_from_module(module_name, class_name):
-    """Check if a class is available from a specific imported module"""
-    import sys
-
-    # Check if module is imported
-    if module_name not in sys.modules:
-        return False
-
-    # Get the module object
-    module = sys.modules[module_name]
-
-    # Check if class exists in module
-    return hasattr(module, class_name)
-
-
-def list_imported_classes(module_filter=None):
-    """
-    List all classes that have been imported in the current Python script
-    
-    Parameters
-    ----------
-    module_filter : str or list of str, optional
-        Filter classes by module name prefix (e.g., 'pyMAOS' or ['pyMAOS', 'numpy'])
-        
-    Returns
-    -------
-    dict
-        Dictionary mapping class names to their module names
-    """
-    import inspect
-    import sys
-
-    # Normalize filter to a list
-    if module_filter is None:
-        filters = None
-    elif isinstance(module_filter, str):
-        filters = [module_filter]
-    else:
-        filters = list(module_filter)
-
-    classes_dict = {}
-
-    # Check global namespace
-    for name, obj in globals().items():
-        if inspect.isclass(obj):
-            module = inspect.getmodule(obj)
-            if module:
-                module_name = module.__name__
-                if filters is None or any(module_name.startswith(m) for m in filters):
-                    classes_dict[name] = module_name
-
-    # Check modules in sys.modules
-    for module_name, module in sys.modules.items():
-        # Skip None modules or if filtering is active and module doesn't match
-        if module is None:
-            continue
-        if filters and not any(module_name.startswith(m) for m in filters):
-            continue
-
-        try:
-            for name, obj in inspect.getmembers(module, inspect.isclass):
-                # Only include if defined in this module (not imported into it)
-                if hasattr(obj, '__module__') and obj.__module__ == module_name:
-                    classes_dict[name] = module_name
-        except:
-            # Some modules might raise errors when inspected
-            raise Warning(f"Could not inspect module {module_name}. It may not be a valid Python module or may not support introspection.")
-            pass
-
-    return classes_dict
-
-
-# Example usage:
-def print_imported_classes(module_filter=None):
-    """Print imported classes in a formatted table"""
-    classes = list_imported_classes(module_filter)
-
-    print(f"\n{'Class Name':<30} | {'Module'}")
-    print("-" * 60)
-
-    for name, module in sorted(classes.items()):
-        print(f"{name:<30} | {module}")
-
-    print(f"\nTotal: {len(classes)} classes found")
 
 
 # Alternative: show all imported classes
@@ -147,15 +29,9 @@ from pyMAOS.logger import setup_logger
 # from pyMAOS.units_mod import SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS
 
 # Import other modules
-from pyMAOS.structure2d_plot import plot_structure_vtk
 from pyMAOS.node2d import R2Node
-from pyMAOS.frame2d import R2Frame
-from pyMAOS.pymaos_linear_elastic_material import LinearElasticMaterial as Material
-from pyMAOS.pymaos_sections import Section
 
 from pyMAOS.loadcombos import LoadCombo
-
-from pyMAOS.load_utils import LoadConverter
 
 default_scaling = {
     "axial_load": 100,
@@ -189,13 +65,6 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
     tuple
         (node_list, element_list) ready for structural analysis, in internal units
     """
-
-    # Use print or logger.info based on what's available
-    def log(message):
-        if logger:
-            logger.info(message)
-        else:
-            print(message)
 
     # Import the unit_manager directly from the module
     import pyMAOS
@@ -387,7 +256,6 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
             log(f"Node {node_id} load: Fx={fx:.4g}, Fy={fy:.4g}, Mz={mz:.4g}")
 
     # Import the necessary load classes
-    from pyMAOS.loading import R2_Point_Load, LinearLoadXY, R2_Axial_Load, R2_Axial_Linear_Load, R2_Point_Moment
 
     log(f"\nProcessing {len(data.get('member_loads', []))} member loads:")
 
@@ -516,19 +384,19 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
     node_list = [nodes_dict[uid] for uid in sorted(nodes_dict)]
 
     # Print node restraints
-    log("\n\n--- Node Restraints Summary ---")
-    log("Node ID  |  Ux  |  Uy  |  Rz")
-    log("-" * 30)
-    for node in node_list:
-        rx, ry, rz = node.restraints
-        rx_status = "Fixed" if rx == 1 else "Free"
-        ry_status = "Fixed" if ry == 1 else "Free"
-        rz_status = "Fixed" if rz == 1 else "Free"
-        log(f"Node {node.uid:2d}  |  {rx_status:5s} |  {ry_status:5s} |  {rz_status:5s}")
+    # log("\n\n--- Node Restraints Summary ---")
+    # log("Node ID  |  Ux  |  Uy  |  Rz")
+    # log("-" * 30)
+    # for node in node_list:
+    #     rx, ry, rz = node.restraints
+    #     rx_status = "Fixed" if rx == 1 else "Free"
+    #     ry_status = "Fixed" if ry == 1 else "Free"
+    #     rz_status = "Fixed" if rz == 1 else "Free"
+    #     log(f"Node {node.uid:2d}  |  {rx_status:5s} |  {ry_status:5s} |  {rz_status:5s}")
 
     # Plot structure if requested
-    if show_vtk:
-        plot_structure_vtk(node_list, element_list, scaling=default_scaling)
+    # if show_vtk:
+    #     plot_structure_vtk(node_list, element_list, scaling=default_scaling)
 
     return node_list, element_list
 
@@ -603,57 +471,56 @@ if __name__ == "__main__":
     import argparse
 
     """Command line interface for unit conversion."""
-    parser = argparse.ArgumentParser(description="Convert JSON structural model to SI units")
-    parser.add_argument("input_file", help="Input JSON file path")
+    parser = argparse.ArgumentParser(description="Convert structural model to SI units")
+    parser.add_argument("--input", required=True, help="Input file path (.yml, .json, or .bin)")
     parser.add_argument("-w", "--working_dir", default=None, help="Working directory for output files")
     parser.add_argument("--units", choices=["si", "imperial", "metric_kn"], default="imperial",
                         help="Unit system to use (si, imperial, or metric_kn)")
-    # Modified argument parser
     parser.add_argument("--output", type=str, default="ALL",
                         help="Output format: json, xlsx, html, dash, csv or all (default, case insensitive)")
     parser.add_argument("--vtk", action="store_true",
                         help="Enable VTK visualization of the structure and results")
-    parser.add_argument("--recalculate", action="store_true",
-                        help="Force recalculation even if a structure state binary file exists")
 
     args = parser.parse_args()
 
     # Use the directory of the input file as the working directory for all outputs
-    input_file = os.path.abspath(args.input_file)
+    input_file = os.path.abspath(args.input)
+    file_ext = os.path.splitext(input_file)[1].lower()
+    base_name = os.path.splitext(input_file)[0]
+
     if args.working_dir:
         working_dir = args.working_dir
         os.makedirs(working_dir, exist_ok=True)  # Create the directory if it doesn't exist
     else:
         working_dir = os.path.dirname(input_file) or os.path.curdir
-    # os.chdir(working_dir)  # Change to the working directory
+
     print(f"Working directory set to: {working_dir}")
     print(f"Current directory: {os.path.abspath(os.getcwd())}")
 
-    # Set up logging
-    logfile = f"{os.path.splitext(input_file)[0]}.log"
+    from pyMAOS import info,warning,error,log_exception
+    logfile = f"{base_name}.log"
     logger = setup_logger('pyMAOS', logfile)
-
     logger.info(f"Using working directory: {working_dir}")
 
     # global DATADIR
     # DATADIR = os.environ.get('DATADIR', working_dir)
 
-    from pyMAOS.pymaos_units import set_unit_system, IMPERIAL_DISPLAY_UNITS, SI_UNITS, METRIC_KN_UNITS
+    from pyMAOS.pymaos_units import IMPERIAL_DISPLAY_UNITS, SI_UNITS, METRIC_KN_UNITS
 
     # Choose the unit system with a simple function call
     logger.info(f"\nSetting {args.units} unit system...")
+    from pyMAOS import unit_manager
     if args.units == "imperial":
-        from pyMAOS import unit_manager
-        pyMAOS.unit_manager.ureg.default_system = args.units
-        pyMAOS.unit_manager.ureg.default_preferred_units = IMPERIAL_DISPLAY_UNITS
-        pyMAOS.unit_manager.set_display_unit_system(IMPERIAL_DISPLAY_UNITS, args.units)
-        pyMAOS.unit_manager.setup_preferred_units(system_name=args.units)
+        unit_manager.ureg.default_system = args.units
+        unit_manager.ureg.default_preferred_units = IMPERIAL_DISPLAY_UNITS
+        unit_manager.set_display_unit_system(IMPERIAL_DISPLAY_UNITS, args.units)
+        unit_manager.setup_preferred_units(system_name=args.units)
         logger.info("Using imperial unit system")
     elif args.units == "si":
-        pyMAOS.unit_manager.set_display_unit_system(SI_UNITS, args.units)
+        unit_manager.set_display_unit_system(SI_UNITS, args.units)
         logger.info("Using SI unit system")
     elif args.units == "metric_kn":
-        pyMAOS.unit_manager.set_display_unit_system(METRIC_KN_UNITS, args.units)
+        unit_manager.set_display_unit_system(METRIC_KN_UNITS, args.units)
         logger.info("Using metric kN unit system")
 
     # Get current unit system directly from the manager
@@ -668,76 +535,90 @@ if __name__ == "__main__":
     R2Frame.plot_enabled = False
 
     loadcombo = LoadCombo("D", {"D": 1.0}, ["D"], False, "SLS")
-    structure_state_bin = f"{os.path.splitext(input_file)[0]}_structure_state.bin"
-    # Check if we should force recalculation
-    if args.recalculate and os.path.exists(structure_state_bin):
-        logger.info(f"Recalculate flag set - discarding existing structure state file: {structure_state_bin}")
-        try:
-            # Optionally backup the file instead of just ignoring it
-            backup_file = f"{structure_state_bin}.bak"
-            os.rename(structure_state_bin, backup_file)
-            logger.info(f"Existing state file backed up to: {backup_file}")
-        except Exception as e:
-            logger.warning(f"Could not backup existing state file: {e}")
-
-    # Use the existing structure state file only if it exists AND recalculate is not set
-    if os.path.exists(structure_state_bin) and not args.recalculate:
-        logger.info(f"Loading structure state from binary file: {structure_state_bin}")
+    # Process based on file extension
+    if file_ext == '.bin':
+        logger.info(f"Loading structure state from binary file: {input_file}")
         model_structure = R2Structure([], [])  # Create empty structure initially
-        if model_structure.load_structure_state(structure_state_bin):
-            print("Successfully loaded structure state")
-            model_structure.set_node_displacements(loadcombo)
-            from structure2d_plot import plot_structure_vtk
-            plot_structure_vtk(model_structure.nodes, model_structure.members, loadcombo)
+
+        if model_structure.load_structure_state(input_file):
+            logger.info("Successfully loaded structure state")
+
+
+            try:
+                from pyMAOS.plotting.structure2d_matplotlib import plot_structure_matplotlib
+
+                try:
+                    fig, ax=plot_structure_matplotlib(model_structure.nodes, model_structure.members)
+                    fig.show()
+                except Exception as e:
+                    logger.error(e)
+
+                from pyMAOS.plotting.structure2d_vista import plot_structure_pv
+                scaling_file=os.path.join(os.getcwd(), 'pyMAOS', "plotting", "scaling.json")
+                plot_structure_pv(model_structure, loadcombo, scaling_file=scaling_file)
+
+
+                # Plot the structure with deformations
+                scaling = {"displacement": 100}  # Adjust scaling as needed
+                # Example usage
+                from pyMAOS.plotting.structure2d_matplotlib import plot_deformed_structure
+                fig, ax = plot_deformed_structure(structure.nodes, structure.members, all_loads, scaling)
+
+                # Show the plot
+                fig.show()
+
+                # Optional VTK plot
+                if args.vtk:
+                    try:
+                        from structure2d_vtk import plot_structure_vtk
+
+                        plot_structure_pv(model_structure, loadcombo)
+                    except Exception as e:
+                        from pyMAOS import error
+
+                        error(f"Could not plot with VTK: {str(e)}")
+            except Exception as e:
+                logger.error(f"Error in visualization: {str(e)}")
         else:
-            print("Failed to load structure state")
+            logger.error("Failed to load structure state from binary file")
             sys.exit(1)
-    else:
-        # Either the file doesn't exist or recalculate is set
-        recalc_reason = "recalculate flag set" if args.recalculate else "no existing state file"
-        logger.info(f"Performing full calculation ({recalc_reason})...")
+    else:  # YAML, JSON or other formats
+        logger.info(f"Loading structural model from file: {input_file}")
+        structure_state_bin = f"{base_name}.bin"
 
         try:
-            logger.info(f"Loading structural model from file: {input_file}")
-            # Pass the VTK flag to control visualization in load_frame_from_file
+            # Load and process the structural model
             node_list, element_list = load_frame_from_file(input_file, logger=logger, show_vtk=args.vtk)
+            logger.info(f"Total nodes: {len(node_list)}")
+            logger.info(f"Total elements: {len(element_list)}")
+
+            # Create and solve the model
+            model_structure = R2Structure(node_list, element_list)
+            logger.info("Solving linear static problem...")
+
+            try:
+                U = model_structure.solve_linear_static(loadcombo, output_dir=working_dir,
+                                                        structure_state_bin=structure_state_bin, verbose=True)
+                model_structure.set_node_displacements(loadcombo)
+                model_structure.compute_reactions(loadcombo)
+
+                structure_state_bin = f"{base_name}.bin"
+                model_structure.save_structure_state(structure_state_bin)
+                logger.info(f"Structure state saved to {structure_state_bin}")
+
+            except Exception as e:
+                from pyMAOS.logger import log_exception
+
+                log_exception(logger, message=f"Error solving linear static problem: {str(e)}")
+                sys.exit(1)
+
         except Exception as e:
             from pyMAOS.logger import log_exception
 
-            log_exception(logger, message=f"Error loading structural model: {e}")
-            sys.exit(1)
-
-        logger.info(f"Total nodes: {len(node_list)}")
-        logger.info(f"Total elements: {len(element_list)}")
-
-        # Pass all display units to the structure
-        model_structure = R2Structure(node_list, element_list)
-
-        logger.info("Solving linear static problem...")
-        # Solve the linear static problem
-        try:
-            U = model_structure.solve_linear_static(loadcombo, output_dir=working_dir,
-                                                    structure_state_bin=structure_state_bin, verbose=True)
-            model_structure.set_node_displacements(loadcombo)
-            model_structure.compute_reactions(loadcombo)
-        except ValueError as e:
-            from pyMAOS.logger import log_exception
-
-            log_exception(logger, message=f"ValueError solving linear static problem: {e}")
-            sys.exit(1)
-        except Exception as e:
-            from pyMAOS.logger import log_exception
-
-            log_exception(logger, message="Error solving linear static problem")
+            log_exception(logger, message=f"Error loading structural model: {str(e)}")
             sys.exit(1)
 
     logger.info("Linear static problem solved successfully.")
-    # save state of the structure for a restart point
-    # After analysis is complete:
-    # from pyMAOS.structure2d_save import save_structure_state
-    if structure_state_bin is not None:
-        model_structure.save_structure_state(structure_state_bin)
-        logger.info(f"Structure state saved to {structure_state_bin}")
 
     # logger.info(f"Displacements U:\n{U}")
     # logger.info(str(model_structure))
@@ -745,6 +626,10 @@ if __name__ == "__main__":
     # # Save displacement results
     # np.save(os.path.join(working_dir, 'U.npy'), U)
     # np.savetxt(os.path.join(working_dir, 'U.txt'), U)
+    from pyMAOS.plotting.structure2d_vista import plot_structure_py
+
+    # Example call with input directory
+    plot_structure_pv(model_structure, loadcombo, scaling_file=None)
 
     # Export results to JSON if requested
     # Convert to uppercase to make it case-insensitive
@@ -768,28 +653,6 @@ if __name__ == "__main__":
         json_output = f"{os.path.splitext(input_file)[0]}_results.json"
         export_results_to_json(model_structure, [loadcombo], json_output)
         logger.info(f"\nResults exported in {pyMAOS.unit_manager.system_name} units: {json_output}")
-
-        # Create a version with display units
-        # try:
-        #     # Import the conversion utility
-        #     #from pyMAOS.convert_units import convert_si_to_display_units
-        #
-        #     # Create path for display units version
-        #     json_output_display = f"{os.path.splitext(input_file)[0]}_results_display.json"
-        #
-        #     # Get current unit system directly from the manager
-        #     current_units = pyMAOS.unit_manager.get_current_units()
-        #     system_name = pyMAOS.unit_manager.get_system_name()
-        #
-        #     # Convert the SI results to the selected display units
-        #     convert_si_to_display_units(json_output, json_output_display, current_units)
-        #     logger.info(f"Results exported in {system_name} units: {json_output_display}")
-        #
-        # except Exception as e:
-        #     logger.error(f"Error creating display units version: {e}")
-        #     import traceback
-        #
-        #     traceback.print_exc()
 
     # Export results to Excel if requested
     if output_to_xlsx:

@@ -29,10 +29,7 @@ class LinearLoadXY:
         self.member_uid = member.uid
         self.L = member.length
 
-        self.E = member.material.E
-        self.I = member.section.Ixx
-
-        EI = self.E * self.I
+        EI = member.material.E *  member.section.Ixx
         EI = EI.to_reduced_units()
         self.kind = "LINE"
         self.loadcase = loadcase
@@ -342,11 +339,11 @@ class LinearLoadXY:
         print("Dy2:", self.Dy2)
 
         # After creating PiecewisePolynomial2 objects
-        # ppoly_fig = self.plot_all_ppoly_functions()
-        # ppoly_fig.show()  # If you want to display immediately
+        ppoly_fig = self.plot_all_ppoly_functions()
+        ppoly_fig.show()  # If you want to display immediately
 
 
-    def FEF(self):
+    def load_fef(self):
         """
         Compute and return the fixed and forces
         """
@@ -516,36 +513,38 @@ class LinearLoadXY:
     def _print_ascii_chart(self, title, x_values, y_values, regions, width=60, height=15):
         """
         Helper method to print an ASCII chart of data with proper unit handling.
-
-        Parameters
-        ----------
-        title : str
-            Chart title
-        x_values : list or array
-            X-coordinates (can include units)
-        y_values : list or array
-            Y-coordinates (can include units)
-        regions : list
-            List of region boundaries as (start, end) tuples
-        width : int
-            Chart width in characters
-        height : int
-            Chart height in characters
         """
         import numpy as np
+        from pint import Quantity  # Import Quantity in the method scope
 
         if len(y_values) == 0:
             return
 
         print(f"\n--- {title} ---")
 
-        # Debug prints for troubleshooting
-        # print(f"First few x values: {x_values[:3]}")
-        # print(f"First few y values: {y_values[:3]}")
+        # Filter out NaN values before finding min/max
+        valid_indices = []
+        valid_y_values = []
+        for i, y in enumerate(y_values):
+            # Check if y is NaN (including Quantity objects with NaN magnitude)
+            is_nan = False
+            if hasattr(y, 'magnitude'):
+                is_nan = np.isnan(y.magnitude)
+            else:
+                is_nan = np.isnan(y) if isinstance(y, (int, float)) else False
+
+            if not is_nan:
+                valid_indices.append(i)
+                valid_y_values.append(y)
+
+        # If no valid values, skip plotting
+        if len(valid_y_values) == 0:
+            print("No valid data points to plot (all values are NaN)")
+            return
 
         # Find min and max values while preserving units
-        min_y = min(y_values)
-        max_y = max(y_values)
+        min_y = min(valid_y_values)
+        max_y = max(valid_y_values)
 
         # Debug print
         print(f"Value range: {min_y:.3f} to {max_y:.3f}")
@@ -567,6 +566,7 @@ class LinearLoadXY:
 
         # Get the maximum x value for scaling
         max_x = max(x_values)
+        range_y = max_y - min_y
 
         # Create the chart grid
         chart = [[' ' for _ in range(width)] for _ in range(height)]
@@ -574,23 +574,32 @@ class LinearLoadXY:
         # Draw x-axis if zero is in the range
         if min_y <= 0 <= max_y:
             # Calculate position while preserving units
-            range_y = max_y - min_y
             axis_pos = height - int(height * (0 - min_y) / range_y)
             axis_pos = max(0, min(height - 1, axis_pos))
             chart[axis_pos] = ['-' for _ in range(width)]
 
         # Plot data points
         for i, (x, y) in enumerate(zip(x_values, y_values)):
+            # Skip NaN values
+            if hasattr(y, 'magnitude'):
+                if np.isnan(y.magnitude):
+                    continue
+            elif isinstance(y, (int, float)) and np.isnan(y):
+                continue
+
             # Map x and y to chart coordinates while preserving units
             x_pos = int(width * x / max_x)
             x_pos = min(width - 1, max(0, x_pos))
 
-            # Calculate y position in chart
-            range_y = max_y - min_y
-            y_pos = height - 1 - int((y - min_y) / range_y * (height - 1))
-            y_pos = min(height - 1, max(0, y_pos))
-
-            chart[y_pos][x_pos] = '*'
+            # Calculate y position in chart - avoid NaN issues
+            try:
+                y_normalized = (y - min_y) / range_y
+                y_pos = height - 1 - int(y_normalized * (height - 1))
+                y_pos = min(height - 1, max(0, y_pos))
+                chart[y_pos][x_pos] = '*'
+            except (ValueError, TypeError, ZeroDivisionError) as e:
+                print(f"Warning: Could not plot point at x={x}, y={y}: {e}")
+                continue
 
         # Draw vertical lines at region boundaries
         for start, end in regions:
@@ -607,7 +616,7 @@ class LinearLoadXY:
             print(''.join(row))
 
         # Print region information
-        print(f"Region boundaries: [{Quantity(0, self.a.units)}, {self.a:.2f}, {self.b:.2f}, {self.L:.2f}]")
+        print(f"Region boundaries: [{unit_manager.ureg.Quantity(0, self.a.units)}, {self.a:.2f}, {self.b:.2f}, {self.L:.2f}]")
 
     def plot_all_functions(self, figsize=(10, 12), convert_x_to=None, convert_y_to=None):
         """

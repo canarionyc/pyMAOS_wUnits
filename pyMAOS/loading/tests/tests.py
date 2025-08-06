@@ -33,7 +33,7 @@ def test_uniform_load():
     load = LinearLoadXY(w1=w, w2=w, a=0, b=L, member=member)
     
     # Calculate FEF
-    fef = load.FEF()
+    fef = load.load_fef()
     
     # Expected values for uniform load of intensity w on span L
     Miz_expected = -w * L**2 / 12

@@ -9,103 +9,131 @@ from math import isnan
 
 class Section():
     def __init__(self, uid: int,
-                 Area: Union[float, str, Quantity] = 10.0,
-                 Ixx: Union[float, str, Quantity] = np.nan,
-                 Iyy: Union[float, str, Quantity] = np.nan):
+                 Area: Union[str, Quantity],
+                 Ixx: Union[str, Quantity] = "1.0 in^4",
+                 Iyy: Union[str, Quantity] = "1.0 in^4",
+                 name: str = None):
+        """
+        Initialize a section with proper unit validation.
+
+        Parameters
+        ----------
+        uid : int
+            Unique Section Identifier
+        Area : Union[str, Quantity]
+            Cross-sectional area with units (e.g. "10 in^2")
+        Ixx : Union[str, Quantity], optional
+            Moment of inertia about x-axis with units (e.g. "100 in^4")
+        Iyy : Union[str, Quantity], optional
+            Moment of inertia about y-axis with units (e.g. "50 in^4")
+        name : str, optional
+            Name identifier for the section
+        """
         super().__init__()
         self.uid = uid
+        self.name = name if name else f"Section_{uid}"
 
-        # Parse and store values with proper unit handling
-        self.Area = self._parse_value_with_units(Area, 'area')
-        self.Ixx = self._parse_value_with_units(Ixx, 'moment_of_inertia')
-        self.Iyy = self._parse_value_with_units(Iyy, 'moment_of_inertia')
-
-    def __setstate__(self, state):
-        from pint import UnitRegistry
-        
-
-        # Get values from state
-        uid = state.get('uid')
-        area = state.get('area', "10 in^2")
-        ixx_value = state.get('ixx', np.nan)
-        iyy_value = state.get('iyy', np.nan)
-
-        # Convert to Quantity objects or leave as NaN
-        area_qty = pyMAOS.unit_manager.ureg(area)
-        ixx_qty = pyMAOS.unit_manager.ureg(ixx_value) if not isinstance(ixx_value, float) or not np.isnan(ixx_value) else np.nan
-        iyy_qty = pyMAOS.unit_manager.ureg(iyy_value) if not isinstance(iyy_value, float) or not np.isnan(iyy_value) else np.nan
-
-        # Initialize with processed values
-        self.__init__(uid, area_qty, ixx_qty, iyy_qty)
-
-    @staticmethod
-    def _parse_value_with_units(value: Union[float, str, Quantity], unit_type: str) -> Quantity:
-        """
-        Parse a value that may be a float, string with units, or Quantity.
-
-        Returns
-        -------
-        pint.Quantity
-            Value with appropriate units
-        """
-        # Handle NaN case
-        if isinstance(value, (int, float)) and np.isnan(float(value)):
-            return np.nan
-
-        # Get appropriate internal units based on type
+        # Get internal units from unit manager
         internal_area_unit = pyMAOS.unit_manager.INTERNAL_AREA_UNIT
         internal_inertia_unit = pyMAOS.unit_manager.INTERNAL_MOMENT_OF_INERTIA_UNIT
+        system_name = pyMAOS.unit_manager.system_name
 
-        # If it's already a Quantity, convert to appropriate internal units
-        import pint
-        if isinstance(value, pint.Quantity):
-            if unit_type == 'area':
-                return value.to(internal_area_unit)
-            elif unit_type == 'moment_of_inertia':
-                return value.to(internal_inertia_unit)
-            return value
+        print(f"Creating section {uid} using internal unit system: {system_name}")
+        print(f"Internal area unit: {internal_area_unit}")
+        print(f"Internal inertia unit: {internal_inertia_unit}")
 
-        # If it's a number, use internal units
-        if isinstance(value, (int, float)):
-            if unit_type == 'area':
-                return value * pyMAOS.unit_manager.ureg(internal_area_unit)
-            elif unit_type == 'moment_of_inertia':
-                return value * pyMAOS.unit_manager.ureg(internal_inertia_unit)
-            return value * pyMAOS.unit_manager.ureg.dimensionless
+        # Handle Area - must be a string with units or a Quantity
+        if isinstance(Area, (int, float)):
+            raise TypeError("Area must be provided as a string with units or a Quantity object")
 
-        # If it's a string, parse units
-        if isinstance(value, str):
+        # Convert string to Quantity if needed
+        if not isinstance(Area, pint.Quantity):
+            Area = pyMAOS.unit_manager.ureg(Area)
+
+        # Validate dimensions for Area
+        if not Area.check({'[length]': 2}):
+            raise ValueError(f"Area has incorrect dimensions: {Area.dimensionality}. "
+                            f"Expected dimensions: [length]^2")
+
+        # Store validated value in internal units
+        self.Area = Area.to(pyMAOS.unit_manager.INTERNAL_AREA_UNIT)
+
+        # Process Ixx - must be a string with units or a Quantity
+        if isinstance(Ixx, (int, float)):
+            raise ValueError("Ixx must be provided as a string with units or a Quantity object")
+
+        # Convert string to Quantity if needed
+        if not isinstance(Ixx, pint.Quantity):
             try:
-                from pyMAOS.pymaos_units import parse_value_with_units
-                parsed_value = parse_value_with_units(value)
-
-                if isinstance(parsed_value, pint.Quantity):
-                    if unit_type == 'area':
-                        return parsed_value.to(internal_area_unit)
-                    elif unit_type == 'moment_of_inertia':
-                        return parsed_value.to(internal_inertia_unit)
-                    return parsed_value
-                else:
-                    # No units in string, create with internal units
-                    if unit_type == 'area':
-                        return parsed_value * pyMAOS.unit_manager.ureg(internal_area_unit)
-                    elif unit_type == 'moment_of_inertia':
-                        return parsed_value * pyMAOS.unit_manager.ureg(internal_inertia_unit)
-                    return parsed_value * pyMAOS.unit_manager.ureg.dimensionless
-
+                Ixx = pyMAOS.unit_manager.ureg(Ixx)
             except Exception as e:
-                print(f"Warning: Could not parse section value '{value}': {e}")
-                try:
-                    num_value = float(value)
-                    if unit_type == 'area':
-                        return num_value * pyMAOS.unit_manager.ureg(internal_area_unit)
-                    elif unit_type == 'moment_of_inertia':
-                        return num_value * pyMAOS.unit_manager.ureg(internal_inertia_unit)
-                    return num_value * pyMAOS.unit_manager.ureg.dimensionless
-                except:
-                    raise ValueError(f"Could not parse section value: {value}")
+                raise ValueError(f"Invalid Ixx value: {Ixx}. Error: {e}")
 
-        raise ValueError(f"Unsupported section value type: {type(value)}")
+        # Validate dimensions for Ixx
+        if not Ixx.check({'[length]': 4}):
+            raise ValueError(f"Ixx has incorrect dimensions: {Ixx.dimensionality}. "
+                           f"Expected dimensions: [length]^4")
+
+        # Convert to internal units
+        Ixx_internal = Ixx.to(internal_inertia_unit)
+
+        # Check for zero or negative values
+        if Ixx_internal.magnitude <= 0:
+            raise ValueError(f"Ixx must be greater than zero. Got: {Ixx}")
+
+        self.Ixx = Ixx_internal
+        print(f"Processed Ixx = {self.Ixx}")
+
+        # Process Iyy - must be a string with units or a Quantity
+        if isinstance(Iyy, (int, float)):
+            raise ValueError("Iyy must be provided as a string with units or a Quantity object")
+
+        # Convert string to Quantity if needed
+        if not isinstance(Iyy, pint.Quantity):
+            try:
+                Iyy = pyMAOS.unit_manager.ureg(Iyy)
+            except Exception as e:
+                raise ValueError(f"Invalid Iyy value: {Iyy}. Error: {e}")
+
+        # Validate dimensions for Iyy
+        if not Iyy.check({'[length]': 4}):
+            raise ValueError(f"Iyy has incorrect dimensions: {Iyy.dimensionality}. "
+                           f"Expected dimensions: [length]^4")
+
+        # Convert to internal units
+        Iyy_internal = Iyy.to(internal_inertia_unit)
+
+        # Check for zero or negative values
+        if Iyy_internal.magnitude <= 0:
+            raise ValueError(f"Iyy must be greater than zero. Got: {Iyy}")
+
+        self.Iyy = Iyy_internal
+        print(f"Processed Iyy = {self.Iyy}")
+
+    def __setstate__(self, state):
+        """
+        Restore the object state during unpickling.
+        """
+        # Get values from state
+        uid = state.get('uid', 0)
+
+        # Get Area - this is required
+        area = state.get('Area', "1.0 m^2")  # Use a non-zero default with units
+
+        # For moments of inertia, use valid default values with units
+        ixx = state.get('Ixx', "1.0 in^4")
+        if isinstance(ixx, float) and (np.isnan(ixx) or ixx <= 0):
+            ixx = "1.0 in^4"  # Use a non-zero default
+
+        iyy = state.get('Iyy', "1.0 in^4")
+        if isinstance(iyy, float) and (np.isnan(iyy) or iyy <= 0):
+            iyy = "1.0 in^4"  # Use a non-zero default
+
+        # Get name if it exists
+        name = state.get('name', None)
+
+        # Let __init__ handle the validation
+        self.__init__(uid=uid, Area=area, Ixx=ixx, Iyy=iyy, name=name)
 
     def __str__(self):
         """Return string representation of the section properties"""
@@ -123,15 +151,15 @@ class Section():
         else:
             iyy_display = self.Iyy.to(units['moment_of_inertia'])
 
-        return f"Section {self.uid}: A={area_display:.2f}, Ixx={ixx_display:.2f}, Iyy={iyy_display}"
+        return f"Section {self.name} (ID: {self.uid}): A={area_display:.2f}, Ixx={ixx_display:.2f}, Iyy={iyy_display}"
 
     def __repr__(self):
         """Return developer representation of the section"""
-        return f"Section(uid={self.uid}, Area={self.Area}, Ixx={self.Ixx}, Iyy={self.Iyy})"
+        return f"Section(uid={self.uid}, name='{self.name}', Area={self.Area}, Ixx={self.Ixx}, Iyy={self.Iyy})"
 
 def get_sections_from_yaml(sections_yml, logger=None):
     """
-    Loads sections from a YAML file and converts properties to internal units
+    Loads sections from a YAML file and returns them as a dictionary.
 
     Parameters
     ----------
@@ -145,51 +173,24 @@ def get_sections_from_yaml(sections_yml, logger=None):
     dict
         Dictionary of sections with uid as key
     """
-    sections_dict = {}
-
-    # Use print or logger.info based on what's available
     def log(message):
         if logger:
             logger.info(message)
         else:
             print(message)
 
-    # Get internal units from unit_manager
-    import pyMAOS
-    internal_area_unit = pyMAOS.unit_manager.INTERNAL_AREA_UNIT
-    internal_inertia_unit = pyMAOS.unit_manager.INTERNAL_MOMENT_OF_INERTIA_UNIT
-    system_name = pyMAOS.unit_manager.system_name
-
     log(f"Loading sections from: {sections_yml}")
-    log(f"Using internal unit system: {system_name}")
-    log(f"Internal area unit: {internal_area_unit}")
-    log(f"Internal inertia unit: {internal_inertia_unit}")
 
-    with open(sections_yml, 'r') as file:
+    try:
         import yaml
-        sections_list = yaml.unsafe_load(file)
+        with open(sections_yml, 'r') as file:
+            sections_list = yaml.unsafe_load(file)
 
-    # Process each section and convert units to internal units
-    for section in sections_list:
-        # If the section is already a Section instance, update its units
-        import pint
-        if hasattr(section, 'Area'):
-            # Convert Area to internal area units if it's a Quantity
-            if isinstance(section.Area, pint.Quantity):
-                section.Area = section.Area.to(internal_area_unit)
+        # Convert list to dictionary with uid as key
+        sections_dict = {section.uid: section for section in sections_list}
 
-            # Convert Ixx to internal inertia units if it's a Quantity
-            if isinstance(section.Ixx, pint.Quantity) and not np.isnan(section.Ixx):
-                section.Ixx = section.Ixx.to(internal_inertia_unit)
-
-            # Convert Iyy to internal inertia units if it's a Quantity
-            if isinstance(section.Iyy, pint.Quantity) and not np.isnan(section.Iyy):
-                section.Iyy = section.Iyy.to(internal_inertia_unit)
-
-            log(f"Section {section.uid}: Area={section.Area}, Ixx={section.Ixx}, Iyy={section.Iyy}")
-
-        # Add section to dictionary
-        sections_dict[section.uid] = section
-
-    log(f"Loaded {len(sections_dict)} sections")
-    return sections_dict
+        log(f"Loaded {len(sections_dict)} sections")
+        return sections_dict
+    except Exception as e:
+        log(f"Error loading sections from {sections_yml}: {e}")
+        return {}

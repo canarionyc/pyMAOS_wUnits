@@ -28,7 +28,9 @@ class Element(ABC):
         self.section = section
         self.end_forces_local = {}
         self.end_forces_global = {}
+        self.rotation_matrix = []
         self._stations = False
+        self.plot_enabled = False
         self.type = "GENERIC"  # Default type, will be overridden by derived classes
 
     def __str__(self):

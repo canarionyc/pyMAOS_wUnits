@@ -1,9 +1,9 @@
 # Better structure for loading multiple materials
-- !!python/object:pyMAOS.material.LinearElasticMaterial
+- !!python/object:pyMAOS.pymaos_linear_elastic_material.LinearElasticMaterial
   uid: 1
   type: linear
   E: "29000 * ksi"
-- !!python/object:pyMAOS.material.LinearElasticMaterial
+- !!python/object:pyMAOS.pymaos_linear_elastic_material.LinearElasticMaterial
   uid: 2
   type: linear
   E: "10000 * ksi"

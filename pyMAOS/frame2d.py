@@ -32,13 +32,13 @@ class R2Frame(Element):
         self.loads = []
         self.fixed_end_forces_local = {}
         self.fixed_end_forces_global = {}
-        self.rotation_matrix=[]
+
         self.end_forces_global={}
         self.end_forces_local={}
 
 
         # Instance-level flag that can override the class setting
-        self._plot_enabled = None  # None means use the class setting
+        self._plot_enabled = True  # None means use the class setting
 
         # Internal Functions
         # Dictionary key for each combination
@@ -549,7 +549,7 @@ class R2Frame(Element):
                 continue
                 
             # Calculate FEF contribution from this load
-            load_fef = load.FEF()
+            load_fef = load.load_fef()
 
             from pyMAOS.pymaos_units import array_convert_to_unit_system
             _ = array_convert_to_unit_system(load_fef, "imperial")
@@ -881,37 +881,35 @@ class R2Frame(Element):
         This also generates a reduced set of points for use in the max/min
         internal action functions.
 
-        :param num_stations: _description_, defaults to 10
-        :type num_stations: int, optional
+        Parameters
+        ----------
+        num_stations : int, optional
+            Number of equally spaced points along the member, defaults to 10
         """
+        # Convert to magnitude if length is a quantity
+        length_value = self.length.magnitude if hasattr(self.length, 'magnitude') else self.length
 
-        # parametric list of stations between 0 and 1'
+        # Parametric list of stations between 0 and 1
         eta = [0 + i * (1 / num_stations) for i in range(num_stations + 1)]
 
-        stations = [self.length * i for i in eta]
-        max_stations = [0, self.length]
+        stations = [length_value * i for i in eta]
+        max_stations = [0, length_value]
 
         if self._loaded:
             extra_stations = []
 
             for load in self.loads:
-                if (
-                    load.kind == "POINT"
-                    or load.kind == "MOMENT"
-                    or load.kind == "AXIAL_POINT"
-                ):
-                    b = min(self.length, load.a + 0.001)
-                    c = max(0, load.a - 0.001)
-                    extra_stations.extend([c, load.a, b])
-                    max_stations.extend([c, load.a, b])
+                # Handle different load types correctly
+                if hasattr(load, 'a'):
+                    # Position of the load - convert to magnitude if it's a Quantity
+                    a = load.a.magnitude if hasattr(load.a, 'magnitude') else load.a
+                    extra_stations.append(a)
 
-                elif load.kind == "LINE" or load.kind == "AXIAL_LINE":
-                    c = min(self.length, load.b + 0.001)
-                    d = max(0, load.a - 0.001)
-                    extra_stations.extend([d, load.a, load.b, c])
-                    max_stations.extend([d, load.a, load.b, c])
-                else:
-                    pass
+                # For distributed loads with 'b' attribute (end position)
+                if hasattr(load, 'b'):
+                    b = load.b.magnitude if hasattr(load.b, 'magnitude') else load.b
+                    c = min(length_value, b + 0.001)
+                    extra_stations.append(c)
 
             stations.extend(extra_stations)
 
@@ -919,22 +917,21 @@ class R2Frame(Element):
         max_stations.sort()
 
         # Make sure the first and last stations do not exceed the beam
-
         if stations[0] < 0:
             stations[0] = 0
 
-        if stations[-1] > self.length:
-            stations[-1] = self.length
-        
+        if stations[-1] > length_value:
+            stations[-1] = length_value
+
         if max_stations[0] < 0:
             max_stations[0] = 0
 
-        if max_stations[-1] > self.length:
-            max_stations[-1] = self.length
+        if max_stations[-1] > length_value:
+            max_stations[-1] = length_value
 
         # Remove duplicate locations
         self.calcstations = sorted(set(stations))
-        self.maxstations = sorted((set(max_stations)))
+        self.maxstations = sorted(set(max_stations))
 
         self._stations = True
 
@@ -1383,7 +1380,22 @@ class R2Frame(Element):
 
         return sglobal_plot
 
-    def Dlocal_plot(self, load_combination, scale=1):
+    def dlocal_span(self, load_combination, scale=1):
+        """
+        Calculate displacement function in local coordinates along the member
+
+        Parameters
+        ----------
+        load_combination : LoadCombo
+            Load combination to use for displacement calculations
+        scale : float, optional
+            Scale factor for visual amplification of displacements
+
+        Returns
+        -------
+        numpy.ndarray
+            Array of points representing the displaced shape in local coordinates
+        """
         dx = self.Dx.get(load_combination.name, None)
         dy = self.Dy.get(load_combination.name, None)
 
@@ -1394,10 +1406,16 @@ class R2Frame(Element):
 
         Dlocal = self.set_displacement_local(load_combination)
 
+        # Get length as a scalar value for calculations
+        length_value = self.length.magnitude if hasattr(self.length, 'magnitude') else self.length
+
         # Parametric Functions defining a linear relationship for deflection
         # in each axis based on the Ux and Uy nodal displacements
-        Dx = lambda x: Dlocal[0, 0] + (x / self.length) * (Dlocal[0, 3] - Dlocal[0, 0])
-        Dy = lambda x: Dlocal[0, 1] + (x / self.length) * (Dlocal[0, 4] - Dlocal[0, 1])
+        def Dx(x):
+            return Dlocal[0, 0] + (x / length_value) * (Dlocal[0, 3] - Dlocal[0, 0])
+
+        def Dy(x):
+            return Dlocal[0, 1] + (x / length_value) * (Dlocal[0, 4] - Dlocal[0, 1])
 
         # Get the Roots of the slope function for the current combo
         sz = self.Sz.get(load_combination.name, None)
@@ -1410,10 +1428,10 @@ class R2Frame(Element):
         # Generate a new station list including the roots
         stations = sorted(set(self.calcstations + slope_roots))
 
-        dlocal_span = np.zeros((len(stations), 2))
+        dlocal_span = np.zeros((len(stations), 2), dtype=object)
 
         for i, x in enumerate(stations):
-            dxl = dx.evaluate(x) + Dx(0)
+            dxl = dx.evaluate(x) + Dx(x)
             dyl = dy.evaluate(x) + Dy(x)
 
             dlocal_span[i, 0] = x + (dxl * scale)
@@ -1421,15 +1439,47 @@ class R2Frame(Element):
 
         return dlocal_span
 
-    def Dglobal_plot(self, load_combination, scale=1):
-        dlocal_plot = self.Dlocal_plot(load_combination, scale=scale)
+    def dglobal_span(self, load_combination, scale=1):
+        """
+        Calculate displacement function in global coordinates along the member
 
+        Parameters
+        ----------
+        load_combination : LoadCombo
+            Load combination to use for displacement calculations
+        scale : float, optional
+            Scale factor for visual amplification of displacements
+
+        Returns
+        -------
+        numpy.ndarray
+            Array of points representing the displaced shape in global coordinates
+        """
+        dlocal_plot = self.dlocal_span(load_combination, scale=scale)
+
+        # Extract transformation matrix components
         c = (self.jnode.x - self.inode.x) / self.length
         s = (self.jnode.y - self.inode.y) / self.length
 
-        R = np.matrix([[c, s], [-s, c]])
+        # Handle magnitude if quantities with units
+        if hasattr(c, 'magnitude'):
+            c = c.magnitude
+        if hasattr(s, 'magnitude'):
+            s = s.magnitude
 
+        print(self.rotation_matrix[0:1,0:1])
+        R = np.matrix([[c, s], [-s, c]])
+        print(R)
+        # Transform local coordinates to global
         dglobal_plot = np.matmul(dlocal_plot, R)
+
+        # Add global position offset (start node coordinates)
+        origin_x = self.inode.x.magnitude if hasattr(self.inode.x, 'magnitude') else self.inode.x
+        origin_y = self.inode.y.magnitude if hasattr(self.inode.y, 'magnitude') else self.inode.y
+
+        for i in range(dglobal_plot.shape[0]):
+            dglobal_plot[i, 0] += origin_x
+            dglobal_plot[i, 1] += origin_y
 
         return dglobal_plot
     
