@@ -76,11 +76,11 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
 
     system_name = pyMAOS.unit_manager.system_name
 
-    log(f"Using internal unit system: {system_name}")
-    log(f"Internal length unit: {internal_length_unit}")
-    log(f"Internal force unit: {internal_force_unit}")
-    log(f"Internal moment unit: {internal_moment_unit}")
-    # log(f"Using UnitManager registry with id: {id(pyMAOS.unit_manager.ureg)}")
+    pyMAOS.info(f"Using internal unit system: {system_name}")
+    pyMAOS.info(f"Internal length unit: {internal_length_unit}")
+    pyMAOS.info(f"Internal force unit: {internal_force_unit}")
+    pyMAOS.info(f"Internal moment unit: {internal_moment_unit}")
+    # pyMAOS.info(f"Using UnitManager registry with id: {id(pyMAOS.unit_manager.ureg)}")
 
     # Check file extension to determine format
     file_ext = os.path.splitext(filename)[1].lower()
@@ -95,27 +95,27 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
     if file_ext in ['.yml', '.yaml']:
         try:
             import yaml
-            log(f"Loading YAML file: {filename}")
+            pyMAOS.info(f"Loading YAML file: {filename}")
             with open(filename, 'r') as file:
                 data = yaml.safe_load(file)
-            log("YAML file loaded successfully")
+            pyMAOS.info("YAML file loaded successfully")
         except ImportError:
-            log("Error: PyYAML package not found. Install it using: pip install pyyaml")
+            pyMAOS.info("Error: PyYAML package not found. Install it using: pip install pyyaml")
             raise
         except Exception as e:
-            log(f"Error loading YAML file: {e}")
+            pyMAOS.info(f"Error loading YAML file: {e}")
             raise
     else:  # Default to JSON
-        log(f"Loading JSON file: {filename}")
+        pyMAOS.info(f"Loading JSON file: {filename}")
         import json
         # Validate JSON file if schema_file is provided
         if schema_file:
             try:
                 from pyMAOS.json_utils import validate_input_with_schema
                 validate_input_with_schema(filename, schema_file=schema_file)
-                log("JSON validation passed!")
+                pyMAOS.info("JSON validation passed!")
             except Exception as e:
-                log(f"Warning: JSON validation failed: {e}")
+                pyMAOS.info(f"Warning: JSON validation failed: {e}")
 
         # Load JSON data
         with open(filename, 'r', encoding='utf-8') as file:
@@ -137,15 +137,15 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
         node = R2Node(node_id, x_internal, y_internal)
         nodes_dict[node_id] = node
 
-    log(f"Read {len(nodes_dict)} nodes.")
-    log(str(nodes_dict))
+    pyMAOS.info(f"Read {len(nodes_dict)} nodes.")
+    pyMAOS.info(str(nodes_dict))
 
     # Process node supports
-    log("\nProcessing node supports:")
+    pyMAOS.info("\nProcessing node supports:")
     for node_restraint in data.get("supports", []):
         node_id = node_restraint["node"]
         if node_id not in nodes_dict:
-            log(f"Warning: Restraint specified for non-existent node {node_id}")
+            pyMAOS.info(f"Warning: Restraint specified for non-existent node {node_id}")
             continue
 
         # Get restraint values (1=fixed, 0=free)
@@ -155,7 +155,7 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
 
         # Apply restraints to the node
         nodes_dict[node_id].restraints = [ux, uy, rz]
-        log(f"Node {node_id} restraints: Ux={ux}, Uy={uy}, Rz={rz}")
+        pyMAOS.info(f"Node {node_id} restraints: Ux={ux}, Uy={uy}, Rz={rz}")
     # Process joint loads - convert to internal units
     for joint_load in data.get("joint_loads", []):
         node_id = joint_load["node"]
@@ -176,7 +176,7 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
         if node_id in nodes_dict:
             # Store in internal units
             nodes_dict[node_id].add_nodal_load(fx, fy, mz, "D")
-            log(f"Node {node_id} load: Fx={fx:.4g} {internal_force_unit}, Fy={fy:.4g} {internal_force_unit}, Mz={mz:.4g} {internal_moment_unit}")
+            pyMAOS.info(f"Node {node_id} load: Fx={fx:.4g} {internal_force_unit}, Fy={fy:.4g} {internal_force_unit}, Mz={mz:.4g} {internal_moment_unit}")
 
     # Process materials
     try:
@@ -184,9 +184,9 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
         if not os.path.exists(materials_yml):
             materials_yml = os.path.join("materials.yml")
         materials_dict=get_materials_from_yaml(materials_yml)
-        log(f"Loaded {len(materials_dict)} materials")
+        pyMAOS.info(f"Loaded {len(materials_dict)} materials")
     except Exception as e:
-        log(f"Error loading materials: {e}")
+        pyMAOS.info(f"Error loading materials: {e}")
         raise
 
     # Process sections
@@ -199,7 +199,7 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
         sections_dict=get_sections_from_yaml(sections_yml, logger=logger)
 
     except Exception as e:
-        log(f"Error loading sections: {e}")
+        pyMAOS.info(f"Error loading sections: {e}")
         raise
 
     # Process members/elements
@@ -234,7 +234,7 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
 
         inode.is_inode_of_elems.append(element); jnode.is_inode_of_elems.append(element)
 
-    log(f"Read {len(element_list)} elements.")
+    pyMAOS.info(f"Read {len(element_list)} elements.")
 
     # Process joint loads - always convert to SI units
     for joint_load in data.get("joint_loads", []):
@@ -253,11 +253,11 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
         if node_id in nodes_dict:
             # Store in SI units
             nodes_dict[node_id].add_nodal_load(fx, fy, mz, "D")
-            log(f"Node {node_id} load: Fx={fx:.4g}, Fy={fy:.4g}, Mz={mz:.4g}")
+            pyMAOS.info(f"Node {node_id} load: Fx={fx:.4g}, Fy={fy:.4g}, Mz={mz:.4g}")
 
     # Import the necessary load classes
 
-    log(f"\nProcessing {len(data.get('member_loads', []))} member loads:")
+    pyMAOS.info(f"\nProcessing {len(data.get('member_loads', []))} member loads:")
 
     # Process member loads - always convert to SI units
     for member_load in data.get("member_loads", []):
@@ -267,7 +267,7 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
         load_type = member_load["load_type"]
 
         if element_id not in elements_dict:
-            log(f"Warning: Member load specified for non-existent element {element_id}")
+            pyMAOS.info(f"Warning: Member load specified for non-existent element {element_id}")
             continue
 
         element = elements_dict[element_id]
@@ -289,14 +289,14 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
             if "a_pct" in member_load:
                 a_pct = float(member_load["a_pct"])
                 a_with_units = a_pct / 100.0 * element.length
-                log(f"  Using a_pct={a_pct}% → position a={a_with_units:.4f}")
+                pyMAOS.info(f"  Using a_pct={a_pct}% → position a={a_with_units:.4f}")
             else:
                 a_with_units = pyMAOS.unit_manager.parse_value(str(member_load["a"])).to(INTERNAL_LENGTH_UNIT)
 
             if "b_pct" in member_load:
                 b_pct = float(member_load["b_pct"])
                 b_with_units = b_pct / 100.0 * element.length
-                log(f"  Using b_pct={b_pct}% → position b={b_with_units:.4f}")
+                pyMAOS.info(f"  Using b_pct={b_pct}% → position b={b_with_units:.4f}")
             else:
                 b_with_units = pyMAOS.unit_manager.parse_value(member_load.get("b", element.length)).to(INTERNAL_LENGTH_UNIT)
 
@@ -314,7 +314,7 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
             else:
                 a_with_units = pyMAOS.unit_manager.parse_value(str(member_load["a"])).to(INTERNAL_LENGTH_UNIT)
             if a_with_units > element.length:
-                log(f"Warning: Point load position {a_with_units} exceeds element length {element.length}. Clamping to length.")
+                pyMAOS.info(f"Warning: Point load position {a_with_units} exceeds element length {element.length}. Clamping to length.")
                 a_with_units = element.length
             # Remove b_with_units if it exists
             if 'b_with_units' in locals():
@@ -342,7 +342,7 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
             m = m_with_units.to('N*m').magnitude if isinstance(m_with_units, pint.Quantity) else m_with_units
 
             # Log with SI units
-            log(f"  Element {element_id}: Point moment m={m:.4g}, position={a:.4f}")
+            pyMAOS.info(f"  Element {element_id}: Point moment m={m:.4g}, position={a:.4f}")
 
             # Apply moment with SI units
             element.add_point_moment(m, a, load_case)
@@ -356,7 +356,7 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
             p = p_with_units.to(internal_force_unit).magnitude if isinstance(p_with_units, pint.Quantity) else p_with_units
 
             # Log with SI units
-            log(f"  Element {element_id}: Axial load p={p:.4g}")
+            pyMAOS.info(f"  Element {element_id}: Axial load p={p:.4g}")
 
             # Apply the axial load
             element.add_axial_load(p, load_case)
@@ -365,34 +365,34 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
             delta_t = float(member_load.get("delta_t", 0))
             alpha = float(member_load.get("alpha", 1.2e-5))
 
-            log(f"  Element {element_id}: Temperature load ΔT={delta_t}°C, α={alpha}/°C")
+            pyMAOS.info(f"  Element {element_id}: Temperature load ΔT={delta_t}°C, α={alpha}/°C")
 
             # Apply the temperature load if the element supports it
             if hasattr(element, 'add_temperature_load'):
                 element.add_temperature_load(delta_t, alpha, load_case)
             else:
-                log(f"  Warning: Element {element_id} doesn't support temperature loads")
+                pyMAOS.info(f"  Warning: Element {element_id} doesn't support temperature loads")
 
         else:
-            log(f"  Warning: Unsupported load type {load_type}")
+            pyMAOS.info(f"  Warning: Unsupported load type {load_type}")
 
         # except Exception as e:
-        #     log(f"Error processing member load: {e}")
-        #     log(f"  Details: {type(e).__name__} - {str(e)}")
+        #     pyMAOS.info(f"Error processing member load: {e}")
+        #     pyMAOS.info(f"  Details: {type(e).__name__} - {str(e)}")
 
     # Create final node list in sorted order
     node_list = [nodes_dict[uid] for uid in sorted(nodes_dict)]
 
     # Print node restraints
-    # log("\n\n--- Node Restraints Summary ---")
-    # log("Node ID  |  Ux  |  Uy  |  Rz")
-    # log("-" * 30)
+    # pyMAOS.info("\n\n--- Node Restraints Summary ---")
+    # pyMAOS.info("Node ID  |  Ux  |  Uy  |  Rz")
+    # pyMAOS.info("-" * 30)
     # for node in node_list:
     #     rx, ry, rz = node.restraints
     #     rx_status = "Fixed" if rx == 1 else "Free"
     #     ry_status = "Fixed" if ry == 1 else "Free"
     #     rz_status = "Fixed" if rz == 1 else "Free"
-    #     log(f"Node {node.uid:2d}  |  {rx_status:5s} |  {ry_status:5s} |  {rz_status:5s}")
+    #     pyMAOS.info(f"Node {node.uid:2d}  |  {rx_status:5s} |  {ry_status:5s} |  {rz_status:5s}")
 
     # Plot structure if requested
     # if show_vtk:
@@ -403,12 +403,7 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
 def load_linear_load_reactively(element, member_load, logger=None):
     """Process linear load using reactive approach"""
 
-    # Use print or logger.info based on what's available
-    def log(message):
-        if logger:
-            logger.info(message)
-        else:
-            print(message)
+    # Use print or pyMAOS.info based on what's available
 
     from pyMAOS.linear_load_reactive import LinearLoadReactive
 
@@ -446,7 +441,7 @@ def load_linear_load_reactively(element, member_load, logger=None):
 
     # Subscribe to reactions and use them
     load_processor.reactions.subscribe(
-        on_next=lambda reactions: log(f"Calculated reactions: R_i={reactions[0]:.4f}, R_j={reactions[1]:.4f}")
+        on_next=lambda reactions: pyMAOS.info(f"Calculated reactions: R_i={reactions[0]:.4f}, R_j={reactions[1]:.4f}")
     )
 
     # Subscribe to constants and use them for the element
@@ -500,7 +495,7 @@ if __name__ == "__main__":
     from pyMAOS import info,warning,error,log_exception
     logfile = f"{base_name}.log"
     logger = setup_logger('pyMAOS', logfile)
-    logger.info(f"Using working directory: {working_dir}")
+    pyMAOS.info(f"Using working directory: {working_dir}")
 
     # global DATADIR
     # DATADIR = os.environ.get('DATADIR', working_dir)
@@ -508,20 +503,20 @@ if __name__ == "__main__":
     from pyMAOS.pymaos_units import IMPERIAL_DISPLAY_UNITS, SI_UNITS, METRIC_KN_UNITS
 
     # Choose the unit system with a simple function call
-    logger.info(f"\nSetting {args.units} unit system...")
+    pyMAOS.info(f"\nSetting {args.units} unit system...")
     from pyMAOS import unit_manager
     if args.units == "imperial":
         unit_manager.ureg.default_system = args.units
         unit_manager.ureg.default_preferred_units = IMPERIAL_DISPLAY_UNITS
         unit_manager.set_display_unit_system(IMPERIAL_DISPLAY_UNITS, args.units)
         unit_manager.setup_preferred_units(system_name=args.units)
-        logger.info("Using imperial unit system")
+        pyMAOS.info("Using imperial unit system")
     elif args.units == "si":
         unit_manager.set_display_unit_system(SI_UNITS, args.units)
-        logger.info("Using SI unit system")
+        pyMAOS.info("Using SI unit system")
     elif args.units == "metric_kn":
         unit_manager.set_display_unit_system(METRIC_KN_UNITS, args.units)
-        logger.info("Using metric kN unit system")
+        pyMAOS.info("Using metric kN unit system")
 
     # Get current unit system directly from the manager
     from pprint import pprint
@@ -537,74 +532,41 @@ if __name__ == "__main__":
     loadcombo = LoadCombo("D", {"D": 1.0}, ["D"], False, "SLS")
     # Process based on file extension
     if file_ext == '.bin':
-        logger.info(f"Loading structure state from binary file: {input_file}")
-        model_structure = R2Structure([], [])  # Create empty structure initially
-
-        if model_structure.load_structure_state(input_file):
-            logger.info("Successfully loaded structure state")
+        pyMAOS.info(f"Loading structure state from binary file: {input_file}")
 
 
-            try:
-                from pyMAOS.plotting.structure2d_matplotlib import plot_structure_matplotlib
+        from pyMAOS.structure2d import load_structure_state# ,external_verify_structure_state
+        try:
+            model_structure = load_structure_state(input_file)
+            from display_utils import object_to_string
 
-                try:
-                    fig, ax=plot_structure_matplotlib(model_structure.nodes, model_structure.members)
-                    fig.show()
-                except Exception as e:
-                    logger.error(e)
-
-                from pyMAOS.plotting.structure2d_vista import plot_structure_pv
-                scaling_file=os.path.join(os.getcwd(), 'pyMAOS', "plotting", "scaling.json")
-                plot_structure_pv(model_structure, loadcombo, scaling_file=scaling_file)
-
-
-                # Plot the structure with deformations
-                scaling = {"displacement": 100}  # Adjust scaling as needed
-                # Example usage
-                from pyMAOS.plotting.structure2d_matplotlib import plot_deformed_structure
-                fig, ax = plot_deformed_structure(structure.nodes, structure.members, all_loads, scaling)
-
-                # Show the plot
-                fig.show()
-
-                # Optional VTK plot
-                if args.vtk:
-                    try:
-                        from structure2d_vtk import plot_structure_vtk
-
-                        plot_structure_pv(model_structure, loadcombo)
-                    except Exception as e:
-                        from pyMAOS import error
-
-                        error(f"Could not plot with VTK: {str(e)}")
-            except Exception as e:
-                logger.error(f"Error in visualization: {str(e)}")
-        else:
-            logger.error("Failed to load structure state from binary file")
+            print(object_to_string(model_structure))
+        except ValueError as e:
+            pyMAOS.error("Failed to load structure state from binary file:",e)
             sys.exit(1)
     else:  # YAML, JSON or other formats
-        logger.info(f"Loading structural model from file: {input_file}")
+        pyMAOS.info(f"Loading structural model from file: {input_file}")
         structure_state_bin = f"{base_name}.bin"
 
         try:
             # Load and process the structural model
             node_list, element_list = load_frame_from_file(input_file, logger=logger, show_vtk=args.vtk)
-            logger.info(f"Total nodes: {len(node_list)}")
-            logger.info(f"Total elements: {len(element_list)}")
+            pyMAOS.info(f"Total nodes: {len(node_list)}")
+            pyMAOS.info(f"Total elements: {len(element_list)}")
 
             # Create and solve the model
             model_structure = R2Structure(node_list, element_list)
-            logger.info("Solving linear static problem...")
+            pyMAOS.info("Solving linear static problem...")
 
             try:
                 U = model_structure.solve_linear_static(loadcombo, output_dir=working_dir,
                                                         structure_state_bin=structure_state_bin, verbose=True)
                 model_structure.set_node_displacements(loadcombo)
                 model_structure.compute_reactions(loadcombo)
-
+                pyMAOS.info("Linear static problem solved successfully.")
                 structure_state_bin = f"{base_name}.bin"
                 model_structure.save_structure_state(structure_state_bin)
-                logger.info(f"Structure state saved to {structure_state_bin}")
+                pyMAOS.info(f"Structure state saved to {structure_state_bin}")
 
             except Exception as e:
                 from pyMAOS.logger import log_exception
@@ -618,18 +580,15 @@ if __name__ == "__main__":
             log_exception(logger, message=f"Error loading structural model: {str(e)}")
             sys.exit(1)
 
-    logger.info("Linear static problem solved successfully.")
-
-    # logger.info(f"Displacements U:\n{U}")
-    # logger.info(str(model_structure))
-
-    # # Save displacement results
-    # np.save(os.path.join(working_dir, 'U.npy'), U)
-    # np.savetxt(os.path.join(working_dir, 'U.txt'), U)
-    from pyMAOS.plotting.structure2d_vista import plot_structure_py
-
-    # Example call with input directory
-    plot_structure_pv(model_structure, loadcombo, scaling_file=None)
+    from pyMAOS.frame2d import print_member_loads_to_file
+    member=model_structure.members[1]
+    print_member_loads_to_file(member, loadcombo, f"member_{member.uid}_loads.txt")
+    from pyMAOS.plotting import structure2d_vista
+    try:
+        from structure2d_vista import plot_structure_pv
+        plot_structure_pv(model_structure, loadcombo, scaling_file=None)
+    except Exception as e:
+        traceback.print_exc()
 
     # Export results to JSON if requested
     # Convert to uppercase to make it case-insensitive
@@ -652,7 +611,7 @@ if __name__ == "__main__":
     if output_to_json:
         json_output = f"{os.path.splitext(input_file)[0]}_results.json"
         export_results_to_json(model_structure, [loadcombo], json_output)
-        logger.info(f"\nResults exported in {pyMAOS.unit_manager.system_name} units: {json_output}")
+        pyMAOS.info(f"\nResults exported in {pyMAOS.unit_manager.system_name} units: {json_output}")
 
     # Export results to Excel if requested
     if output_to_xlsx:
@@ -661,9 +620,9 @@ if __name__ == "__main__":
             # Export results to Excel with proper unit system
             model_structure.export_results_to_excel(results_xlsx, loadcombos=[loadcombo],
                                                     unit_system=args.units)
-            logger.info(f"Results exported to Excel: {results_xlsx} using {args.units} units")
+            pyMAOS.info(f"Results exported to Excel: {results_xlsx} using {args.units} units")
         except Exception as e:
-            logger.error(f"Error exporting results to Excel: {e}")
+            pyMAOS.error(f"Error exporting results to Excel: {e}")
             import traceback
 
             traceback.print_exc()
@@ -677,9 +636,9 @@ if __name__ == "__main__":
                 R2Structure.generate_html_report=generate_html_report
                 model_structure.generate_html_report(loadcombos=[loadcombo],
                                                         output_html=results_html)
-                logger.info(f"Results exported to Excel: {results_xlsx} using {args.units} units")
+                pyMAOS.info(f"Results exported to Excel: {results_xlsx} using {args.units} units")
             except Exception as e:
-                logger.error(f"Error exporting results to Excel: {e}")
+                pyMAOS.error(f"Error exporting results to Excel: {e}")
                 import traceback
 
                 traceback.print_exc()
@@ -691,9 +650,9 @@ if __name__ == "__main__":
                 from pyMAOS.structure2d_to_dash import generate_dash_report
 
                 generate_dash_report(model_structure, [loadcombo], output_file=results_dash)
-                logger.info(f"Results exported to Dash dashboard: {results_dash}")
+                pyMAOS.info(f"Results exported to Dash dashboard: {results_dash}")
             except Exception as e:
-                logger.error(f"Error exporting results to Dash: {e}")
+                pyMAOS.error(f"Error exporting results to Dash: {e}")
                 import traceback
 
                 traceback.print_exc()
@@ -706,17 +665,17 @@ if __name__ == "__main__":
                 from pyMAOS.structure2d_to_csv import export_results_to_csv
                 R2Structure.export_results_to_csv=export_results_to_csv
                 model_structure.export_results_to_csv(csv_dir, loadcombos=[loadcombo])
-                logger.info(f"Results exported to CSV files in: {csv_dir}")
+                pyMAOS.info(f"Results exported to CSV files in: {csv_dir}")
             except Exception as e:
-                logger.error(f"Error exporting results to CSV: {e}")
+                pyMAOS.error(f"Error exporting results to CSV: {e}")
                 import traceback
 
                 traceback.print_exc()
 
     # Visualize results only if --vtk flag is used
     if args.vtk:
-        logger.info("Showing VTK visualization...")
+        pyMAOS.info("Showing VTK visualization...")
         model_structure.plot_loadcombos_vtk(loadcombos=None, scaling=default_scaling)
 
     # Pause the program before exiting
-    logger.info("\n\nAnalysis complete. Press Enter to exit...")
+    pyMAOS.info("\n\nAnalysis complete. Press Enter to exit...")

@@ -221,6 +221,11 @@ class R2Node:
             # Get displacement in compatible form
             raw_disp = self.displacements[combo.name][0]
 
+            # Handle case where displacement is stored as a plain number
+            if not hasattr(raw_disp, 'to'):
+                # Convert to a quantity with appropriate units
+                raw_disp = raw_disp * pyMAOS.unit_manager.ureg(pyMAOS.INTERNAL_LENGTH_UNIT)
+
             # Convert the displacement to the same unit as self.x
             disp_in_x_units = raw_disp.to(self.x.units) * scale
 
@@ -234,7 +239,12 @@ class R2Node:
             # Get displacement in compatible form
             raw_disp = self.displacements[combo.name][1]
 
-            # Convert the displacement to the same unit as self.x
+            # Handle case where displacement is stored as a plain number
+            if not hasattr(raw_disp, 'to'):
+                # Convert to a quantity with appropriate units
+                raw_disp = raw_disp * pyMAOS.unit_manager.ureg(pyMAOS.INTERNAL_LENGTH_UNIT)
+
+            # Convert the displacement to the same unit as self.y
             disp_in_y_units = raw_disp.to(self.y.units) * scale
 
             # Add using the same registry
@@ -244,8 +254,13 @@ class R2Node:
     def z_rotated(self, combo, scale=1.0):
         """Return Z rotation angle with displacement applied"""
         if combo.name in self.displacements:
-            return self.displacements[combo.name][2] * scale
-        return 0
+            raw_rot = self.displacements[combo.name][2]
+            # Handle case where rotation is stored as a plain number
+            if not hasattr(raw_rot, 'magnitude'):
+                # Convert to a quantity with appropriate units
+                return raw_rot * scale * pyMAOS.unit_manager.ureg('rad')
+            return raw_rot * scale
+        return 0 * pyMAOS.unit_manager.ureg('rad')
 
     def distance(self, other):
         """

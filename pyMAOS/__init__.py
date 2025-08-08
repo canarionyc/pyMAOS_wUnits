@@ -81,6 +81,39 @@ from pyMAOS.pymaos_units import UnitManager
 cache_folder= os.path.expanduser("~/.cache/pyMAOS")
 unit_manager = UnitManager("imperial",cache_folder=cache_folder)
 
+# import pint
+# from pint.facets import (
+#     PlainRegistry,
+#     FormattingRegistry,
+#     SystemRegistry,
+#     NumpyRegistry
+# )
+
+# class StructuralRegistry(
+#     NumpyRegistry,      # For numpy array integration
+#     SystemRegistry,     # For unit system switching
+#     FormattingRegistry, # For formatted output
+#     PlainRegistry       # Base implementation
+# ):
+#     """Custom unit registry optimized for structural engineering applications."""
+#     pass
+#
+# # Replace existing registry with this custom one
+# def create_optimized_registry():
+#     # Create registry with desired defaults
+#     reg = StructuralRegistry()
+#
+#     # Load default definitions
+#     reg.load_definitions()
+#
+#     # Set preferred display systems
+#     reg.default_system = "imperial"  # Or whatever default you prefer
+#
+#     return reg
+
+# Usage in unit_manager
+# unit_manager.ureg = create_optimized_registry()
+
 # Common imperial units as constants
 global FOOT, INCH, POUND_FORCE, PSI, KSI
 FOOT = unit_manager.ureg.foot

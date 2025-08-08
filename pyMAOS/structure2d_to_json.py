@@ -352,3 +352,43 @@ def export_results_to_json(structure, load_cases=None, output_file=None, convert
 
     print(f"Results successfully exported to {output_file}")
     return output_file
+
+def convert_unit_with_info(value):
+    """
+    Convert a value to JSON-serializable format, handling unit information.
+
+    Parameters
+    ----------
+    value : pint.Quantity or scalar
+        Value to convert
+
+    Returns
+    -------
+    dict or scalar
+        JSON-serializable representation
+    """
+    import pyMAOS
+    from pyMAOS.quantity_utils import convert_registry
+
+    # Ensure value uses global registry if it's a quantity
+    if hasattr(value, '_REGISTRY') and hasattr(value, 'magnitude'):
+        value = convert_registry(value, pyMAOS.unit_manager.ureg)
+
+    # Check for pint Quantity with units
+    if hasattr(value, 'magnitude') and hasattr(value, 'units'):
+        # Get numeric value
+        magnitude = value.magnitude
+
+        # Handle very small values to avoid dimension errors
+        if abs(magnitude) < 1e-12:
+            magnitude = 0
+
+        # Return unit information
+        return {
+            'value': magnitude,
+            'unit': str(value.units),
+            'dimension': str(value.dimensionality)
+        }
+    else:
+        # Return scalar value as is
+        return value

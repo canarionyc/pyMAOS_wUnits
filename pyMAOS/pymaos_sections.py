@@ -175,11 +175,11 @@ def get_sections_from_yaml(sections_yml, logger=None):
     """
     def log(message):
         if logger:
-            logger.info(message)
+            pyMAOS.info(message)
         else:
             print(message)
 
-    log(f"Loading sections from: {sections_yml}")
+    pyMAOS.info(f"Loading sections from: {sections_yml}")
 
     try:
         import yaml
@@ -189,8 +189,8 @@ def get_sections_from_yaml(sections_yml, logger=None):
         # Convert list to dictionary with uid as key
         sections_dict = {section.uid: section for section in sections_list}
 
-        log(f"Loaded {len(sections_dict)} sections")
+        pyMAOS.info(f"Loaded {len(sections_dict)} sections")
         return sections_dict
     except Exception as e:
-        log(f"Error loading sections from {sections_yml}: {e}")
+        pyMAOS.info(f"Error loading sections from {sections_yml}: {e}")
         return {}

@@ -122,7 +122,174 @@ class R2_Point_Moment:
         zero_force = 0 * unit_manager.ureg(Riy.units)
 
         return [zero_force, Riy, Miz, zero_force, Rjy, Mjz]
+    def print_detailed_analysis(self, num_points=10, chart_width=60, chart_height=15):
+        """
+        Prints detailed analysis of the point moment response with ASCII charts.
 
+        Parameters
+        ----------
+        num_points : int
+            Number of points to sample in each region
+        chart_width : int
+            Width of ASCII charts in characters
+        chart_height : int
+            Height of ASCII charts in characters
+        """
+        import numpy as np
+        from pyMAOS import unit_manager
+
+        print(f"\n===== DETAILED ANALYSIS FOR {self.__str__()} =====")
+        print(f"Point moment of {self.M:.3f} at x={self.a:.3f}")
+        print(f"Member length: {self.L:.3f}")
+        print(f"Vertical reactions: Riy = {self.Riy:.3f}, Rjy = {self.Rjy:.3f}")
+
+        # Define regions for before and after the moment point
+        regions = [(0, self.a), (self.a, self.L)]
+        region_names = ["Before Moment [0 to a]", "After Moment [a to L]"]
+
+        # Create sampling points for each region
+        all_x = []
+        for i, (start, end) in enumerate(regions):
+            if end > start:  # Only if region has non-zero width
+                points = [start + j*(end-start)/num_points for j in range(num_points+1)]
+                # Don't duplicate boundary points
+                if i > 0 and len(all_x) > 0:
+                    points = points[1:]
+                all_x.extend(points)
+
+        # Calculate function values
+        vy_values = [self.Vy.evaluate(x) for x in all_x]
+        mz_values = [self.Mz.evaluate(x) for x in all_x]
+        sz_values = [self.Sz.evaluate(x) for x in all_x]
+        dy_values = [self.Dy.evaluate(x) for x in all_x]
+
+        # Print ASCII charts
+        self._print_ascii_chart("Shear Force (Vy)", all_x, vy_values, regions, chart_width, chart_height)
+        self._print_ascii_chart("Bending Moment (Mz)", all_x, mz_values, regions, chart_width, chart_height)
+        self._print_ascii_chart("Rotation (Sz)", all_x, sz_values, regions, chart_width, chart_height)
+        self._print_ascii_chart("Deflection (Dy)", all_x, dy_values, regions, chart_width, chart_height)
+
+        # Print table of values at key points
+        print("\n===== VALUES AT KEY POINTS =====")
+        print(f"{'Position':15} {'Shear':15} {'Moment':15} {'Rotation':15} {'Deflection':15}")
+        print("-" * 75)
+        for x in [0, self.a, self.L]:
+            print(f"{x:15.3f} {self.Vy.evaluate(x):15.3f} {self.Mz.evaluate(x):15.3f} {self.Sz.evaluate(x):15.3e} {self.Dy.evaluate(x):15.3e}")
+
+    def _print_ascii_chart(self, title, x_values, y_values, regions, width=60, height=15):
+        """
+        Helper method to print an ASCII chart of data with proper unit handling.
+        """
+        import numpy as np
+
+        if len(y_values) == 0:
+            return
+
+        print(f"\n--- {title} ---")
+
+        # Filter out NaN values before finding min/max
+        valid_indices = []
+        valid_y_values = []
+        for i, y in enumerate(y_values):
+            # Check if y is NaN (including Quantity objects with NaN magnitude)
+            is_nan = False
+            if hasattr(y, 'magnitude'):
+                is_nan = np.isnan(y.magnitude)
+            else:
+                is_nan = np.isnan(y) if isinstance(y, (int, float)) else False
+
+            if not is_nan:
+                valid_indices.append(i)
+                valid_y_values.append(y)
+
+        # If no valid values, skip plotting
+        if len(valid_y_values) == 0:
+            print("No valid data points to plot (all values are NaN)")
+            return
+
+        # Find min and max values while preserving units
+        min_y = min(valid_y_values)
+        max_y = max(valid_y_values)
+
+        # Debug print
+        print(f"Value range: {min_y:.3f} to {max_y:.3f}")
+
+        # Avoid division by zero
+        if min_y == max_y:
+            if hasattr(min_y, 'magnitude') and min_y.magnitude == 0:
+                # Create non-zero range with proper units
+                if hasattr(min_y, 'units'):
+                    min_y -= 1 * min_y.units
+                    max_y += 1 * max_y.units
+                else:
+                    min_y -= 1
+                    max_y += 1
+            else:
+                # Just create some range around the value
+                min_y = 0.9 * min_y
+                max_y = 1.1 * max_y
+
+        # Get the maximum x value for scaling
+        max_x = max(x_values)
+        range_y = max_y - min_y
+
+        # Create the chart grid
+        chart = [[' ' for _ in range(width)] for _ in range(height)]
+
+        # Draw x-axis if zero is in the range
+        if min_y <= 0 <= max_y:
+            # Calculate position while preserving units
+            axis_pos = height - int(height * (0 - min_y) / range_y)
+            axis_pos = max(0, min(height - 1, axis_pos))
+            chart[axis_pos] = ['-' for _ in range(width)]
+
+        # Plot data points
+        for i, (x, y) in enumerate(zip(x_values, y_values)):
+            # Skip NaN values
+            if hasattr(y, 'magnitude'):
+                if np.isnan(y.magnitude):
+                    continue
+            elif isinstance(y, (int, float)) and np.isnan(y):
+                continue
+
+            # Map x and y to chart coordinates while preserving units
+            x_pos = int(width * x / max_x)
+            x_pos = min(width - 1, max(0, x_pos))
+
+            # Calculate y position in chart - avoid NaN issues
+            try:
+                y_normalized = (y - min_y) / range_y
+                y_pos = height - 1 - int(y_normalized * (height - 1))
+                y_pos = min(height - 1, max(0, y_pos))
+                chart[y_pos][x_pos] = '*'
+            except (ValueError, TypeError, ZeroDivisionError) as e:
+                print(f"Warning: Could not plot point at x={x}, y={y}: {e}")
+                continue
+
+        # Draw vertical lines at region boundaries
+        for start, end in regions:
+            for boundary in [start, end]:
+                if boundary > 0 and boundary < max_x:
+                    x_pos = int(width * boundary / max_x)
+                    x_pos = min(width - 1, max(0, x_pos))
+                    for y_pos in range(height):
+                        if chart[y_pos][x_pos] != '*':  # Don't overwrite data points
+                            chart[y_pos][x_pos] = '|'
+
+        # Print the chart
+        for row in chart:
+            print(''.join(row))
+
+        # Print region information
+        print(f"Region boundaries: [0, {self.a:.2f}, {self.L:.2f}]")
+
+    def __str__(self):
+        """
+        String representation of a point moment.
+        """
+        return (f"Point Moment ({self.loadcase}): "
+                f"M={self.M:.3f} at x={self.a:.3f} "
+                f"(on member of length {self.L:.3f})")
 
 class R2_Point_Load:
     def __init__(self, p: pint.Quantity, a: pint.Quantity, member: "Any", loadcase="D"):
@@ -223,6 +390,13 @@ class R2_Point_Load:
         self.Dy2 = PiecewisePolynomial2(Dy)
         print("Dy2:", self.Dy2, sep="\n")
 
+    def __str__(self):
+        """
+        String representation of a point load.
+        """
+        return (f"Point Load ({self.loadcase}): "
+                f"p={self.p:.3f} at x={self.a:.3f} "
+                f"(on member of length {self.L:.3f})")
 
     def FEF(self):
         p = self.p
@@ -383,3 +557,159 @@ class R2_Point_Load:
             ax.grid(True, linestyle='--', alpha=0.7)
 
         return fig
+    def print_detailed_analysis(self, num_points=10, chart_width=60, chart_height=15):
+        """
+        Prints detailed analysis of the point load response with ASCII charts.
+
+        Parameters
+        ----------
+        num_points : int
+            Number of points to sample in each region
+        chart_width : int
+            Width of ASCII charts in characters
+        chart_height : int
+            Height of ASCII charts in characters
+        """
+        import numpy as np
+        from pyMAOS import unit_manager
+
+        print(f"\n===== DETAILED ANALYSIS FOR {self.__str__()} =====")
+        print(f"Point load of {self.p:.3f} at x={self.a:.3f}")
+        print(f"Member length: {self.L:.3f}")
+        print(f"Reactions: Rix = {self.Rix:.3f}, Rjx = {self.Rjx:.3f}")
+
+        # Define regions for before and after the load point
+        regions = [(0, self.a), (self.a, self.L)]
+        region_names = ["Before Load [0 to a]", "After Load [a to L]"]
+
+        # Create sampling points for each region
+        all_x = []
+        for i, (start, end) in enumerate(regions):
+            if end > start:  # Only if region has non-zero width
+                points = [start + j*(end-start)/num_points for j in range(num_points+1)]
+                # Don't duplicate boundary points
+                if i > 0 and len(all_x) > 0:
+                    points = points[1:]
+                all_x.extend(points)
+
+        # Calculate function values
+        ax_values = [self.Ax.evaluate(x) for x in all_x]
+        dx_values = [self.Dx.evaluate(x) for x in all_x]
+
+        # Print ASCII charts
+        self._print_ascii_chart("Axial Force (Ax)", all_x, ax_values, regions, chart_width, chart_height)
+        self._print_ascii_chart("Axial Displacement (Dx)", all_x, dx_values, regions, chart_width, chart_height)
+
+        # Print table of values at key points
+        print("\n===== VALUES AT KEY POINTS =====")
+        print(f"{'Position':15} {'Axial Force':20} {'Axial Displacement':20}")
+        print("-" * 60)
+        for x in [0, self.a, self.L]:
+            print(f"{x:15.3f} {self.Ax.evaluate(x):20.3f} {self.Dx.evaluate(x):20.3e}")
+
+    def _print_ascii_chart(self, title, x_values, y_values, regions, width=60, height=15):
+        """
+        Helper method to print an ASCII chart of data with proper unit handling.
+        """
+        import numpy as np
+
+        if len(y_values) == 0:
+            return
+
+        print(f"\n--- {title} ---")
+
+        # Filter out NaN values before finding min/max
+        valid_indices = []
+        valid_y_values = []
+        for i, y in enumerate(y_values):
+            # Check if y is NaN (including Quantity objects with NaN magnitude)
+            is_nan = False
+            if hasattr(y, 'magnitude'):
+                is_nan = np.isnan(y.magnitude)
+            else:
+                is_nan = np.isnan(y) if isinstance(y, (int, float)) else False
+
+            if not is_nan:
+                valid_indices.append(i)
+                valid_y_values.append(y)
+
+        # If no valid values, skip plotting
+        if len(valid_y_values) == 0:
+            print("No valid data points to plot (all values are NaN)")
+            return
+
+        # Find min and max values while preserving units
+        min_y = min(valid_y_values)
+        max_y = max(valid_y_values)
+
+        # Debug print
+        print(f"Value range: {min_y:.3f} to {max_y:.3f}")
+
+        # Avoid division by zero
+        if min_y == max_y:
+            if hasattr(min_y, 'magnitude') and min_y.magnitude == 0:
+                # Create non-zero range with proper units
+                if hasattr(min_y, 'units'):
+                    min_y -= 1 * min_y.units
+                    max_y += 1 * max_y.units
+                else:
+                    min_y -= 1
+                    max_y += 1
+            else:
+                # Just create some range around the value
+                min_y = 0.9 * min_y
+                max_y = 1.1 * max_y
+
+        # Get the maximum x value for scaling
+        max_x = max(x_values)
+        range_y = max_y - min_y
+
+        # Create the chart grid
+        chart = [[' ' for _ in range(width)] for _ in range(height)]
+
+        # Draw x-axis if zero is in the range
+        if min_y <= 0 <= max_y:
+            # Calculate position while preserving units
+            axis_pos = height - int(height * (0 - min_y) / range_y)
+            axis_pos = max(0, min(height - 1, axis_pos))
+            chart[axis_pos] = ['-' for _ in range(width)]
+
+        # Plot data points
+        for i, (x, y) in enumerate(zip(x_values, y_values)):
+            # Skip NaN values
+            if hasattr(y, 'magnitude'):
+                if np.isnan(y.magnitude):
+                    continue
+            elif isinstance(y, (int, float)) and np.isnan(y):
+                continue
+
+            # Map x and y to chart coordinates while preserving units
+            x_pos = int(width * x / max_x)
+            x_pos = min(width - 1, max(0, x_pos))
+
+            # Calculate y position in chart - avoid NaN issues
+            try:
+                y_normalized = (y - min_y) / range_y
+                y_pos = height - 1 - int(y_normalized * (height - 1))
+                y_pos = min(height - 1, max(0, y_pos))
+                chart[y_pos][x_pos] = '*'
+            except (ValueError, TypeError, ZeroDivisionError) as e:
+                print(f"Warning: Could not plot point at x={x}, y={y}: {e}")
+                continue
+
+        # Draw vertical lines at region boundaries
+        for start, end in regions:
+            for boundary in [start, end]:
+                if boundary > 0 and boundary < max_x:
+                    x_pos = int(width * boundary / max_x)
+                    x_pos = min(width - 1, max(0, x_pos))
+                    for y_pos in range(height):
+                        if chart[y_pos][x_pos] != '*':  # Don't overwrite data points
+                            chart[y_pos][x_pos] = '|'
+
+        # Print the chart
+        for row in chart:
+            print(''.join(row))
+
+        # Print region information
+        print(f"Region boundaries: [0, {self.a:.2f}, {self.L:.2f}]")

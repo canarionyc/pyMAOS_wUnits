@@ -1121,15 +1121,16 @@ class R2Frame(Element):
         empty_f = np.zeros((6, 1))
 
         Fendlocal = self.end_forces_local.get(load_combination.name, empty_f)
-
+        print(Fendlocal)
         # Empty Piecwise functions to build the total function from the loading
         dx = loadtypes.PiecewisePolynomial()
         dy = loadtypes.PiecewisePolynomial()
 
         # Create "loads" from the end forces and combine with dx and dy
-        fxi = loadtypes.R2_Axial_Load(Fendlocal[0, 0], 0, self)
-        fyi = loadtypes.R2_Point_Load(Fendlocal[1, 0], 0, self)
-        mzi = loadtypes.R2_Point_Moment(Fendlocal[2, 0], 0, self)
+        zero_length=unit_manager.ureg.Quantity(0, unit_manager.INTERNAL_LENGTH_UNIT)
+        fxi = loadtypes.R2_Axial_Load(Fendlocal[0, 0], zero_length, self)
+        fyi = loadtypes.R2_Point_Load(Fendlocal[1, 0], zero_length, self)
+        mzi = loadtypes.R2_Point_Moment(Fendlocal[2, 0], zero_length, self)
         fxj = loadtypes.R2_Axial_Load(Fendlocal[3, 0], self.length, self)
         fyj = loadtypes.R2_Point_Load(Fendlocal[4, 0], self.length, self)
         mzj = loadtypes.R2_Point_Moment(Fendlocal[5, 0], self.length, self)
@@ -1565,3 +1566,68 @@ class R2Frame(Element):
     def has_distributed_loads(self):
         """Check if element has any distributed loads applied"""
         return any(load.kind == "LINE" or load.kind == "AXIAL_LINE" for load in self.loads) if self.loads else False
+
+def print_member_loads_to_file(member, load_combo, filename):
+    """
+    Print all piecewise loading functions for a member under a specific load combination to a file.
+
+    Parameters
+    ----------
+    member : R2Frame
+        The frame element to analyze
+    load_combo : str
+        Name of the load combination
+    filename : str
+        Path to the output file
+    """
+    import sys
+    import os
+
+    # Check if member has any loads
+    if not hasattr(member, 'loads') or not member.loads:
+        print(f"No loads defined for member {member.uid}")
+        return
+
+    # Filter loads for this load combination
+    combo_loads = [load for load in member.loads if load.loadcase == load_combo.name]
+
+    if not combo_loads:
+        print(f"No loads found for load combination '{load_combo}' on member {member.uid}")
+        return
+
+    print(f"Writing load analysis for member {member.uid}, load combo '{load_combo}' to '{filename}'")
+
+    # Open file and redirect stdout to capture the ASCII output
+    original_stdout = sys.stdout
+
+    try:
+        with open(filename, 'w') as f:
+            sys.stdout = f
+
+            # Write header information
+            print(f"===== MEMBER {member.uid} LOADS UNDER LOAD COMBINATION '{load_combo}' =====")
+            print(f"Member length: {member.length}")
+            print(f"Member section: {member.section.name if hasattr(member.section, 'name') else str(member.section)}")
+            print("\n")
+
+            # For each load, print its detailed analysis
+            for i, load in enumerate(combo_loads):
+                print(f"\n{'='*80}")
+                print(f"LOAD {i+1}: {load}")
+                print(f"{'='*80}\n")
+
+                # Use the existing detailed analysis printing function
+                load.print_detailed_analysis(num_points=20, chart_width=80, chart_height=20)
+                print("\n")
+
+            print("\nEnd of load analysis.")
+
+    except Exception as e:
+        print(f"Error writing to file: {e}")
+        import traceback
+        traceback.print_exc(file = sys.stderr)
+    finally:
+        # Restore stdout
+        sys.stdout = original_stdout
+
+    print(f"Analysis complete. Output written to '{os.path.basename(filename)}'")

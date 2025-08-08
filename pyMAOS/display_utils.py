@@ -274,6 +274,56 @@ def print_quantity(data: Union[pint.Quantity, List[Union[pint.Quantity, Any]]],
         print_quantity_nested_list(data, indent=0, precision=precision, width=width)
     print()  # Newline at the end
 
+
+# Using dir() with string formatting to include methods
+def dump_object(obj):
+    attrs = dir(obj)
+    result = []
+    for attr in attrs:
+        if not attr.startswith('__'):  # Skip magic methods
+            try:
+                value = getattr(obj, attr)
+                result.append(f"{attr}: {value}")
+            except Exception as e:
+                result.append(f"{attr}: <Error: {e}>")
+    return '\n'.join(result)
+
+# For a more powerful solution, you can use the inspect module:
+
+
+def object_to_string(obj):
+    import inspect
+    attributes = inspect.getmembers(obj, lambda a: not inspect.isroutine(a))
+    attributes = [a for a in attributes if not a[0].startswith('__')]
+    return '\n'.join(f"{attr}: {repr(val)}" for attr, val in attributes)
+
+    def print_quantity_nested_list(nested_list, indent=0, indent_step=2):
+        """
+        Print a nested list of quantities using str() method for each Quantity object.
+
+        Parameters:
+        -----------
+        nested_list : list
+            The nested list containing Quantity objects
+        indent : int
+            Current indentation level
+        indent_step : int
+            Number of spaces for each indentation level
+        """
+        if isinstance(nested_list, list):
+            print(" " * indent + "[")
+            for item in nested_list:
+                print_quantity_nested_list(item, indent + indent_step, indent_step)
+            print(" " * indent + "]")
+        else:
+            # For quantity objects or other values
+            print(" " * indent + str(nested_list) + ",")
+
+    # Usage example
+    print("Vy:")
+    print_quantity_nested_list(Vy)
+
+
 if __name__ == "__main__":
     # Example usage
     ureg = get_unit_registry()
@@ -318,28 +368,3 @@ if __name__ == "__main__":
         print_quantity_nested_list(Dy, precision=2, width=20)
     example()
 
-    def print_quantity_nested_list(nested_list, indent=0, indent_step=2):
-        """
-        Print a nested list of quantities using str() method for each Quantity object.
-
-        Parameters:
-        -----------
-        nested_list : list
-            The nested list containing Quantity objects
-        indent : int
-            Current indentation level
-        indent_step : int
-            Number of spaces for each indentation level
-        """
-        if isinstance(nested_list, list):
-            print(" " * indent + "[")
-            for item in nested_list:
-                print_quantity_nested_list(item, indent + indent_step, indent_step)
-            print(" " * indent + "]")
-        else:
-            # For quantity objects or other values
-            print(" " * indent + str(nested_list) + ",")
-
-    # Usage example
-    print("Vy:")
-    print_quantity_nested_list(Vy)

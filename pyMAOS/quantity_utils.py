@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 import pint
 import pyMAOS
@@ -363,3 +364,137 @@ def print_units_matrix(array):
 
     # Print the array
     print_array(array)
+
+def convert_registry(quantity, target_registry=None):
+    """
+    Convert a quantity to use a different registry.
+
+    Parameters
+    ----------
+    quantity : pint.Quantity
+        The quantity to convert
+    target_registry : pint.UnitRegistry, optional
+        The target registry. If None, uses the global registry from unit_manager.
+
+    Returns
+    -------
+    pint.Quantity
+        A new quantity using the target registry with the same value and unit
+    """
+    import pyMAOS
+
+    # Default to global registry
+    if target_registry is None:
+        target_registry = pyMAOS.unit_manager.ureg
+
+    # If already using target registry, return the original
+    if hasattr(quantity, '_REGISTRY') and quantity._REGISTRY is target_registry:
+        return quantity
+
+    # Handle non-quantity objects
+    if not hasattr(quantity, 'magnitude') or not hasattr(quantity, 'units'):
+        return quantity
+
+    # Create new quantity with target registry
+    try:
+        return target_registry.Quantity(quantity.magnitude, str(quantity.units))
+    except Exception as e:
+        print(f"Error converting quantity {quantity} to target registry: {e}")
+        return quantity
+
+def convert_all_quantities(obj, target_registry=None, processed_objects=None):
+    """
+    Recursively convert all quantities in a complex object to use the target registry.
+
+    Parameters
+    ----------
+    obj : object
+        The object containing quantities to convert
+    target_registry : pint.UnitRegistry, optional
+        The target registry. If None, uses the global registry from unit_manager.
+    processed_objects : dict, optional
+        Dictionary to track already processed objects to avoid circular references
+
+    Returns
+    -------
+    object
+        A copy of the object with all quantities using the target registry
+    """
+    import pyMAOS
+    import numpy as np
+
+    # Initialize processed_objects if it's the first call
+    if processed_objects is None:
+        processed_objects = {}
+
+    # If we've already processed this object, return the converted version
+    obj_id = id(obj)
+    if obj_id in processed_objects:
+        return processed_objects[obj_id]
+
+    # Default to global registry
+    if target_registry is None:
+        target_registry = pyMAOS.unit_manager.ureg
+
+    # Handle quantities directly
+    if hasattr(obj, '_REGISTRY') and hasattr(obj, 'magnitude'):
+        result = convert_registry(obj, target_registry)
+        processed_objects[obj_id] = result
+        return result
+
+    # Handle numpy arrays
+    if isinstance(obj, np.ndarray):
+        # For arrays of quantities
+        if obj.dtype == object:
+            result = np.empty_like(obj)
+            for i, value in enumerate(obj.flat):
+                result.flat[i] = convert_all_quantities(value, target_registry, processed_objects)
+            processed_objects[obj_id] = result
+            return result
+        processed_objects[obj_id] = obj
+        return obj
+
+    # Handle lists
+    if isinstance(obj, list):
+        result = [convert_all_quantities(item, target_registry, processed_objects) for item in obj]
+        processed_objects[obj_id] = result
+        return result
+
+    # Handle dictionaries
+    if isinstance(obj, dict):
+        result = {key: convert_all_quantities(value, target_registry, processed_objects) for key, value in obj.items()}
+        processed_objects[obj_id] = result
+        return result
+
+    # Handle objects with __dict__ attribute (most custom classes)
+    if hasattr(obj, '__dict__'):
+        # Create a shallow copy to avoid modifying original
+        import copy
+        new_obj = copy.copy(obj)
+
+        # Mark this object as processed BEFORE recursing to prevent infinite loops
+        processed_objects[obj_id] = new_obj
+
+        # Convert all attributes, skipping properties that have no setter
+        for attr_name, attr_value in obj.__dict__.items():
+            try:
+                # Check if this attribute is a property with no setter
+                cls = obj.__class__
+                if hasattr(cls, attr_name) and isinstance(getattr(cls, attr_name), property):
+                    prop = getattr(cls, attr_name)
+                    if prop.fset is None:
+                        # Skip read-only properties
+                        continue
+
+                # Set the attribute with its converted value
+                setattr(new_obj, attr_name, convert_all_quantities(attr_value, target_registry, processed_objects))
+            except AttributeError as e:
+                # This happens when trying to set read-only properties
+                print(f"Warning: Could not set attribute '{attr_name}' on {obj.__class__.__name__}: {e}")
+                continue
+
+        return new_obj
+
+    # Return other objects unchanged
+    processed_objects[obj_id] = obj
+    return obj

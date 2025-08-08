@@ -251,8 +251,8 @@ def plot_structure_matplotlib(nodes, members, ax=None, show_labels=True,
         fig = ax.figure
 
     # Extract node coordinates, handling potential Quantity objects
-    node_x = [extract_value(node.x) for node in nodes]
-    node_y = [extract_value(node.y) for node in nodes]
+    node_x = [extract_value(node.x) for node in nodes]; print(f"Node x: {node_x}")
+    node_y = [extract_value(node.y) for node in nodes]; print(f"Node y: {node_y}")
 
     # Plot nodes
     ax.scatter(node_x, node_y, color=node_color, s=node_size, zorder=10)

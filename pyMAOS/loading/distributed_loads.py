@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any
 # from pyMAOS.display_utils import display_node_load_vector_in_units
 import numpy as np
 from pyMAOS.loading.piecewisePolinomial import PiecewisePolynomial
+from pyMAOS.loading.PiecewisePolynomial2 import PiecewisePolynomial2
 import pyMAOS
 from pyMAOS import unit_manager, INTERNAL_LENGTH_UNIT
 from pyMAOS import (# SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS,
@@ -215,17 +216,27 @@ class LinearLoadXY:
         #
         # Format: [[coefficients], [domain_bounds]]
         # where coefficients = [c₀, c₁, c₂...] representing c₀ + c₁x + c₂x² + ...
+
+        # Use wrapped ndarrays for quantity arrays
+        zero_dist_load = pyMAOS.unit_manager.ureg.Quantity(np.array([0.0]), pyMAOS.unit_manager.INTERNAL_DISTRIBUTED_LOAD_UNIT)
+
         Wy = [
-            [[pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_DISTRIBUTED_LOAD_UNIT)], [pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT), self.a]],
+            [[zero_dist_load], [pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT), self.a]],
             [
                 [
-                    ((-1 * self.a * self.w2) - (self.c * self.w1) - (self.a * self.w1))
-                    / self.c,
-                    (self.w2 - self.w1) / self.c,
+                    pyMAOS.unit_manager.ureg.Quantity(
+                        ((-1 * self.a.magnitude * self.w2.magnitude) - (self.c.magnitude * self.w1.magnitude) - (self.a.magnitude * self.w1.magnitude))
+                        / self.c.magnitude,
+                        pyMAOS.unit_manager.INTERNAL_DISTRIBUTED_LOAD_UNIT
+                    ),
+                    pyMAOS.unit_manager.ureg.Quantity(
+                        (self.w2.magnitude - self.w1.magnitude) / self.c.magnitude,
+                        f"{pyMAOS.unit_manager.INTERNAL_DISTRIBUTED_LOAD_UNIT}/{pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT}"
+                    )
                 ],
                 [self.a, self.b],
             ],
-            [[pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_DISTRIBUTED_LOAD_UNIT)], [self.b, self.L]],
+            [[zero_dist_load], [self.b, self.L]],
         ]; print("Wy:\n", Wy)
 
         Vy = [
@@ -233,10 +244,18 @@ class LinearLoadXY:
             [
                 [
                     self.c02,
-                    self.w1
-                    + ((self.a * self.w1) / self.c)
-                    - ((self.a * self.w2) / self.c),
-                    (self.w2 / (2 * self.c)) - (self.w1 / (2 * self.c)),
+                    # Convert coefficients to use wrapped ndarrays with proper units
+                    pyMAOS.unit_manager.ureg.Quantity(
+                        np.array([
+                            self.w1.magnitude + ((self.a.magnitude * self.w1.magnitude) / self.c.magnitude)
+                            - ((self.a.magnitude * self.w2.magnitude) / self.c.magnitude)
+                        ]),
+                        self.w1.units
+                    ),
+                    pyMAOS.unit_manager.ureg.Quantity(
+                        np.array([(self.w2.magnitude / (2 * self.c.magnitude)) - (self.w1.magnitude / (2 * self.c.magnitude))]),
+                        f"{self.w2.units}/{pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT}"
+                    )
                 ],
                 [self.a, self.b],
             ],
@@ -275,9 +294,18 @@ class LinearLoadXY:
             ],
             [[self.c09, self.c06, 0.5 * self.c03], [self.b, self.L]],
         ]
-        Sz[0][0] = [i / EI for i in Sz[0][0]]
-        Sz[1][0] = [i / EI for i in Sz[1][0]]
-        Sz[2][0] = [i / EI for i in Sz[2][0]]
+        Sz[0][0] = pyMAOS.unit_manager.ureg.Quantity(
+            np.array([coef.magnitude for coef in Sz[0][0]]) / EI.magnitude,
+            f"{Sz[0][0][0].units}/{EI.units}"
+        )
+        Sz[1][0] = pyMAOS.unit_manager.ureg.Quantity(
+            np.array([coef.magnitude for coef in Sz[1][0]]) / EI.magnitude,
+            f"{Sz[1][0][0].units}/{EI.units}"
+        )
+        Sz[2][0] = pyMAOS.unit_manager.ureg.Quantity(
+            np.array([coef.magnitude for coef in Sz[2][0]]) / EI.magnitude,
+            f"{Sz[2][0][0].units}/{EI.units}"
+        )
 
         print("Sz:\n", Sz)
 
@@ -324,7 +352,7 @@ class LinearLoadXY:
         # fig = self.plot_all_functions()
         # fig.show()  # If you want to display immediately
 
-        from PiecewisePolynomial2 import PiecewisePolynomial2
+
         # Create PiecewisePolynomial2 objects for each function
         self.Wy2 = PiecewisePolynomial2(Wy)
         self.Vy2 = PiecewisePolynomial2(Vy)
@@ -413,9 +441,36 @@ class LinearLoadXY:
         # print(f"Moments - Display: Miz={Miz_display:.3f}, Mjz={Mjz_display:.3f}")
 
         # Create zeros with appropriate units
-        zero_force = 0 * pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT)
+        zero_force = pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT)
 
-        ret_val = np.array([pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT), Riy, Miz, pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT), Rjy, Mjz], dtype=object)
+        # Use numpy array with units for return value
+        ret_val = pyMAOS.unit_manager.ureg.Quantity(
+            np.array([0.0, Riy.magnitude, Miz.magnitude, 0.0, Rjy.magnitude, Mjz.magnitude]),
+            [pyMAOS.unit_manager.INTERNAL_FORCE_UNIT, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT,
+             pyMAOS.unit_manager.INTERNAL_MOMENT_UNIT, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT,
+             pyMAOS.unit_manager.INTERNAL_FORCE_UNIT, pyMAOS.unit_manager.INTERNAL_MOMENT_UNIT]
+        )
+
+        # Print forces and moments in both SI and display units
+        #from pyMAOS.units_mod import convert_to_display_units
+        from pyMAOS.pymaos_units import FORCE_DISPLAY_UNIT, MOMENT_DISPLAY_UNIT
+        # Get current unit system directly from the manager
+        # current_units = unit_manager.get_current_units()
+        # system_name = unit_manager.get_system_name()
+        # Riy_display = Riy.to(FORCE_DISPLAY_UNIT)
+        # Rjy_display = Rjy.to(FORCE_DISPLAY_UNIT)
+        # Miz_display = Miz.to(MOMENT_DISPLAY_UNIT)
+        # Mjz_display = Mjz.to(MOMENT_DISPLAY_UNIT)
+        #
+        # print(f"Vertical reactions - SI: Riy={Riy:.3f} N, Rjy={Rjy:.3f} N")
+        # print(f"Vertical reactions - Display: Riy={Riy_display:.3f}, Rjy={Rjy_display:.3f}")
+        # print(f"Moments - SI: Miz={Miz:.3f} N*m, Mjz={Mjz:.3f} N*m")
+        # print(f"Moments - Display: Miz={Miz_display:.3f}, Mjz={Mjz_display:.3f}")
+
+        # Create zeros with appropriate units
+        zero_force = pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT)
+
+        ret_val = np.array([pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT), Riy, Miz, pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS unit_manager.INTERNAL_FORCE_UNIT), Rjy, Mjz], dtype=object)
         print(f"FEF distributed load results on member {self.member_uid} for Load Case {self.loadcase}:", ret_val, sep="\n")
 
         # Final dimension check for return values
@@ -469,8 +524,8 @@ class LinearLoadXY:
         # print(f"Load centroid from left: {self.a + self.cbar:.3f}")
         # print(f"Reactions: Riy = {self.Riy:.3f} {INTERNAL_FORCE_UNIT} ({convert_to_display_units(self.Riy, 'force'):.3f} {current_units['force']}), Rjy = {self.Rjy:.3f} {INTERNAL_FORCE_UNIT} ({convert_to_display_units(self.Rjy, 'force'):.3f} {current_units['force']})", end="\n")
 
-        # Sample points across all regions
-        regions = [(0, self.a), (self.a, self.b), (self.b, self.L)]
+        zero_length=pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT)
+        regions = [(zero_length, self.a), (self.a, self.b), (self.b, self.L)]
         region_names = ["Before Load [0 to a]", "Loaded Region [a to b]", "After Load [b to L]"]
 
         # Create sampling points
@@ -788,3 +843,4 @@ class LinearLoadXY:
             ax.grid(True, linestyle='--', alpha=0.7)
 
         return fig
+

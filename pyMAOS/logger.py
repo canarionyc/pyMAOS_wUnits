@@ -63,7 +63,7 @@ def log_exception(logger, exc_info=None, message="An exception occurred"):
 
         # Include the error location in the message
         error_msg = f"{message}: {exc_type.__name__} in {file_name}:{line_no} (function: {function}): {exc_value}"
-        logger.error(error_msg)
+        pyMAOS.error(error_msg)
 
         # Print the entire call stack with clickable file links
         print(f"DEBUG - Full call stack for exception:")
@@ -79,7 +79,7 @@ def log_exception(logger, exc_info=None, message="An exception occurred"):
         tb_formatted = ''.join(traceback.format_exception(exc_type, exc_value, exc_tb))
         logger.debug(f"Full traceback:\n{tb_formatted}")
     else:
-        logger.error(f"{message}: {exc_type.__name__}: {exc_value}")
+        pyMAOS.error(f"{message}: {exc_type.__name__}: {exc_value}")
 
 
 # Default logger instance

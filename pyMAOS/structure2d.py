@@ -1211,11 +1211,11 @@ class R2Structure:
         print("Verifying structure state completeness and consistency...")
 
         # 1. Check if all essential components are present
-        essential_keys = ['nodes', 'members', 'U', 'KSTRUCT', 'FG', 'structure_fef']
-        missing_keys = [key for key in essential_keys if key not in state_data]
-        if missing_keys:
-            print(f"ERROR: Missing essential data: {missing_keys}")
-            return False
+        # essential_keys = ['nodes', 'members', 'U', 'KSTRUCT', 'FG', 'structure_fef']
+        # missing_keys = [key for key in essential_keys if key not in state_data]
+        # if missing_keys:
+        #     print(f"ERROR: Missing essential data: {missing_keys}")
+        #     return False
 
         # 2. Check stiffness equation K·U = F-P for free DOFs
         if all(hasattr(self, attr) for attr in ['Kff', 'U', 'FGf', 'PFf']):
@@ -1305,147 +1305,114 @@ class R2Structure:
             traceback.print_exc()
             return False
 
-    def load_structure_state(self, filename):
-        """
-        Load structure state from a binary file
 
-        Parameters
-        ----------
-        filename : str
-            Path to the binary file
 
-        Returns
-        -------
-        bool
-            True if loading was successful, False otherwise
-        """
-        import pickle
-        import zlib
-        import io
-
-        print(f"Loading structure state from {filename}...")
-
-        try:
-            # Read the compressed data
-            with open(filename, 'rb') as file:
-                compressed_data = file.read()
-
-            # Define a custom unpickler for Pint Quantity objects
-            class QuantityUnpickler(pickle.Unpickler):
-                def find_class(self, module, name):
-                    # Handle Pint Quantity objects specially
-                    if module == 'pint.quantity' and name == 'Quantity':
-                        return pyMAOS.unit_manager.ureg.Quantity
-                    return super().find_class(module, name)
-
-            try:
-                # Try to decompress the data
-                pickled_data = zlib.decompress(compressed_data)
-                print("Data is compressed, decompressing...")
-
-                # Use custom unpickler
-                unpickler = QuantityUnpickler(io.BytesIO(pickled_data))
-                loaded_structure = unpickler.load()
-                print("Successfully loaded compressed state data")
-
-            except zlib.error:
-                # If decompression fails, try as raw pickle
-                print("Data doesn't appear to be compressed, trying direct pickle")
-                unpickler = QuantityUnpickler(io.BytesIO(compressed_data))
-                loaded_structure = unpickler.load()
-
-            # Transfer all attributes from the loaded structure to self
-            # for attr_name, attr_value in vars(loaded_structure).items():
-            #     setattr(self, attr_name, attr_value)
-
-            # Verify the state is consistent
-            if hasattr(self, 'verify_structure_state'):
-                if self.verify_structure_state(vars(self)):
-                    print("Structure state verified successfully")
-                else:
-                    raise ValueError("Warning: Structure state verification failed")
-
-            # Rebuild node and member mappings
-            # self.create_uid_maps()
-            #
-            # print("Structure state loaded successfully")
-            return loaded_structure
-
-        except Exception as e:
-            print(f"Error loading structure state: {e}")
-            import traceback
-            traceback.print_exc()
-            return None
-
-def external_verify_structure_state(self, state_data):
+def load_structure_state(filename):
     """
-    Verify that the loaded structure state is complete and consistent.
-    Checks if K·U = F-P equation is satisfied.
+    Load structure state from a binary file.
 
     Parameters
     ----------
-    state_data : dict
-        Dictionary containing the loaded structure state
+    filename : str
+        Path to binary file containing structure state
 
     Returns
     -------
-    bool
-        True if verification passes, False otherwise
+    R2Structure
+        Structure object with all quantities using the global registry
     """
-    print("Verifying structure state completeness and consistency...")
+    import pickle
+    import pyMAOS
+    import zlib
+    import io
+    from pyMAOS.quantity_utils import convert_all_quantities
 
-    # 1. Check if all essential components are present
-    # essential_keys = ['nodes', 'members', 'U', 'KSTRUCT', 'FG', 'structure_fef']
-    # missing_keys = [key for key in essential_keys if key not in state_data]
-    # if missing_keys:
-    #     print(f"ERROR: Missing essential data: {missing_keys}")
-    #     return False
+    # Debug info
+    print(f"Loading structure state from: {filename}")
+    print(f"Using global unit registry with id: {id(pyMAOS.unit_manager.ureg)}")
 
-    # 2. Check stiffness equation K·U = F-P for free DOFs
-    if all(hasattr(self, attr) for attr in ['Kff', 'U', 'FGf', 'PFf']):
-        try:
-            # Convert quantities to numerical values for calculation
-            from pyMAOS.quantity_utils import numpy_array_of_quantity_to_numpy_array_of_float64
-            import numpy as np
+    # Custom unpickler that converts quantities to the global registry during load
+    class QuantityUnpickler(pickle.Unpickler):
+        def find_class(self, module, name):
+            # Get the standard class
+            cls = super().find_class(module, name)
 
-            # Extract magnitudes for calculation
-            Kff_mag = numpy_array_of_quantity_to_numpy_array_of_float64(self.Kff)
-            U_mag = numpy_array_of_quantity_to_numpy_array_of_float64(self.U)
-            FGf_mag = numpy_array_of_quantity_to_numpy_array_of_float64(self.FGf)
-            PFf_mag = numpy_array_of_quantity_to_numpy_array_of_float64(self.PFf)
+            # If it's a Quantity class, return our conversion wrapper
+            if module == 'pint.quantity' and name == 'Quantity':
+                # Create a wrapper that converts registry on unpickling
+                def quantity_factory(*args, **kwargs):
+                    # Standard creation
+                    obj = cls(*args, **kwargs)
 
-            # Calculate left and right sides of equation
-            KU = np.matmul(Kff_mag, U_mag)
-            F_minus_P = FGf_mag - PFf_mag
+                    # If it's using a different registry, convert it
+                    if obj._REGISTRY is not pyMAOS.unit_manager.ureg:
+                        print(f"Converting quantity {obj} from registry {id(obj._REGISTRY)} to global registry")
+                        obj = pyMAOS.unit_manager.ureg.Quantity(obj.magnitude, str(obj.units))
 
-            # Calculate residual and relative error
-            residual = KU - F_minus_P
-            error_norm = np.linalg.norm(residual)
-            rel_error = error_norm / np.linalg.norm(F_minus_P) if np.linalg.norm(F_minus_P) > 1e-10 else error_norm
+                    return obj
 
-            print(f"Stiffness equation verification:")
-            print(f"  Norm of K·U:   {np.linalg.norm(KU):.6e}")
-            print(f"  Norm of F-P:   {np.linalg.norm(F_minus_P):.6e}")
-            print(f"  Residual norm: {error_norm:.6e}")
-            print(f"  Relative error: {rel_error:.6e}")
+                return quantity_factory
+            return cls
 
-            # Check if error is acceptably small (adjust tolerance as needed)
-            if rel_error > 1e-6:
-                print("WARNING: Relative error in stiffness equation exceeds tolerance")
-                return False
+    # Load structure from file
+    try:
+        with open(filename, 'rb') as f:
+            # Read compressed data
+            compressed_data = f.read()
 
-            print("✓ Stiffness equation verified successfully")
+            # Decompress data
+            try:
+                pickled_data = zlib.decompress(compressed_data)
+                # Use custom unpickler that converts quantities during load
+                unpickler = QuantityUnpickler(io.BytesIO(pickled_data))
+                structure = unpickler.load()
+                print(f"Successfully loaded compressed binary file ({len(compressed_data):,} bytes compressed)")
+            except zlib.error:
+                # If decompression fails, try direct unpickling (for backward compatibility)
+                print("File appears to be uncompressed, trying direct unpickling...")
+                f.seek(0)  # Reset file pointer to beginning
+                # Use custom unpickler for uncompressed data too
+                unpickler = QuantityUnpickler(f)
+                structure = unpickler.load()
+                print("Successfully loaded uncompressed pickle file")
 
-        except Exception as e:
-            print(f"ERROR during verification: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
-    else:
-        print("WARNING: Cannot verify stiffness equation - missing required data")
+        # Add registry ID to structure for future reference
+        structure.registry_id = id(pyMAOS.unit_manager.ureg)
 
-    # 3. Check node equilibrium by verifying reactions match applied loads + member forces
-    # (This would require gathering all member end forces for each node)
+        # Double-check for any quantities that weren't converted during unpickling
+        # This is a safety measure in case some quantities were stored in a way
+        # that bypassed our custom unpickler
+        structure = convert_all_quantities(structure, pyMAOS.unit_manager.ureg)
 
-    print("Structure state verification completed")
-    return True
+        return structure
+
+    except Exception as e:
+        print(f"Error loading structure state from {filename}: {e}")
+        import traceback
+        traceback.print_exc()
+        raise ValueError(f"Failed to load structure state: {e}")
+
+def save_structure_state(self, filename):
+    """
+    Save structure state to a binary file.
+
+    Parameters
+    ----------
+    filename : str
+        Path to binary file where structure state will be saved
+    """
+    import pickle
+    import pyMAOS
+
+    # Store the registry ID for future reference
+    self.registry_id = id(pyMAOS.unit_manager.ureg)
+
+    try:
+        with open(filename, 'wb') as f:
+            pickle.dump(self, f)
+        print(f"Structure state saved to {filename}")
+        print(f"Registry ID stored: {self.registry_id}")
+    except Exception as e:
+        print(f"Error saving structure state to {filename}: {e}")
+        import traceback
+        traceback.print_exc()

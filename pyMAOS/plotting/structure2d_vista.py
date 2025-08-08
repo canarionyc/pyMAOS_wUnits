@@ -1,5 +1,8 @@
 import pyvista as pv
 import numpy as np
+from pyMAOS.quantity_utils import convert_registry
+
+import traceback
 
 def plot_structure_pv(structure, loadcombo=None, scale=1.0, scaling_file=None):
     """
@@ -13,14 +16,19 @@ def plot_structure_pv(structure, loadcombo=None, scale=1.0, scaling_file=None):
         Load combination for plotting deformed shape
     scale : float, optional
         Scale factor for deformations (default=1.0)
-    input_dir : str, optional
-        Directory containing the scaling.json file
+    scaling_file : str, optional
+        Path to the scaling.json file
     """
     import vtk
     import pyvista as pv
     import numpy as np
     import os
+    import pyMAOS
     from pyMAOS.plotting.scaling import get_scaling_from_config
+    from pyMAOS.quantity_utils import convert_registry
+    from pyMAOS import unit_manager
+    # Ensure we're using the global registry for all quantities in this function
+    ureg = pyMAOS.unit_manager.ureg
 
     # Find scaling.json in input directory or current directory
     if scaling_file is None and os.path.exists('scaling.json'):
@@ -39,15 +47,29 @@ def plot_structure_pv(structure, loadcombo=None, scale=1.0, scaling_file=None):
         displacement_scale = 100 * scale
 
     # Debug info
-    # print(f"Structure type: {type(structure)}")
     print(f"Number of nodes: {len(structure.nodes)}")
     print(f"Number of members: {len(structure.members)}")
+
+    # Check for registry consistency
+    registry_mismatch = False
+    for node in structure.nodes:
+        if hasattr(node.x, '_REGISTRY') and node.x._REGISTRY is not ureg:
+            registry_mismatch = True
+            print(f"WARNING: Node {node.uid} uses registry {id(node.x._REGISTRY)} instead of global registry {id(ureg)}")
+            break
+
+    if registry_mismatch:
+        print("Converting all quantities to global registry...")
+        from pyMAOS.quantity_utils import convert_all_quantities
+        structure = convert_all_quantities(structure, ureg)
 
     # Find node 1 and calculate offset to place it at x=0
     x_offset = 0
     for node in structure.nodes:
         if node.uid == 1:
-            x_offset = node.x.magnitude
+            # Ensure this quantity uses the global registry
+            x = convert_registry(node.x, ureg)
+            x_offset = x.magnitude
             print(f"Found node 1 at x={x_offset}, will offset all nodes to place it at x=0")
             break
 
@@ -59,14 +81,15 @@ def plot_structure_pv(structure, loadcombo=None, scale=1.0, scaling_file=None):
     node_indices = {}  # Map node UIDs to their index in the points array
     for i, node in enumerate(structure.nodes):
         # Extract magnitude values from the Quantity objects and apply offset
-        x = node.x.magnitude - x_offset
-        y = node.y.magnitude
+        x = convert_registry(node.x, ureg).magnitude - x_offset
+        y = convert_registry(node.y, ureg).magnitude
         print(f"Node {node.uid}: Original ({node.x.magnitude}, {node.y.magnitude}), Adjusted ({x}, {y})")
         points.InsertNextPoint(x, y, 0)
         node_indices[node.uid] = i
 
     # Add lines for members
     for member in structure.members:
+        print(f"Member: node {member.inode.uid} to {member.jnode.uid}")
         line = vtk.vtkLine()
         # Get indices based on node UIDs
         i_index = node_indices[member.inode.uid]
@@ -74,7 +97,6 @@ def plot_structure_pv(structure, loadcombo=None, scale=1.0, scaling_file=None):
         line.GetPointIds().SetId(0, i_index)
         line.GetPointIds().SetId(1, j_index)
         cells.InsertNextCell(line)
-        print(f"Member: node {member.inode.uid} to {member.jnode.uid}")
 
     # Create a polydata to store points and lines
     polydata = vtk.vtkPolyData()
@@ -109,15 +131,15 @@ def plot_structure_pv(structure, loadcombo=None, scale=1.0, scaling_file=None):
                 node_points.append([adjusted_x, node.y.magnitude, 0])
                 node_labels.append(node_label)
 
-                # Add labels to plot if we have valid points and labels
-                if node_points and node_labels:
-                    plotter.add_point_labels(
-                        node_points, node_labels,
-                        font_size=10,
-                        point_color='blue',
-                        text_color='black',
-                        always_visible=True
-                    )
+        # Add labels to plot if we have valid points and labels
+        if node_points and node_labels:
+            plotter.add_point_labels(
+                node_points, node_labels,
+                font_size=10,
+                point_color='blue',
+                text_color='black',
+                always_visible=True
+            )
 
         # Plot deformed shape if loadcombo is provided
         if loadcombo is not None:
@@ -125,80 +147,68 @@ def plot_structure_pv(structure, loadcombo=None, scale=1.0, scaling_file=None):
             deformed_points = vtk.vtkPoints()
             deformed_cells = vtk.vtkCellArray()
 
-            # Add deformed points
+            # Add deformed points - using the node's x_displaced and y_displaced methods
+            # similar to how it's done in the matplotlib implementation
             for i, node in enumerate(structure.nodes):
-                # Get displacements for this node
-                dx = node.get_displacement(loadcombo, 'DX').magnitude * displacement_scale if hasattr(node, 'get_displacement') else 0
-                dy = node.get_displacement(loadcombo, 'DY').magnitude * displacement_scale if hasattr(node, 'get_displacement') else 0
-                rot = node.get_displacement(loadcombo, 'RZ').magnitude * rotation_scale if hasattr(node, 'get_displacement') else 0
+                print(f"Node {node.uid}: {node.x.magnitude}, {node.y.magnitude}")
+                try:
+                    # Use the node's built-in displacement methods which properly handle all transformations
+                    if hasattr(node, 'x_displaced') and hasattr(node, 'y_displaced'):
+                        # Ensure these quantities use the global registry
+                        x_def = convert_registry(node.x_displaced(loadcombo, displacement_scale), ureg).magnitude - x_offset
+                        y_def = convert_registry(node.y_displaced(loadcombo, displacement_scale), ureg).magnitude
+                    else:
+                        # Fallback to direct calculation if methods not available
+                        dx = convert_registry(node.get_displacement(loadcombo, 'DX'), ureg).magnitude * displacement_scale if hasattr(node, 'get_displacement') else 0
+                        dy = convert_registry(node.get_displacement(loadcombo, 'DY'), ureg).magnitude * displacement_scale if hasattr(node, 'get_displacement') else 0
+                        x_def = (convert_registry(node.x, ureg).magnitude - x_offset) + dx
+                        y_def = convert_registry(node.y, ureg).magnitude + dy
 
-                # Calculate deformed position
-                x_def = (node.x.magnitude - x_offset) + dx
-                y_def = node.y.magnitude + dy
+                    print(f"Node {node.uid} Deformed: ({x_def}, {y_def}) in {unit_manager.get_internal_unit('length')}")
+                    deformed_points.InsertNextPoint(x_def, y_def, 0)
+                except Exception as e:
+                    print(f"Error computing deformed position for node {node.uid}: {e}")
+                    # Use undeformed position as fallback
+                    x_def = convert_registry(node.x, ureg).magnitude - x_offset
+                    y_def = convert_registry(node.y, ureg).magnitude
+                    deformed_points.InsertNextPoint(x_def, y_def, 0)
 
-                print(f"Node {node.uid} Deformed: ({x_def}, {y_def}), Displacements: dx={dx}, dy={dy}, rot={rot}")
-                deformed_points.InsertNextPoint(x_def, y_def, 0)
-
-            # Add lines for members in deformed shape
-            # Add lines for members in deformed shape
+            # Add lines for deformed members
             for member in structure.members:
-                # Get loads for this member from the loadcombo
-                member_loads = []
+                i_index = node_indices[member.inode.uid]
+                j_index = node_indices[member.jnode.uid]
 
-                if loadcombo is not None:
-                    # Extract loads that apply to this member
-                    for load in loadcombo.loads:
-                        if hasattr(load, 'member_uid') and load.member_uid == member.uid:
-                            member_loads.append(load)
-                            print(f"Found load for member {member.uid}: {type(load).__name__}")
+                # First create basic line between deformed nodes
+                line = vtk.vtkLine()
+                line.GetPointIds().SetId(0, i_index)
+                line.GetPointIds().SetId(1, j_index)
+                deformed_cells.InsertNextCell(line)
 
-                # Use the member and loads to generate deformation curve points
-                if member_loads:
-                    # Generate points along the member for curved deformation
-                    num_points = 20
-                    member_length = member.length.magnitude
-                    x_local = np.linspace(0, member_length, num_points)
+                # For frame elements, generate a more accurate deformation curve
+                if member.type != "TRUSS" and hasattr(member, 'dglobal_span'):
+                    try:
+                        # Get deformed shape (global displacements) using the member's method
+                        dglobal = member.dglobal_span(loadcombo, displacement_scale)
+                        print(f"member {member.uid} dglobal: {dglobal}")
+                        # Create a polyline for this member's deformation curve
+                        polyline = vtk.vtkPolyLine()
+                        num_points = len(dglobal)
+                        polyline.GetPointIds().SetNumberOfIds(num_points)
 
-                    # Calculate transformation from local to global coordinates
-                    dx = member.jnode.x.magnitude - member.inode.x.magnitude
-                    dy = member.jnode.y.magnitude - member.inode.y.magnitude
-                    length = np.sqrt(dx**2 + dy**2)
-                    cos_theta = dx / length
-                    sin_theta = dy / length
+                        # Add all points of the deformation curve
+                        for i, point in enumerate(dglobal):
+                            # Convert to global coordinates with offset
+                            x_global = point[0] + member.inode.x.magnitude - x_offset
+                            y_global = point[1] + member.inode.y.magnitude
 
-                    # Create polyline for deformed shape
-                    polyline = vtk.vtkPolyLine()
-                    polyline.GetPointIds().SetNumberOfIds(num_points)
+                            # Add point to deformed shape
+                            point_id = deformed_points.InsertNextPoint(x_global, y_global, 0)
+                            polyline.GetPointIds().SetId(i, point_id)
 
-                    for i, x in enumerate(x_local):
-                        # Get displacement value from member's polynomial function
-                        # This assumes the member has a method to evaluate deformation at a point
-                        y_local = 0  # This should come from the polynomial function
-
-                        for load in member_loads:
-                            if hasattr(load, 'Dy2') and load.Dy2 is not None:
-                                try:
-                                    y_local += load.Dy2.evaluate(x) * displacement_scale
-                                except Exception as e:
-                                    print(f"Error evaluating displacement: {e}")
-
-                        # Transform to global coordinates with offset
-                        x_global = member.inode.x.magnitude - x_offset + x * cos_theta - y_local * sin_theta
-                        y_global = member.inode.y.magnitude + x * sin_theta + y_local * cos_theta
-
-                        # Add point to deformed shape
-                        point_id = deformed_points.InsertNextPoint(x_global, y_global, 0)
-                        polyline.GetPointIds().SetId(i, point_id)
-
-                    deformed_cells.InsertNextCell(polyline)
-                else:
-                    # If no loads, use straight line for this member
-                    line = vtk.vtkLine()
-                    i_index = node_indices[member.inode.uid]
-                    j_index = node_indices[member.jnode.uid]
-                    line.GetPointIds().SetId(0, i_index)
-                    line.GetPointIds().SetId(1, j_index)
-                    deformed_cells.InsertNextCell(line)
+                        deformed_cells.InsertNextCell(polyline)
+                    except Exception as e:
+                        traceback.print_exc()
+                        print(f"Error plotting deformed shape for member {member.uid}: {e}")
 
             # Create polydata for deformed shape
             deformed_polydata = vtk.vtkPolyData()
