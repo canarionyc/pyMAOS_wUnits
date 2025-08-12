@@ -3,7 +3,6 @@ import os
 import sys
 import traceback
 
-
 class ErrorFormatter(logging.Formatter):
     """Custom formatter that adds file and line info for ERROR and higher levels"""
 
@@ -14,7 +13,6 @@ class ErrorFormatter(logging.Formatter):
         else:
             self._style._fmt = '%(asctime)s - %(levelname)s - %(message)s'
         return super().format(record)
-
 
 def setup_logger(name='pyMAOS', log_file=None, level=logging.INFO):
     """Set up logger to output to both console and file with enhanced error formatting"""
@@ -44,7 +42,6 @@ def setup_logger(name='pyMAOS', log_file=None, level=logging.INFO):
         logger.addHandler(file_handler)
 
     return logger
-
 
 def log_exception(logger, exc_info=None, message="An exception occurred"):
     """Log an exception with traceback showing file and line numbers"""

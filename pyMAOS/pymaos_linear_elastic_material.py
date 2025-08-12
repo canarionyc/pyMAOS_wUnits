@@ -1,12 +1,12 @@
 from xarray.coding.times import resolve_time_unit_from_attrs_dtype
-
+import os
 import pyMAOS
 
 from typing import Union
 import pint
 from pint import Quantity
 from pyMAOS import unit_manager, info, debug, error
-
+from quantity_utils import convert_registry
 class LinearElasticMaterial():
     def __init__(self, uid: int,
              density: Union[str, Quantity],
@@ -34,8 +34,8 @@ class LinearElasticMaterial():
         import pyMAOS
 
         # Debug the unit manager state
-        info(f"Unit manager system: {pyMAOS.unit_manager.system_name}")
-        info(f"Unit manager base units: Force={pyMAOS.unit_manager.INTERNAL_FORCE_UNIT}, Length={pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT}")
+        # info(f"Unit manager system: {pyMAOS.unit_manager.system_name}")
+        # info(f"Unit manager base units: Force={pyMAOS.unit_manager.INTERNAL_FORCE_UNIT}, Length={pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT}")
 
         # Force update derived units before accessing them
         # pyMAOS.unit_manager._update_derived_units()
@@ -46,47 +46,45 @@ class LinearElasticMaterial():
         system_name = pyMAOS.unit_manager.system_name
 
 
-        info(f"Using internal unit system: {system_name}")
-        info(f"Internal pressure unit: {internal_pressure_unit}")
-        info(f"Internal pressure unit expanded: {pyMAOS.unit_manager.INTERNAL_PRESSURE_UNIT_EXPANDED}")
-        info(f"Internal density unit: {internal_density_unit}")
+        # info(f"Using internal unit system: {system_name}")
+        # info(f"Internal pressure unit: {internal_pressure_unit}")
+        # info(f"Internal pressure unit expanded: {pyMAOS.unit_manager.INTERNAL_PRESSURE_UNIT_EXPANDED}")
+        # info(f"Internal density unit: {internal_density_unit}")
 
         # Process Young's modulus
         if isinstance(E, (int, float)):
             raise TypeError("Young's modulus E must be provided as a string with units or a Quantity object")
 
-        if not isinstance(E, pint.Quantity):
-            E = unit_manager.ureg(E)
+        if isinstance(E, str):
+            E = unit_manager.ureg.Quantity(E)
 
         # Validate dimensions for Young's modulus (pressure)
-        if not E.check({'[length]': -1, '[mass]': 1, '[time]': -2}):
-            raise ValueError(f"Young's modulus E has incorrect dimensions: {E.dimensionality}. "
+        if not E.check('[pressure]'):
+            raise pint.DimensionalityError(f"Young's modulus E has incorrect dimensions: {E.dimensionality}. "
                              f"Expected dimensions: [length]^-1 [mass]^1 [time]^-2")
 
-        self.E = E.to_reduced_units()
-        self.E.ito(internal_pressure_unit)
+        self.E = E.to(internal_pressure_unit)
 
         # Process density
         if isinstance(density, (int, float)):
             raise TypeError("Density must be provided as a string with units or a Quantity object")
 
-        if not isinstance(density, pint.Quantity):
-            density = unit_manager.ureg(density)
+        if  isinstance(density, str):
+            density = unit_manager.ureg.Quantity(density)
 
 
         # Validate dimensions for density
-        if not density.check({'[length]': -3, '[mass]': 1}):
-            raise ValueError(f"Density has incorrect dimensions: {density.dimensionality}. "
+        if not density.check('[density]'):
+            raise pint.DimensionalityError(f"Density has incorrect dimensions: {density.dimensionality}. "
                              f"Expected dimensions: [length]^-3 [mass]^1")
 
-        self.density = density.to_reduced_units()
-        self.density.ito(internal_density_unit)
+        self.density = density.to(internal_density_unit)
 
         print(f"LinearElasticMaterial uid {self.uid} initialized with "
               f"density={self.density:.4g}, E={self.E:.3g}, nu={self.nu}")
 
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: dict[str, any]) -> None:
         """
         Restore the object state during unpickling.
 
@@ -95,11 +93,35 @@ class LinearElasticMaterial():
         state : dict
             Dictionary containing the object state
         """
+        # Handle E value properly based on its type
+        e_value = state.get('E', "30000 ksi")
+        if isinstance(e_value, (int, float)):
+            pyMAOS.warning(f"assuming E {e_value} is in {unit_manager.INTERNAL_PRESSURE_UNIT}")
+            e_quantity = unit_manager.ureg.Quantity(e_value, unit_manager.INTERNAL_PRESSURE_UNIT)
+        elif isinstance(e_value, pint.Quantity):
+            # If it's already a Quantity object, use it directly
+            e_quantity = convert_registry(e_value, unit_manager.ureg)
+        else:
+            # If it's a string, parse it with ureg
+            e_quantity = unit_manager.ureg(e_value)
+
+        # Handle density value properly based on its type
+        density_value = state.get('density', "0.284 lb/in**3")
+        if isinstance(density_value, (int, float)):
+            pyMAOS.warning(f"assuming density {density_value} is in {unit_manager.INTERNAL_DENSITY_UNIT}")
+            density_quantity = unit_manager.ureg.Quantity(density_value, unit_manager.INTERNAL_DENSITY_UNIT)
+        elif isinstance(density_value, pint.Quantity):
+            # If it's already a Quantity object, use it directly
+            density_quantity = convert_registry(density_value, unit_manager.ureg)
+        else:
+            # If it's a string, parse it with ureg
+            density_quantity = unit_manager.ureg(density_value)
+
         # Pass the values directly to __init__ for validation and processing
         self.__init__(
             uid=state.get('uid', 0),
-            density=state.get('density', "0 kg/m^3"),  # Let __init__ handle validation
-            E=state.get('E', "0 Pa"),                  # Let __init__ handle validation
+            density=density_quantity,
+            E=e_quantity,
             nu=state.get('nu', 0.3)
         )
 
@@ -191,7 +213,7 @@ def get_materials_from_yaml(materials_yml, logger=None):
     from pyMAOS import info
 
     info(f"Loading materials from: {materials_yml}")
-
+    assert os.path.exists(materials_yml), f"{materials_yml} not found"
     # Load YAML file with object deserialization
     with open(materials_yml, 'r') as file:
         import yaml
@@ -199,6 +221,6 @@ def get_materials_from_yaml(materials_yml, logger=None):
 
     # Convert list to dictionary keyed by UID
     materials_dict = {material.uid: material for material in materials_list}
-
+    print(materials_dict)
     info(f"Loaded {len(materials_dict)} materials")
     return materials_dict

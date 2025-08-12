@@ -2,6 +2,7 @@
 import sys
 import pint
 import numpy as np
+import functools
 
 from pyMAOS.display_utils import display_node_load_vector_in_units
 import pyMAOS.loading as loadtypes
@@ -20,6 +21,31 @@ def convert_to_quantity(value, unit_str):
     if isinstance(value, pint.Quantity):
         return value
     return Q_(value, unit_str)
+
+def check_state(func):
+    """Decorator to check element state before executing method"""
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        # Check if element is properly initialized
+        if not hasattr(self, 'length') or self.length is None:
+            raise ValueError(f"Element {self.uid} not properly initialized - missing length")
+        if not hasattr(self, 'inode') or self.inode is None or not hasattr(self, 'jnode') or self.jnode is None:
+            raise ValueError(f"Element {self.uid} not properly initialized - missing nodes")
+        return func(self, *args, **kwargs)
+    return wrapper
+
+def check_load_combo(func):
+    """Decorator to check if a load combination is valid"""
+    @functools.wraps(func)
+    def wrapper(self, load_combination, *args, **kwargs):
+        if not load_combination:
+            raise ValueError("Load combination cannot be None")
+        if not hasattr(load_combination, 'name') or not load_combination.name:
+            raise ValueError("Load combination must have a name")
+        if not hasattr(load_combination, 'factors') or not isinstance(load_combination.factors, dict):
+            raise ValueError("Load combination must have a factors dictionary")
+        return func(self, load_combination, *args, **kwargs)
+    return wrapper
 
 class R2Frame(Element):
     # Class-level flag to control plotting for all instances
@@ -392,7 +418,10 @@ class R2Frame(Element):
                 load=loadtypes.LinearLoadXY(wyyi, wyyj, a, b, self, loadcase=case); print(load)
                 load.print_detailed_analysis()
                 if self.plot_enabled:
-                    load.plot_all_functions()
+                    # load.plot_all_functions()
+                    # After creating PiecewisePolynomial2 objects
+                    ppoly_fig = load.plot_all_ppoly_functions()
+                    ppoly_fig.show()  # If you want to display immediately
                 print(load)
                 self.loads.append(load)
         else:
@@ -506,6 +535,8 @@ class R2Frame(Element):
         self._stations = False
         self._loaded = True
 
+    @check_state
+    @check_load_combo
     def FEF(self, load_combination):
         """Calculate Fixed End Forces for the element under the given load combination
         
@@ -532,10 +563,11 @@ class R2Frame(Element):
             where i = start node, j = end node, and x,y,z are local coordinates
         """
         # Initialize fixed end forces vector
-        from pyMAOS import INTERNAL_FORCE_UNIT, INTERNAL_MOMENT_UNIT
-        zero_force=pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT)
-        zero_moment=pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_MOMENT_UNIT)
-        fef = np.array([zero_force,zero_force,zero_moment,zero_force,zero_force,zero_moment], dtype=object)
+        zero_internal_force = pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT)
+        zero_internal_moment = pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_MOMENT_UNIT)
+        fef = np.array([zero_internal_force, zero_internal_force, zero_internal_moment, 
+                         zero_internal_force, zero_internal_force, zero_internal_moment], dtype=object)
+        
         # Process each load applied to the element
         print(f"Processing {len(self.loads)} loads on element {self.uid}:", file=sys.stdout)
         for load_idx, load in enumerate(self.loads):
@@ -555,18 +587,9 @@ class R2Frame(Element):
             _ = array_convert_to_unit_system(load_fef, "imperial")
 
             factored_fef = np.array([load_factor * f for f in load_fef], dtype=object)
-            # print(factored_fef)  # Shows scaled quantities with preserved units
-
-            # print(f"Element {self.uid} load idx {load_idx}: {load.kind} (case '{load_case}', factor={load_factor})", file=sys.stdout)
-            # print(f"    Raw FEF:\n{load_fef}", file=sys.stdout)
-            # print(f"    Factored:\n{factored_fef}", file=sys.stdout)
 
             # Add to total FEF
             fef = fef + factored_fef
-
-        from pyMAOS.pymaos_units import array_convert_to_unit_system
-
-
 
         # Handle hinge conditions - these modify the fixed end forces for partial releases
         if self.hinges == [1, 0]:  # Hinge at start node
@@ -575,7 +598,7 @@ class R2Frame(Element):
 
             print(f"  Applying hinge at start node - redistributing moment Mi={Mi}", file=sys.stdout)
             fef[1] = fef[1] - ((3 / (2 * L)) * Mi)
-            fef[2] = zero_moment # Zero moment at hinge
+            fef[2] = zero_internal_moment  # Zero moment at hinge
             fef[4] = fef[4] + ((3 / (2 * L)) * Mi)
             fef[5] = fef[5] - (Mi / 2)
             
@@ -587,7 +610,7 @@ class R2Frame(Element):
             fef[1] = fef[1] - ((3 / (2 * L)) * Mj)
             fef[2] = fef[2] - (Mj / 2)
             fef[4] = fef[4] + ((3 / (2 * L)) * Mj)
-            fef[5] = zero_moment  # Zero moment at hinge
+            fef[5] = zero_internal_moment  # Zero moment at hinge
             
         elif self.hinges == [1, 1]:  # Hinges at both nodes
             Mi = fef[2]
@@ -596,29 +619,30 @@ class R2Frame(Element):
 
             print(f"  Applying hinges at both nodes - redistributing moments Mi={Mi}, Mj={Mj}", file=sys.stdout)
             fef[1] = fef[1] - ((Mj + Mi) / L)
-            fef[2] = zero_moment  # Zero moment at hinge
+            fef[2] = zero_internal_moment  # Zero moment at hinge
             fef[4] = fef[4] + ((Mj + Mi) / L)
-            fef[5] = zero_moment  # Zero moment at hinge
+            fef[5] = zero_internal_moment  # Zero moment at hinge
 
         print(f"  Final FEF for element {self.uid}:\n{fef}", file=sys.stdout)
-        # display_node_load_vector_in_units(fef[0:3], self.inode.uid,
-        #                                   force_unit=self.structure.units['force'],
-        #                                   length_unit=self.structure.units['distance'],
-        #                                   load_combo_name=None)
-        # display_node_load_vector_in_units(fef[3:6], self.jnode.uid,
-        #                                   force_unit=self.structure.units['force'],
-        #                                   length_unit=self.structure.units['distance'],
-        #                                   load_combo_name=None)
         return fef
 
+    @check_state
+    @check_load_combo
     def FEFglobal(self, load_combination):
-        """
-        Transform fixed end forces from local to global coordinates.
+        """Transform fixed end forces from local to global coordinates.
+        
+        Parameters
+        ----------
+        load_combination : LoadCombo
+            The load combination for which to transform forces
+            
+        Returns
+        -------
+        numpy.ndarray
+            6-element vector of fixed end forces in global coordinates
         """
         # Get fixed end forces in local coordinates
         local_fef = self.FEF(load_combination)
-        # fef = np.transpose(fef)
-        # print(f"DEBUG: FEF in local coordinates: {fef}")
 
         # Get transformation matrix
         rotation_matrix = self.set_rotation_matrix()
@@ -633,21 +657,21 @@ class R2Frame(Element):
 
             # Perform the transformation with magnitudes only
             import scipy.linalg as sla
-            elem_global_fef_magnitudes = sla.blas.dgemv(1.0, rotation_matrix.T, fef_magnitudes); print(elem_global_fef_magnitudes)
-            # print(f"DEBUG: Using scipy.linalg.blas: {result_magnitudes.shape}")
-            # print(f"DEBUG: Result magnitudes: {result_magnitudes}")
+            elem_global_fef_magnitudes = sla.blas.dgemv(1.0, rotation_matrix.T, fef_magnitudes)
+            
             # Reattach original units
             elem_global_fef = np.array([unit_manager.ureg.Quantity(mag, unit)
                               for mag, unit in zip(elem_global_fef_magnitudes, fef_units)],
                              dtype=object)
-            from pymaos_units import array_convert_to_unit_system
-            print(f"FEFglobal for element {self.uid}:"); _ = array_convert_to_unit_system(elem_global_fef, "imperial")
+            from pyMAOS.pymaos_units import array_convert_to_unit_system
+            print(f"FEFglobal for element {self.uid}:")
+            _ = array_convert_to_unit_system(elem_global_fef, "imperial")
 
         else:
             # If no units, proceed with standard matrix multiplication
-            elem_global_fef=np.matmul(np.transpose(rotation_matrix), local_fef)
+            elem_global_fef = np.matmul(np.transpose(rotation_matrix), local_fef)
 
-        self.fixed_end_forces_global[load_combination.name]=elem_global_fef
+        self.fixed_end_forces_global[load_combination.name] = elem_global_fef
         return elem_global_fef
 
     def k(self, **kwargs):
@@ -873,6 +897,219 @@ class R2Frame(Element):
 
         return self.end_forces_global[load_combination.name]
 
+    def generate_internal_forces(self, load_combination):
+        """Generate all internal force functions for the element
+        
+        This unified function replaces separate generate_*_function methods
+        by calculating all internal force functions at once:
+        - Wx, Wy: Loading functions (axial and transverse)
+        - A: Axial force function
+        - Vy: Shear force function
+        - Mz: Bending moment function
+        - Sz: Slope function
+        - Dx, Dy: Displacement functions
+        
+        Parameters
+        ----------
+        load_combination : LoadCombo
+            The load combination for which to generate internal force functions
+            
+        Returns
+        -------
+        dict
+            Dictionary containing all generated functions
+        """
+        # Get zero quantities with appropriate units for empty forces vector
+        zero_internal_force = unit_manager.ureg.Quantity(0, unit_manager.INTERNAL_FORCE_UNIT)
+        zero_internal_moment = unit_manager.ureg.Quantity(0, unit_manager.INTERNAL_MOMENT_UNIT)
+        empty_f = np.array([zero_internal_force, zero_internal_force, zero_internal_moment, 
+                           zero_internal_force, zero_internal_force, zero_internal_moment], 
+                          dtype=object)
+
+        # Initialize all piecewise polynomial functions
+        wx = loadtypes.PiecewisePolynomial()
+        wy = loadtypes.PiecewisePolynomial()
+        ax = loadtypes.PiecewisePolynomial()
+        vy = loadtypes.PiecewisePolynomial()
+        mzx = loadtypes.PiecewisePolynomial()
+        szx = loadtypes.PiecewisePolynomial()
+        dx = loadtypes.PiecewisePolynomial()
+        dy = loadtypes.PiecewisePolynomial()
+        
+        # Get end forces if available, otherwise use zero forces
+        fend_local = self.end_forces_local.get(load_combination.name, empty_f)
+        
+        # Create "loads" from the end forces
+        zero_length = unit_manager.ureg.Quantity(0, unit_manager.INTERNAL_LENGTH_UNIT)
+        fxi = loadtypes.R2_Axial_Load(fend_local[0], zero_length, self)
+        fyi = loadtypes.R2_Point_Load(fend_local[1], zero_length, self)
+        mzi = loadtypes.R2_Point_Moment(fend_local[2], zero_length, self)
+        fxj = loadtypes.R2_Axial_Load(fend_local[3], self.length, self)
+        fyj = loadtypes.R2_Point_Load(fend_local[4], self.length, self)
+        mzj = loadtypes.R2_Point_Moment(fend_local[5], self.length, self)
+        
+        # Combine end force contributions for each function
+        # Axial force
+        ax = ax.combine(fxi.Ax, 1, 1)
+        ax = ax.combine(fyi.Ax, 1, 1)
+        ax = ax.combine(mzi.Ax, 1, 1)
+        ax = ax.combine(fxj.Ax, 1, 1)
+        ax = ax.combine(fyj.Ax, 1, 1)
+        ax = ax.combine(mzj.Ax, 1, 1)
+        
+        # Shear force
+        vy = vy.combine(fxi.Vy, 1, 1)
+        vy = vy.combine(fyi.Vy, 1, 1)
+        vy = vy.combine(mzi.Vy, 1, 1)
+        vy = vy.combine(fxj.Vy, 1, 1)
+        vy = vy.combine(fyj.Vy, 1, 1)
+        vy = vy.combine(mzj.Vy, 1, 1)
+        
+        # Moment
+        mzx = mzx.combine(fxi.Mz, 1, 1)
+        mzx = mzx.combine(fyi.Mz, 1, 1)
+        mzx = mzx.combine(mzi.Mz, 1, 1)
+        mzx = mzx.combine(fxj.Mz, 1, 1)
+        mzx = mzx.combine(fyj.Mz, 1, 1)
+        mzx = mzx.combine(mzj.Mz, 1, 1)
+        
+        # Slope
+        szx = szx.combine(fxi.Sz, 1, 1)
+        szx = szx.combine(fyi.Sz, 1, 1)
+        szx = szx.combine(mzi.Sz, 1, 1)
+        szx = szx.combine(fxj.Sz, 1, 1)
+        szx = szx.combine(fyj.Sz, 1, 1)
+        szx = szx.combine(mzj.Sz, 1, 1)
+        
+        # Displacement
+        dx = dx.combine(fxi.Dx, 1, 1)
+        dx = dx.combine(fxj.Dx, 1, 1)
+        
+        dy = dy.combine(fyi.Dy, 1, 1)
+        dy = dy.combine(mzi.Dy, 1, 1)
+        dy = dy.combine(fyj.Dy, 1, 1)
+        dy = dy.combine(mzj.Dy, 1, 1)
+        
+        # Add contributions from applied loads
+        if self._loaded:
+            for load in self.loads:
+                load_factor = load_combination.factors.get(load.loadcase, 0)
+                if load_factor != 0:
+                    # Add weighted load contributions to each function
+                    wx = wx.combine(load.Wx, 1, load_factor)
+                    wy = wy.combine(load.Wy, 1, load_factor)
+                    ax = ax.combine(load.Ax, 1, load_factor)
+                    vy = vy.combine(load.Vy, 1, load_factor)
+                    mzx = mzx.combine(load.Mz, 1, load_factor)
+                    szx = szx.combine(load.Sz, 1, load_factor)
+                    dx = dx.combine(load.Dx, 1, load_factor)
+                    dy = dy.combine(load.Dy, 1, load_factor)
+                    
+        # Store all functions in their respective dictionaries
+        self.Wx[load_combination.name] = wx
+        self.Wy[load_combination.name] = wy
+        self.A[load_combination.name] = ax
+        self.Vy[load_combination.name] = vy
+        self.Mz[load_combination.name] = mzx
+        self.Sz[load_combination.name] = szx
+        self.Dx[load_combination.name] = dx
+        self.Dy[load_combination.name] = dy
+        
+        # Mark stations as needed for recomputation
+        self._stations = False
+        
+        return {
+            "Wx": wx, "Wy": wy, "A": ax, "Vy": vy, 
+            "Mz": mzx, "Sz": szx, "Dx": dx, "Dy": dy
+        }
+    
+    # For backward compatibility, define the individual generate functions
+    # that use the unified function internally
+    
+    @check_state
+    @check_load_combo
+    def generate_Loading_function(self, load_combination):
+        """Generate piecewise polynomial functions representing distributed loads
+        
+        Parameters
+        ----------
+        load_combination : LoadCombo
+            The load combination for which to generate loading functions
+        """
+        result = self.generate_internal_forces(load_combination)
+        return result["Wx"], result["Wy"]
+
+    @check_state
+    @check_load_combo
+    def generate_Axial_function(self, load_combination):
+        """Generate axial force function
+        
+        Parameters
+        ----------
+        load_combination : LoadCombo
+            The load combination for which to generate axial forces
+        """
+        if load_combination.name not in self.A:
+            self.generate_internal_forces(load_combination)
+        return self.A[load_combination.name]
+
+    @check_state
+    @check_load_combo
+    def generate_Vy_function(self, load_combination):
+        """Generate shear force function
+        
+        Parameters
+        ----------
+        load_combination : LoadCombo
+            The load combination for which to generate shear forces
+        """
+        if load_combination.name not in self.Vy:
+            self.generate_internal_forces(load_combination)
+        return self.Vy[load_combination.name]
+
+    @check_state
+    @check_load_combo
+    def generate_Mz_function(self, load_combination):
+        """Generate moment function
+        
+        Parameters
+        ----------
+        load_combination : LoadCombo
+            The load combination for which to generate moments
+        """
+        if load_combination.name not in self.Mz:
+            self.generate_internal_forces(load_combination)
+        return self.Mz[load_combination.name]
+
+    @check_state
+    @check_load_combo
+    def generate_Sz_function(self, load_combination):
+        """Generate slope function
+        
+        Parameters
+        ----------
+        load_combination : LoadCombo
+            The load combination for which to generate slopes
+        """
+        if load_combination.name not in self.Sz:
+            self.generate_internal_forces(load_combination)
+        return self.Sz[load_combination.name]
+
+    @check_state
+    @check_load_combo
+    def generate_DxDy_function(self, load_combination):
+        """Generate displacement functions
+        
+        Parameters
+        ----------
+        load_combination : LoadCombo
+            The load combination for which to generate displacements
+        """
+        if load_combination.name not in self.Dx or load_combination.name not in self.Dy:
+            self.generate_internal_forces(load_combination)
+        return self.Dx[load_combination.name], self.Dy[load_combination.name]
+
+    @check_state
     def stations(self, num_stations=10):
         """
         Define evenly distributed points along the member to compute internal
@@ -935,225 +1172,8 @@ class R2Frame(Element):
 
         self._stations = True
 
-    def generate_Loading_function(self, load_combination):
-        """Generate piecewise polynomial functions representing distributed loads
-    
-        Creates and stores piecewise polynomial functions for loads in both the x and y
-        directions by combining the load contributions from all applied loads that are
-        active in the specified load combination.
-    
-        Parameters
-        ----------
-        load_combination : LoadCombo
-            The load combination for which to generate the loading functions
-        
-        Notes
-        -----
-        The resulting functions are stored in the instance dictionaries `self.Wx` 
-        and `self.Wy` using the load combination name as the key. These functions 
-        represent the applied load distribution before integration into shear, 
-        moment, and deflection functions.
-    
-        Each load's contribution is scaled by its corresponding factor from the
-        load combination. Inactive loads (with factor=0) are skipped.
-    
-        These functions are primarily used for:
-        1. Visualization of applied loads
-        2. Input for generating internal force functions
-        3. Integration to produce shear, moment and deflection functions
-        """
-        wy = loadtypes.PiecewisePolynomial()
-        wx = loadtypes.PiecewisePolynomial()
-
-        # Combine Piecewise Deflection Functions of all of the loads
-        if self._loaded:
-            for load in self.loads:
-                load_factor = load_combination.factors.get(load.loadcase, 0)
-
-                if load_factor != 0:
-                    wx = wx.combine(load.Wx, 1, load_factor)
-                    wy = wy.combine(load.Wy, 1, load_factor)
-
-        self.Wx[load_combination.name] = wx
-        self.Wy[load_combination.name] = wy
-
-    def generate_Axial_function(self, load_combination):
-        empty_f = np.zeros((6, 1))
-
-        Fendlocal = self.end_forces_local.get(load_combination.name, empty_f)
-
-        # Empty Piecewise functions to build the total function from the loading
-        ax = loadtypes.PiecewisePolynomial()
-
-        # Create "loads" from the end forces and combine with dx and dy
-        fxi = loadtypes.R2_Axial_Load(Fendlocal[0, 0], 0, self)
-        fyi = loadtypes.R2_Point_Load(Fendlocal[1, 0], 0, self)
-        mzi = loadtypes.R2_Point_Moment(Fendlocal[2, 0], 0, self)
-        fxj = loadtypes.R2_Axial_Load(Fendlocal[3, 0], self.length, self)
-        fyj = loadtypes.R2_Point_Load(Fendlocal[4, 0], self.length, self)
-        mzj = loadtypes.R2_Point_Moment(Fendlocal[5, 0], self.length, self)
-
-        ax = ax.combine(fxi.Ax, 1, 1)
-        ax = ax.combine(fyi.Ax, 1, 1)
-        ax = ax.combine(mzi.Ax, 1, 1)
-        ax = ax.combine(fxj.Ax, 1, 1)
-        ax = ax.combine(fyj.Ax, 1, 1)
-        ax = ax.combine(mzj.Ax, 1, 1)
-
-        # Combine Piecewise Deflection Functions of all of the loads
-        if self._loaded:
-            for load in self.loads:
-                load_factor = load_combination.factors.get(load.loadcase, 0)
-
-                if load_factor != 0:
-                    ax = ax.combine(load.Ax, 1, load_factor)
-
-        self.A[load_combination.name] = ax
-
-    def generate_Vy_function(self, load_combination):
-        empty_f = np.zeros((6, 1))
-
-        Fendlocal = self.end_forces_local.get(load_combination.name, empty_f)
-
-        # Empty Piecewise functions to build the total function from the loading
-        vy = loadtypes.PiecewisePolynomial()
-
-        # Create "loads" from the end forces and combine with dx and dy
-        fxi = loadtypes.R2_Axial_Load(Fendlocal[0, 0], 0, self)
-        fyi = loadtypes.R2_Point_Load(Fendlocal[1, 0], 0, self)
-        mzi = loadtypes.R2_Point_Moment(Fendlocal[2, 0], 0, self)
-        fxj = loadtypes.R2_Axial_Load(Fendlocal[3, 0], self.length, self)
-        fyj = loadtypes.R2_Point_Load(Fendlocal[4, 0], self.length, self)
-        mzj = loadtypes.R2_Point_Moment(Fendlocal[5, 0], self.length, self)
-
-        vy = vy.combine(fxi.Vy, 1, 1)
-        vy = vy.combine(fyi.Vy, 1, 1)
-        vy = vy.combine(mzi.Vy, 1, 1)
-        vy = vy.combine(fxj.Vy, 1, 1)
-        vy = vy.combine(fyj.Vy, 1, 1)
-        vy = vy.combine(mzj.Vy, 1, 1)
-
-        # Combine Piecewise Deflection Functions of all of the loads
-        if self._loaded:
-            for load in self.loads:
-                load_factor = load_combination.factors.get(load.loadcase, 0)
-                if load_factor != 0:
-                    vy = vy.combine(load.Vy, 1, load_factor)
-
-        self.Vy[load_combination.name] = vy
-
-    def generate_Mz_function(self, load_combination):
-        empty_f = np.zeros((6, 1))
-
-        Fendlocal = self.end_forces_local.get(load_combination.name, empty_f)
-
-        # Empty Piecewise functions to build the total function from the loading
-        Mzx = loadtypes.PiecewisePolynomial()
-
-        # Create "loads" from the end forces and combine with dx and dy
-        fxi = loadtypes.R2_Axial_Load(Fendlocal[0, 0], 0, self)
-        fyi = loadtypes.R2_Point_Load(Fendlocal[1, 0], 0, self)
-        mzi = loadtypes.R2_Point_Moment(Fendlocal[2, 0], 0, self)
-        fxj = loadtypes.R2_Axial_Load(Fendlocal[3, 0], self.length, self)
-        fyj = loadtypes.R2_Point_Load(Fendlocal[4, 0], self.length, self)
-        mzj = loadtypes.R2_Point_Moment(Fendlocal[5, 0], self.length, self)
-
-        Mzx = Mzx.combine(fxi.Mz, 1, 1)
-        Mzx = Mzx.combine(fyi.Mz, 1, 1)
-        Mzx = Mzx.combine(mzi.Mz, 1, 1)
-        Mzx = Mzx.combine(fxj.Mz, 1, 1)
-        Mzx = Mzx.combine(fyj.Mz, 1, 1)
-        Mzx = Mzx.combine(mzj.Mz, 1, 1)
-
-        # Combine Piecewise Deflection Functions of all of the loads
-        if self._loaded:
-            for load in self.loads:
-                load_factor = load_combination.factors.get(load.loadcase, 0)
-                if load_factor != 0:
-                    Mzx = Mzx.combine(load.Mz, 1, load_factor)
-
-        self.Mz[load_combination.name] = Mzx
-
-    def generate_Sz_function(self, load_combination):
-        empty_f = np.zeros((6, 1))
-
-        Fendlocal = self.end_forces_local.get(load_combination.name, empty_f)
-
-        # Empty Piecwise functions to build the total function from the loading
-        Szx = loadtypes.PiecewisePolynomial()
-
-        # Create "loads" from the end forces and combine with dx and dy
-        fxi = loadtypes.R2_Axial_Load(Fendlocal[0, 0], 0, self)
-        fyi = loadtypes.R2_Point_Load(Fendlocal[1, 0], 0, self)
-        mzi = loadtypes.R2_Point_Moment(Fendlocal[2, 0], 0, self)
-        fxj = loadtypes.R2_Axial_Load(Fendlocal[3, 0], self.length, self)
-        fyj = loadtypes.R2_Point_Load(Fendlocal[4, 0], self.length, self)
-        mzj = loadtypes.R2_Point_Moment(Fendlocal[5, 0], self.length, self)
-
-        Szx = Szx.combine(fxi.Sz, 1, 1)
-        Szx = Szx.combine(fyi.Sz, 1, 1)
-        Szx = Szx.combine(mzi.Sz, 1, 1)
-        Szx = Szx.combine(fxj.Sz, 1, 1)
-        Szx = Szx.combine(fyj.Sz, 1, 1)
-        Szx = Szx.combine(mzj.Sz, 1, 1)
-
-        # Combine Piecewise Deflection Functions of all of the loads
-        if self._loaded:
-            for load in self.loads:
-                load_factor = load_combination.factors.get(load.loadcase, 0)
-                if load_factor != 0:
-                    Szx = Szx.combine(load.Sz, 1, load_factor)
-
-        self.Sz[load_combination.name] = Szx
-
-    def generate_DxDy_function(self, load_combination):
-        """
-        Generate the piecewise displacement functions for the local x and y 
-        axis. !!Note the nodal displacements are not included in these functions.
-
-        :param load_combination: load combination element
-        :type load_combination: _type_
-        """
-
-        if not self._stations:
-            self.stations()
-
-        empty_f = np.zeros((6, 1))
-
-        Fendlocal = self.end_forces_local.get(load_combination.name, empty_f)
-        print(Fendlocal)
-        # Empty Piecwise functions to build the total function from the loading
-        dx = loadtypes.PiecewisePolynomial()
-        dy = loadtypes.PiecewisePolynomial()
-
-        # Create "loads" from the end forces and combine with dx and dy
-        zero_length=unit_manager.ureg.Quantity(0, unit_manager.INTERNAL_LENGTH_UNIT)
-        fxi = loadtypes.R2_Axial_Load(Fendlocal[0, 0], zero_length, self)
-        fyi = loadtypes.R2_Point_Load(Fendlocal[1, 0], zero_length, self)
-        mzi = loadtypes.R2_Point_Moment(Fendlocal[2, 0], zero_length, self)
-        fxj = loadtypes.R2_Axial_Load(Fendlocal[3, 0], self.length, self)
-        fyj = loadtypes.R2_Point_Load(Fendlocal[4, 0], self.length, self)
-        mzj = loadtypes.R2_Point_Moment(Fendlocal[5, 0], self.length, self)
-
-        dx = dx.combine(fxi.Dx, 1, 1)
-        dy = dy.combine(fyi.Dy, 1, 1)
-        dy = dy.combine(mzi.Dy, 1, 1)
-        dx = dx.combine(fxj.Dx, 1, 1)
-        dy = dy.combine(fyj.Dy, 1, 1)
-        dy = dy.combine(mzj.Dy, 1, 1)
-
-        # Combine Piecewise Deflection Functions of all of the loads
-        if self._loaded:
-            for load in self.loads:
-                load_factor = load_combination.factors.get(load.loadcase, 0)
-
-                if load_factor != 0:
-                    dx = dx.combine(load.Dx, 1, load_factor)
-                    dy = dy.combine(load.Dy, 1, load_factor)
-
-        self.Dx[load_combination.name] = dx
-        self.Dy[load_combination.name] = dy
-
+    @check_state
+    @check_load_combo
     def Wxlocal_plot(self, load_combination, scale=1, ptloadscale=1):
         if not self._stations:
             self.stations()
@@ -1182,6 +1202,8 @@ class R2Frame(Element):
 
         return wxlocal_span
 
+    @check_state
+    @check_load_combo
     def Wxglobal_plot(self, load_combination, scale=1, ptloadscale=1):
         wxlocal_plot = self.Wxlocal_plot(
             load_combination, scale=scale, ptloadscale=ptloadscale
@@ -1196,6 +1218,8 @@ class R2Frame(Element):
 
         return wxglobal_plot
 
+    @check_state
+    @check_load_combo
     def Wylocal_plot(self, load_combination, scale=1, ptloadscale=1):
         if not self._stations:
             self.stations()
@@ -1224,6 +1248,8 @@ class R2Frame(Element):
 
         return wylocal_span
 
+    @check_state
+    @check_load_combo
     def Wyglobal_plot(self, load_combination, scale=1, ptloadscale=1):
         wylocal_plot = self.Wylocal_plot(
             load_combination, scale=scale, ptloadscale=ptloadscale
@@ -1238,6 +1264,8 @@ class R2Frame(Element):
 
         return wyglobal_plot
 
+    @check_state
+    @check_load_combo
     def Alocal_plot(self, load_combination, scale=1):
         if not self._stations:
             self.stations()
@@ -1258,6 +1286,8 @@ class R2Frame(Element):
 
         return axlocal_span
 
+    @check_state
+    @check_load_combo
     def Aglobal_plot(self, load_combination, scale):
         axlocal_plot = self.Alocal_plot(load_combination, scale=scale)
 
@@ -1270,6 +1300,8 @@ class R2Frame(Element):
 
         return axglobal_plot
 
+    @check_state
+    @check_load_combo
     def Vlocal_plot(self, load_combination, scale=1):
         if not self._stations:
             self.stations()
@@ -1290,6 +1322,8 @@ class R2Frame(Element):
 
         return vlocal_span
 
+    @check_state
+    @check_load_combo
     def Vglobal_plot(self, load_combination, scale):
         vlocal_plot = self.Vlocal_plot(load_combination, scale=scale)
 
@@ -1302,6 +1336,8 @@ class R2Frame(Element):
 
         return vglobal_plot
 
+    @check_state
+    @check_load_combo
     def Mlocal_plot(self, load_combination, scale=1):
         if not self._stations:
             self.stations()
@@ -1333,6 +1369,8 @@ class R2Frame(Element):
 
         return mlocal_span
 
+    @check_state
+    @check_load_combo
     def Mglobal_plot(self, load_combination, scale):
         mlocal_plot = self.Mlocal_plot(load_combination, scale=scale)
 
@@ -1345,6 +1383,8 @@ class R2Frame(Element):
 
         return mglobal_plot
 
+    @check_state
+    @check_load_combo
     def Slocal_plot(self, load_combination, scale=1):
         if not self._stations:
             self.stations()
@@ -1369,6 +1409,8 @@ class R2Frame(Element):
 
         return slocal_span
 
+    @check_state
+    @check_load_combo
     def Sglobal_plot(self, load_combination, scale):
         slocal_plot = self.Slocal_plot(load_combination, scale=scale)
 
@@ -1381,6 +1423,8 @@ class R2Frame(Element):
 
         return sglobal_plot
 
+    @check_state
+    @check_load_combo
     def dlocal_span(self, load_combination, scale=1):
         """
         Calculate displacement function in local coordinates along the member
@@ -1440,6 +1484,8 @@ class R2Frame(Element):
 
         return dlocal_span
 
+    @check_state
+    @check_load_combo
     def dglobal_span(self, load_combination, scale=1):
         """
         Calculate displacement function in global coordinates along the member
@@ -1484,6 +1530,8 @@ class R2Frame(Element):
 
         return dglobal_plot
     
+    @check_state
+    @check_load_combo
     def Mzextremes(self, load_combination):
         """Find maximum and minimum bending moment values along the element
     
@@ -1567,6 +1615,8 @@ class R2Frame(Element):
         """Check if element has any distributed loads applied"""
         return any(load.kind == "LINE" or load.kind == "AXIAL_LINE" for load in self.loads) if self.loads else False
 
+@check_state
+@check_load_combo
 def print_member_loads_to_file(member, load_combo, filename):
     """
     Print all piecewise loading functions for a member under a specific load combination to a file.

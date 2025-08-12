@@ -498,3 +498,138 @@ def convert_all_quantities(obj, target_registry=None, processed_objects=None):
     # Return other objects unchanged
     processed_objects[obj_id] = obj
     return obj
+
+def convert_to_quantity_array(quantity_list, target_units=None):
+    """
+    Convert a list/array of individual quantities to a single quantity-wrapped numpy array,
+    after verifying all elements have compatible units.
+
+    Parameters
+    ----------
+    quantity_list : list or array
+        List of quantities to convert
+    target_units : str or pint.Unit, optional
+        Target units for conversion. If None, uses the units of the first element.
+
+    Returns
+    -------
+    pint.Quantity
+        A single quantity object wrapping a numpy array, if all units are compatible.
+        Otherwise returns the original list.
+
+    Examples
+    --------
+    >>> from pint import UnitRegistry
+    >>> ureg = UnitRegistry()
+    >>> q_list = [ureg.Quantity(1.0, 'meter'), ureg.Quantity(2.0, 'meter')]
+    >>> q_array = convert_to_quantity_array(q_list)
+    >>> print(q_array)
+    [1. 2.] meter
+    """
+    import numpy as np
+
+    # Handle empty lists
+    if not quantity_list:
+        return quantity_list
+
+    # Check if the input is already a wrapped quantity array
+    if hasattr(quantity_list, 'magnitude') and isinstance(quantity_list.magnitude, np.ndarray):
+        return quantity_list
+
+    # Get the first element with units
+    first_element = None
+    for item in quantity_list:
+        if hasattr(item, 'units'):
+            first_element = item
+            break
+
+    # If no elements have units, return original
+    if first_element is None:
+        return quantity_list
+
+    # Get the target units
+    if target_units is None:
+        target_units = first_element.units
+
+    # Check if all elements have compatible units
+    try:
+        # Get the registry from the first element
+        ureg = first_element._REGISTRY
+
+        # Extract magnitudes and convert to target units if needed
+        magnitudes = []
+        for item in quantity_list:
+            if hasattr(item, 'units'):
+                if item.dimensionality == first_element.dimensionality:
+                    # Convert to target units if needed
+                    magnitudes.append(item.to(target_units).magnitude)
+                else:
+                    print(f"Warning: Incompatible units in array: {item.units} vs {first_element.units}")
+                    return quantity_list  # Return original if units are incompatible
+            else:
+                print(f"Warning: Non-quantity element found in array: {item}")
+                return quantity_list
+
+        # Create a quantity-wrapped array
+        return ureg.Quantity(np.array(magnitudes), target_units)
+
+    except Exception as e:
+        print(f"Error converting to quantity array: {e}")
+        return quantity_list  # Return original on error
+
+def uniquify_quantities(quantities):
+    seen = set()
+    unique_quantities = []
+
+    for q in quantities:
+        # Create a hashable key from the magnitude and units
+        key = (float(q.magnitude), str(q.units))
+        if key not in seen:
+            seen.add(key)
+            unique_quantities.append(q)
+
+    return unique_quantities
+
+# Usage example
+# unique_list = uniquify_quantities([zero_length, self.a, self.b, self.L])
+
+def uniquify_same_unit_quantities(quantities):
+    """
+    Uniquify a list of quantities that are known to have the same units.
+
+    Parameters
+    ----------
+    quantities : list
+        List of Quantity objects with the same units
+
+    Returns
+    -------
+    list
+        List of unique Quantity objects
+    """
+    # Extract the common unit from the first element
+    units = quantities[0].units
+
+    # Use a set for unique magnitude values
+    unique_magnitudes = set()
+    unique_quantities = []
+
+    for q in quantities:
+        # Convert to float for consistent comparison
+        mag = float(q.magnitude)
+
+        if mag not in unique_magnitudes:
+            unique_magnitudes.add(mag)
+            # Keep the original quantity object
+            unique_quantities.append(q)
+
+    return unique_quantities
+
+# Example usage
+unique_list = uniquify_same_unit_quantities([
+    Q_(0, 'foot'),
+    Q_(0.0, 'foot'),
+    Q_(30.0, 'foot'),
+    Q_(30.0, 'foot')
+])
+# Result: [<Quantity(0, 'foot')>, <Quantity(30.0, 'foot')>]

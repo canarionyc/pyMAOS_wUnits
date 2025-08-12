@@ -1,0 +1,1105 @@
+# 3D Pratt bridge with parallel trusses and transverse members
+# Both spans have diagonals sloping toward the center
+
+design_parameters:
+  min_safety_factor: 1.2
+  deck_load: 0.5 kip/ft
+
+units:
+  force: kip
+  length: ft
+  pressure: ksi
+
+nodes:
+  # LEFT TRUSS (front truss, z=0)
+  # Bottom chord nodes (left span, front)
+  - id: 1
+    x: 0 ft
+    y: 0 ft
+    z: 0 ft
+  - id: 2
+    x: 20 ft
+    y: 0 ft
+    z: 0 ft
+  - id: 3
+    x: 40 ft
+    y: 0 ft
+    z: 0 ft
+  - id: 4
+    x: 60 ft
+    y: 0 ft
+    z: 0 ft
+  - id: 5
+    x: 80 ft
+    y: 0 ft
+    z: 0 ft
+  - id: 6
+    x: 100 ft
+    y: 0 ft
+    z: 0 ft
+  # Top chord nodes (left span, front)
+  - id: 7
+    x: 0 ft
+    y: 20 ft
+    z: 0 ft
+  - id: 8
+    x: 20 ft
+    y: 20 ft
+    z: 0 ft
+  - id: 9
+    x: 40 ft
+    y: 20 ft
+    z: 0 ft
+  - id: 10
+    x: 60 ft
+    y: 20 ft
+    z: 0 ft
+  - id: 11
+    x: 80 ft
+    y: 20 ft
+    z: 0 ft
+  - id: 12
+    x: 100 ft
+    y: 20 ft
+    z: 0 ft
+  # Intermediate bottom chord node (front)
+  - id: 13
+    x: 120 ft
+    y: 0 ft
+    z: 0 ft
+  # Bottom chord nodes (right span, front)
+  - id: 14
+    x: 140 ft
+    y: 0 ft
+    z: 0 ft
+  - id: 15
+    x: 160 ft
+    y: 0 ft
+    z: 0 ft
+  - id: 16
+    x: 180 ft
+    y: 0 ft
+    z: 0 ft
+  - id: 17
+    x: 200 ft
+    y: 0 ft
+    z: 0 ft
+  # Top chord nodes (right span, front)
+  - id: 18
+    x: 120 ft
+    y: 20 ft
+    z: 0 ft
+  - id: 19
+    x: 140 ft
+    y: 20 ft
+    z: 0 ft
+  - id: 20
+    x: 160 ft
+    y: 20 ft
+    z: 0 ft
+  - id: 21
+    x: 180 ft
+    y: 20 ft
+    z: 0 ft
+  - id: 22
+    x: 200 ft
+    y: 20 ft
+    z: 0 ft
+
+  # RIGHT TRUSS (back truss, z=20)
+  # Bottom chord nodes (left span, back)
+  - id: 101
+    x: 0 ft
+    y: 0 ft
+    z: 20 ft
+  - id: 102
+    x: 20 ft
+    y: 0 ft
+    z: 20 ft
+  - id: 103
+    x: 40 ft
+    y: 0 ft
+    z: 20 ft
+  - id: 104
+    x: 60 ft
+    y: 0 ft
+    z: 20 ft
+  - id: 105
+    x: 80 ft
+    y: 0 ft
+    z: 20 ft
+  - id: 106
+    x: 100 ft
+    y: 0 ft
+    z: 20 ft
+  # Top chord nodes (left span, back)
+  - id: 107
+    x: 0 ft
+    y: 20 ft
+    z: 20 ft
+  - id: 108
+    x: 20 ft
+    y: 20 ft
+    z: 20 ft
+  - id: 109
+    x: 40 ft
+    y: 20 ft
+    z: 20 ft
+  - id: 110
+    x: 60 ft
+    y: 20 ft
+    z: 20 ft
+  - id: 111
+    x: 80 ft
+    y: 20 ft
+    z: 20 ft
+  - id: 112
+    x: 100 ft
+    y: 20 ft
+    z: 20 ft
+  # Intermediate bottom chord node (back)
+  - id: 113
+    x: 120 ft
+    y: 0 ft
+    z: 20 ft
+  # Bottom chord nodes (right span, back)
+  - id: 114
+    x: 140 ft
+    y: 0 ft
+    z: 20 ft
+  - id: 115
+    x: 160 ft
+    y: 0 ft
+    z: 20 ft
+  - id: 116
+    x: 180 ft
+    y: 0 ft
+    z: 20 ft
+  - id: 117
+    x: 200 ft
+    y: 0 ft
+    z: 20 ft
+  # Top chord nodes (right span, back)
+  - id: 118
+    x: 120 ft
+    y: 20 ft
+    z: 20 ft
+  - id: 119
+    x: 140 ft
+    y: 20 ft
+    z: 20 ft
+  - id: 120
+    x: 160 ft
+    y: 20 ft
+    z: 20 ft
+  - id: 121
+    x: 180 ft
+    y: 20 ft
+    z: 20 ft
+  - id: 122
+    x: 200 ft
+    y: 20 ft
+    z: 20 ft
+
+supports:
+  # Front truss supports
+  - node: 1
+    ux: 1
+    uy: 1
+    uz: 1
+    rx: 0
+    ry: 0
+    rz: 0
+  - node: 6
+    ux: 1
+    uy: 1
+    uz: 1
+    rx: 0
+    ry: 0
+    rz: 0
+  - node: 17
+    ux: 0
+    uy: 1
+    uz: 1
+    rx: 0
+    ry: 0
+    rz: 0
+  # Back truss supports
+  - node: 101
+    ux: 1
+    uy: 1
+    uz: 1
+    rx: 0
+    ry: 0
+    rz: 0
+  - node: 106
+    ux: 1
+    uy: 1
+    uz: 1
+    rx: 0
+    ry: 0
+    rz: 0
+  - node: 117
+    ux: 0
+    uy: 1
+    uz: 1
+    rx: 0
+    ry: 0
+    rz: 0
+
+members:
+  # FRONT TRUSS (original)
+  # Bottom chord members (left span)
+  - id: 1
+    i_node: 1
+    j_node: 2
+    material: 1
+    section: 1
+  - id: 2
+    i_node: 2
+    j_node: 3
+    material: 1
+    section: 1
+  - id: 3
+    i_node: 3
+    j_node: 4
+    material: 1
+    section: 1
+  - id: 4
+    i_node: 4
+    j_node: 5
+    material: 1
+    section: 1
+  - id: 5
+    i_node: 5
+    j_node: 6
+    material: 1
+    section: 1
+  # Top chord members (left span)
+  - id: 6
+    i_node: 7
+    j_node: 8
+    material: 1
+    section: 1
+  - id: 7
+    i_node: 8
+    j_node: 9
+    material: 1
+    section: 1
+  - id: 8
+    i_node: 9
+    j_node: 10
+    material: 1
+    section: 1
+  - id: 9
+    i_node: 10
+    j_node: 11
+    material: 1
+    section: 1
+  - id: 10
+    i_node: 11
+    j_node: 12
+    material: 1
+    section: 1
+  # Vertical members (left span)
+  - id: 11
+    i_node: 1
+    j_node: 7
+    material: 1
+    section: 2
+  - id: 12
+    i_node: 2
+    j_node: 8
+    material: 1
+    section: 2
+  - id: 13
+    i_node: 3
+    j_node: 9
+    material: 1
+    section: 2
+  - id: 14
+    i_node: 4
+    j_node: 10
+    material: 1
+    section: 2
+  - id: 15
+    i_node: 5
+    j_node: 11
+    material: 1
+    section: 2
+  - id: 16
+    i_node: 6
+    j_node: 12
+    material: 1
+    section: 2
+  # Diagonal members (left span)
+  - id: 17
+    i_node: 7
+    j_node: 2
+    material: 1
+    section: 2
+  - id: 18
+    i_node: 8
+    j_node: 3
+    material: 1
+    section: 2
+  - id: 19
+    i_node: 9
+    j_node: 4
+    material: 1
+    section: 2
+  - id: 20
+    i_node: 10
+    j_node: 5
+    material: 1
+    section: 2
+  - id: 21
+    i_node: 11
+    j_node: 6
+    material: 1
+    section: 2
+  # Bottom chord members (right span) - updated to use merged nodes
+  - id: 22
+    i_node: 6
+    j_node: 13
+    material: 1
+    section: 1
+  - id: 23
+    i_node: 13
+    j_node: 14
+    material: 1
+    section: 1
+  - id: 24
+    i_node: 14
+    j_node: 15
+    material: 1
+    section: 1
+  - id: 25
+    i_node: 15
+    j_node: 16
+    material: 1
+    section: 1
+  - id: 26
+    i_node: 16
+    j_node: 17
+    material: 1
+    section: 1
+  # Top chord members (right span)
+  - id: 27
+    i_node: 12
+    j_node: 18
+    material: 1
+    section: 1
+  - id: 28
+    i_node: 18
+    j_node: 19
+    material: 1
+    section: 1
+  - id: 29
+    i_node: 19
+    j_node: 20
+    material: 1
+    section: 1
+  - id: 30
+    i_node: 20
+    j_node: 21
+    material: 1
+    section: 1
+  - id: 31
+    i_node: 21
+    j_node: 22
+    material: 1
+    section: 1
+  # Vertical members (right span) - updated
+  - id: 32
+    i_node: 6
+    j_node: 12
+    material: 1
+    section: 2
+  - id: 33
+    i_node: 13
+    j_node: 18
+    material: 1
+    section: 2
+  - id: 34
+    i_node: 14
+    j_node: 19
+    material: 1
+    section: 2
+  - id: 35
+    i_node: 15
+    j_node: 20
+    material: 1
+    section: 2
+  - id: 36
+    i_node: 16
+    j_node: 21
+    material: 1
+    section: 2
+  - id: 37
+    i_node: 17
+    j_node: 22
+    material: 1
+    section: 2
+  # Diagonal members (right span) - updated
+  - id: 38
+    i_node: 18
+    j_node: 6
+    material: 1
+    section: 2
+  - id: 39
+    i_node: 19
+    j_node: 13
+    material: 1
+    section: 2
+  - id: 40
+    i_node: 20
+    j_node: 14
+    material: 1
+    section: 2
+  - id: 41
+    i_node: 21
+    j_node: 15
+    material: 1
+    section: 2
+  - id: 42
+    i_node: 22
+    j_node: 16
+    material: 1
+    section: 2
+
+  # BACK TRUSS (parallel truss)
+  # Bottom chord members (left span)
+  - id: 101
+    i_node: 101
+    j_node: 102
+    material: 1
+    section: 1
+  - id: 102
+    i_node: 102
+    j_node: 103
+    material: 1
+    section: 1
+  - id: 103
+    i_node: 103
+    j_node: 104
+    material: 1
+    section: 1
+  - id: 104
+    i_node: 104
+    j_node: 105
+    material: 1
+    section: 1
+  - id: 105
+    i_node: 105
+    j_node: 106
+    material: 1
+    section: 1
+  # Top chord members (left span)
+  - id: 106
+    i_node: 107
+    j_node: 108
+    material: 1
+    section: 1
+  - id: 107
+    i_node: 108
+    j_node: 109
+    material: 1
+    section: 1
+  - id: 108
+    i_node: 109
+    j_node: 110
+    material: 1
+    section: 1
+  - id: 109
+    i_node: 110
+    j_node: 111
+    material: 1
+    section: 1
+  - id: 110
+    i_node: 111
+    j_node: 112
+    material: 1
+    section: 1
+  # Vertical members (left span)
+  - id: 111
+    i_node: 101
+    j_node: 107
+    material: 1
+    section: 2
+  - id: 112
+    i_node: 102
+    j_node: 108
+    material: 1
+    section: 2
+  - id: 113
+    i_node: 103
+    j_node: 109
+    material: 1
+    section: 2
+  - id: 114
+    i_node: 104
+    j_node: 110
+    material: 1
+    section: 2
+  - id: 115
+    i_node: 105
+    j_node: 111
+    material: 1
+    section: 2
+  - id: 116
+    i_node: 106
+    j_node: 112
+    material: 1
+    section: 2
+  # Diagonal members (left span)
+  - id: 117
+    i_node: 107
+    j_node: 102
+    material: 1
+    section: 2
+  - id: 118
+    i_node: 108
+    j_node: 103
+    material: 1
+    section: 2
+  - id: 119
+    i_node: 109
+    j_node: 104
+    material: 1
+    section: 2
+  - id: 120
+    i_node: 110
+    j_node: 105
+    material: 1
+    section: 2
+  - id: 121
+    i_node: 111
+    j_node: 106
+    material: 1
+    section: 2
+  # Bottom chord members (right span) - updated to use merged nodes
+  - id: 122
+    i_node: 106
+    j_node: 113
+    material: 1
+    section: 1
+  - id: 123
+    i_node: 113
+    j_node: 114
+    material: 1
+    section: 1
+  - id: 124
+    i_node: 114
+    j_node: 115
+    material: 1
+    section: 1
+  - id: 125
+    i_node: 115
+    j_node: 116
+    material: 1
+    section: 1
+  - id: 126
+    i_node: 116
+    j_node: 117
+    material: 1
+    section: 1
+  # Top chord members (right span)
+  - id: 127
+    i_node: 112
+    j_node: 118
+    material: 1
+    section: 1
+  - id: 128
+    i_node: 118
+    j_node: 119
+    material: 1
+    section: 1
+  - id: 129
+    i_node: 119
+    j_node: 120
+    material: 1
+    section: 1
+  - id: 130
+    i_node: 120
+    j_node: 121
+    material: 1
+    section: 1
+  - id: 131
+    i_node: 121
+    j_node: 122
+    material: 1
+    section: 1
+  # Vertical members (right span) - updated
+  - id: 132
+    i_node: 106
+    j_node: 112
+    material: 1
+    section: 2
+  - id: 133
+    i_node: 113
+    j_node: 118
+    material: 1
+    section: 2
+  - id: 134
+    i_node: 114
+    j_node: 119
+    material: 1
+    section: 2
+  - id: 135
+    i_node: 115
+    j_node: 120
+    material: 1
+    section: 2
+  - id: 136
+    i_node: 116
+    j_node: 121
+    material: 1
+    section: 2
+  - id: 137
+    i_node: 117
+    j_node: 122
+    material: 1
+    section: 2
+  # Diagonal members (right span) - updated
+  - id: 138
+    i_node: 118
+    j_node: 106
+    material: 1
+    section: 2
+  - id: 139
+    i_node: 119
+    j_node: 113
+    material: 1
+    section: 2
+  - id: 140
+    i_node: 120
+    j_node: 114
+    material: 1
+    section: 2
+  - id: 141
+    i_node: 121
+    j_node: 115
+    material: 1
+    section: 2
+  - id: 142
+    i_node: 122
+    j_node: 116
+    material: 1
+    section: 2
+
+  # TRANSVERSE MEMBERS (connecting front and back trusses)
+  # Bottom chord transverse members
+  - id: 201
+    i_node: 1
+    j_node: 101
+    material: 1
+    section: 3
+  - id: 202
+    i_node: 2
+    j_node: 102
+    material: 1
+    section: 3
+  - id: 203
+    i_node: 3
+    j_node: 103
+    material: 1
+    section: 3
+  - id: 204
+    i_node: 4
+    j_node: 104
+    material: 1
+    section: 3
+  - id: 205
+    i_node: 5
+    j_node: 105
+    material: 1
+    section: 3
+  - id: 206
+    i_node: 6
+    j_node: 106
+    material: 1
+    section: 3
+  - id: 207
+    i_node: 13
+    j_node: 113
+    material: 1
+    section: 3
+  - id: 208
+    i_node: 14
+    j_node: 114
+    material: 1
+    section: 3
+  - id: 209
+    i_node: 15
+    j_node: 115
+    material: 1
+    section: 3
+  - id: 210
+    i_node: 16
+    j_node: 116
+    material: 1
+    section: 3
+  - id: 211
+    i_node: 17
+    j_node: 117
+    material: 1
+    section: 3
+
+  # Top chord transverse members
+  - id: 212
+    i_node: 7
+    j_node: 107
+    material: 1
+    section: 3
+  - id: 213
+    i_node: 8
+    j_node: 108
+    material: 1
+    section: 3
+  - id: 214
+    i_node: 9
+    j_node: 109
+    material: 1
+    section: 3
+  - id: 215
+    i_node: 10
+    j_node: 110
+    material: 1
+    section: 3
+  - id: 216
+    i_node: 11
+    j_node: 111
+    material: 1
+    section: 3
+  - id: 217
+    i_node: 12
+    j_node: 112
+    material: 1
+    section: 3
+  - id: 218
+    i_node: 18
+    j_node: 118
+    material: 1
+    section: 3
+  - id: 219
+    i_node: 19
+    j_node: 119
+    material: 1
+    section: 3
+  - id: 220
+    i_node: 20
+    j_node: 120
+    material: 1
+    section: 3
+  - id: 221
+    i_node: 21
+    j_node: 121
+    material: 1
+    section: 3
+  - id: 222
+    i_node: 22
+    j_node: 122
+    material: 1
+    section: 3
+
+  # Diagonal bracing in transverse planes (X-bracing for lateral stability)
+  # Left span
+  - id: 223
+    i_node: 1
+    j_node: 107
+    material: 1
+    section: 4
+  - id: 224
+    i_node: 101
+    j_node: 7
+    material: 1
+    section: 4
+  - id: 225
+    i_node: 2
+    j_node: 108
+    material: 1
+    section: 4
+  - id: 226
+    i_node: 102
+    j_node: 8
+    material: 1
+    section: 4
+  - id: 227
+    i_node: 3
+    j_node: 109
+    material: 1
+    section: 4
+  - id: 228
+    i_node: 103
+    j_node: 9
+    material: 1
+    section: 4
+  - id: 229
+    i_node: 4
+    j_node: 110
+    material: 1
+    section: 4
+  - id: 230
+    i_node: 104
+    j_node: 10
+    material: 1
+    section: 4
+  - id: 231
+    i_node: 5
+    j_node: 111
+    material: 1
+    section: 4
+  - id: 232
+    i_node: 105
+    j_node: 11
+    material: 1
+    section: 4
+  - id: 233
+    i_node: 6
+    j_node: 112
+    material: 1
+    section: 4
+  - id: 234
+    i_node: 106
+    j_node: 12
+    material: 1
+    section: 4
+
+  # Right span
+  - id: 235
+    i_node: 13
+    j_node: 118
+    material: 1
+    section: 4
+  - id: 236
+    i_node: 113
+    j_node: 18
+    material: 1
+    section: 4
+  - id: 237
+    i_node: 14
+    j_node: 119
+    material: 1
+    section: 4
+  - id: 238
+    i_node: 114
+    j_node: 19
+    material: 1
+    section: 4
+  - id: 239
+    i_node: 15
+    j_node: 120
+    material: 1
+    section: 4
+  - id: 240
+    i_node: 115
+    j_node: 20
+    material: 1
+    section: 4
+  - id: 241
+    i_node: 16
+    j_node: 121
+    material: 1
+    section: 4
+  - id: 242
+    i_node: 116
+    j_node: 21
+    material: 1
+    section: 4
+  - id: 243
+    i_node: 17
+    j_node: 122
+    material: 1
+    section: 4
+  - id: 244
+    i_node: 117
+    j_node: 22
+    material: 1
+    section: 4
+
+member_loads:
+  # Deck loads on bottom chord (left span, front truss)
+  - member_uid: 1
+    load_type: 3
+    wi: -0.25 kip/ft
+    wj: -0.25 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 2
+    load_type: 3
+    wi: -0.25 kip/ft
+    wj: -0.25 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 3
+    load_type: 3
+    wi: -0.25 kip/ft
+    wj: -0.25 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 4
+    load_type: 3
+    wi: -0.25 kip/ft
+    wj: -0.25 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 5
+    load_type: 3
+    wi: -0.25 kip/ft
+    wj: -0.25 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+
+  # Deck loads on bottom chord (right span, front truss)
+  - member_uid: 22
+    load_type: 3
+    wi: -0.25 kip/ft
+    wj: -0.25 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 23
+    load_type: 3
+    wi: -0.25 kip/ft
+    wj: -0.25 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 24
+    load_type: 3
+    wi: -0.25 kip/ft
+    wj: -0.25 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 25
+    load_type: 3
+    wi: -0.25 kip/ft
+    wj: -0.25 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 26
+    load_type: 3
+    wi: -0.25 kip/ft
+    wj: -0.25 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+
+  # Deck loads on bottom chord (left span, back truss)
+  - member_uid: 101
+    load_type: 3
+    wi: -0.25 kip/ft
+    wj: -0.25 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 102
+    load_type: 3
+    wi: -0.25 kip/ft
+    wj: -0.25 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 103
+    load_type: 3
+    wi: -0.25 kip/ft
+    wj: -0.25 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 104
+    load_type: 3
+    wi: -0.25 kip/ft
+    wj: -0.25 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 105
+    load_type: 3
+    wi: -0.25 kip/ft
+    wj: -0.25 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+
+  # Deck loads on bottom chord (right span, back truss)
+  - member_uid: 122
+    load_type: 3
+    wi: -0.25 kip/ft
+    wj: -0.25 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 123
+    load_type: 3
+    wi: -0.25 kip/ft
+    wj: -0.25 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 124
+    load_type: 3
+    wi: -0.25 kip/ft
+    wj: -0.25 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 125
+    load_type: 3
+    wi: -0.25 kip/ft
+    wj: -0.25 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 126
+    load_type: 3
+    wi: -0.25 kip/ft
+    wj: -0.25 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+
+  # Transverse loads
+  - member_uid: 201
+    load_type: 3
+    wi: -0.2 kip/ft
+    wj: -0.2 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 206
+    load_type: 3
+    wi: -0.2 kip/ft
+    wj: -0.2 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 211
+    load_type: 3
+    wi: -0.2 kip/ft
+    wj: -0.2 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+
+sections:
+  - id: 1
+    area: 15.3 in^2     # W14x51 - Chord members
+    r: 5.02 in
+  - id: 2
+    area: 13.3 in^2     # W10x45 - Verticals/diagonals
+    r: 3.93 in
+  - id: 3
+    area: 14.4 in^2     # W12x48 - Transverse beams
+    r: 4.85 in
+  - id: 4
+    area: 9.13 in^2     # W8x31 - Transverse bracing
+    r: 3.47 in

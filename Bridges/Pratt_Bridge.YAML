@@ -1,0 +1,426 @@
+# Pratt bridge example with two spans and units
+# Both spans have diagonals sloping toward the center (which places diagonals in tension under vertical loads)
+# Key design features:
+#
+#
+# The bridge has two 100 ft spans (200 ft total length)
+# Central node 6 serves as the pier connection point for both spans
+# Diagonals in the left span slope down toward the center (right)
+# Diagonals in the right span slope down toward the center (left)
+# Supports are at node 1 (pinned), node 6 (pinned pier), and node 17 (roller)
+# Both spans use the same materials, sections, and loading
+# This arrangement ensures that diagonals in both spans will primarily experience tension under vertical loads, which is the main characteristic of a Pratt truss design.
+
+# DESIGN PARAMETERS
+design_parameters:
+  min_safety_factor: 1.2
+  deck_load: 0.5 kip/ft  # Reduced from 2.0 to achieve reasonable safety factors
+
+units:
+  force: kip
+  length: ft
+  pressure: ksi
+
+nodes:
+  # LEFT SPAN
+  # Bottom chord nodes (left span)
+  - id: 1
+    x: 0 ft
+    y: 0 ft
+  - id: 2
+    x: 20 ft
+    y: 0 ft
+  - id: 3
+    x: 40 ft
+    y: 0 ft
+  - id: 4
+    x: 60 ft
+    y: 0 ft
+  - id: 5
+    x: 80 ft
+    y: 0 ft
+  - id: 6
+    x: 100 ft
+    y: 0 ft
+  # Top chord nodes (left span)
+  - id: 7
+    x: 0 ft
+    y: 20 ft
+  - id: 8
+    x: 20 ft
+    y: 20 ft
+  - id: 9
+    x: 40 ft
+    y: 20 ft
+  - id: 10
+    x: 60 ft
+    y: 20 ft
+  - id: 11
+    x: 80 ft
+    y: 20 ft
+  - id: 12
+    x: 100 ft
+    y: 20 ft
+
+  # RIGHT SPAN
+  # Bottom chord nodes (right span)
+  - id: 13
+    x: 120 ft
+    y: 0 ft
+  - id: 14
+    x: 140 ft
+    y: 0 ft
+  - id: 15
+    x: 160 ft
+    y: 0 ft
+  - id: 16
+    x: 180 ft
+    y: 0 ft
+  - id: 17
+    x: 200 ft
+    y: 0 ft
+  # Top chord nodes (right span) - renumbered to be sequential
+  - id: 18
+    x: 120 ft
+    y: 20 ft
+  - id: 19
+    x: 140 ft
+    y: 20 ft
+  - id: 20
+    x: 160 ft
+    y: 20 ft
+  - id: 21
+    x: 180 ft
+    y: 20 ft
+  - id: 22
+    x: 200 ft
+    y: 20 ft
+
+supports:
+  - node: 1
+    ux: 1
+    uy: 1
+    rz: 0
+    # Pinned support at left end
+  - node: 6
+    ux: 1
+    uy: 1
+    rz: 0
+    # Pier support at center (bottom chord)
+  - node: 17
+    ux: 0
+    uy: 1
+    rz: 0
+    # Roller support at right end
+
+members:
+  # LEFT SPAN
+  # Bottom chord members (left span)
+  - id: 1
+    i_node: 1
+    j_node: 2
+    material: 1
+    section: 1
+  - id: 2
+    i_node: 2
+    j_node: 3
+    material: 1
+    section: 1
+  - id: 3
+    i_node: 3
+    j_node: 4
+    material: 1
+    section: 1
+  - id: 4
+    i_node: 4
+    j_node: 5
+    material: 1
+    section: 1
+  - id: 5
+    i_node: 5
+    j_node: 6
+    material: 1
+    section: 1
+
+  # Top chord members (left span)
+  - id: 6
+    i_node: 7
+    j_node: 8
+    material: 1
+    section: 1
+  - id: 7
+    i_node: 8
+    j_node: 9
+    material: 1
+    section: 1
+  - id: 8
+    i_node: 9
+    j_node: 10
+    material: 1
+    section: 1
+  - id: 9
+    i_node: 10
+    j_node: 11
+    material: 1
+    section: 1
+  - id: 10
+    i_node: 11
+    j_node: 12
+    material: 1
+    section: 1
+
+  # Vertical members (left span)
+  - id: 11
+    i_node: 1
+    j_node: 7
+    material: 1
+    section: 2
+  - id: 12
+    i_node: 2
+    j_node: 8
+    material: 1
+    section: 2
+  - id: 13
+    i_node: 3
+    j_node: 9
+    material: 1
+    section: 2
+  - id: 14
+    i_node: 4
+    j_node: 10
+    material: 1
+    section: 2
+  - id: 15
+    i_node: 5
+    j_node: 11
+    material: 1
+    section: 2
+  - id: 16
+    i_node: 6
+    j_node: 12
+    material: 1
+    section: 2
+
+  # Diagonal members (left span - sloping down toward center)
+  - id: 17
+    i_node: 7
+    j_node: 2
+    material: 1
+    section: 2
+  - id: 18
+    i_node: 8
+    j_node: 3
+    material: 1
+    section: 2
+  - id: 19
+    i_node: 9
+    j_node: 4
+    material: 1
+    section: 2
+  - id: 20
+    i_node: 10
+    j_node: 5
+    material: 1
+    section: 2
+  - id: 21
+    i_node: 11
+    j_node: 6
+    material: 1
+    section: 2
+
+  # RIGHT SPAN
+  # Bottom chord members (right span)
+  - id: 22
+    i_node: 6
+    j_node: 13
+    material: 1
+    section: 1
+  - id: 23
+    i_node: 13
+    j_node: 14
+    material: 1
+    section: 1
+  - id: 24
+    i_node: 14
+    j_node: 15
+    material: 1
+    section: 1
+  - id: 25
+    i_node: 15
+    j_node: 16
+    material: 1
+    section: 1
+  - id: 26
+    i_node: 16
+    j_node: 17
+    material: 1
+    section: 1
+
+  # Top chord members (right span) - updated node references
+  - id: 27
+    i_node: 12
+    j_node: 18
+    material: 1
+    section: 1
+  - id: 28
+    i_node: 18
+    j_node: 19
+    material: 1
+    section: 1
+  - id: 29
+    i_node: 19
+    j_node: 20
+    material: 1
+    section: 1
+  - id: 30
+    i_node: 20
+    j_node: 21
+    material: 1
+    section: 1
+  - id: 31
+    i_node: 21
+    j_node: 22
+    material: 1
+    section: 1
+
+  # Vertical members (right span)
+  - id: 32
+    i_node: 6
+    j_node: 12
+    material: 1
+    section: 2
+  - id: 33
+    i_node: 13
+    j_node: 18
+    material: 1
+    section: 2
+  - id: 34
+    i_node: 14
+    j_node: 19
+    material: 1
+    section: 2
+  - id: 35
+    i_node: 15
+    j_node: 20
+    material: 1
+    section: 2
+  - id: 36
+    i_node: 16
+    j_node: 21
+    material: 1
+    section: 2
+  - id: 37
+    i_node: 17
+    j_node: 22
+    material: 1
+    section: 2
+
+  # Diagonal members (right span - sloping down toward center/left)
+  - id: 38
+    i_node: 18
+    j_node: 6
+    material: 1
+    section: 2
+  - id: 39
+    i_node: 19
+    j_node: 13
+    material: 1
+    section: 2
+  - id: 40
+    i_node: 20
+    j_node: 14
+    material: 1
+    section: 2
+  - id: 41
+    i_node: 21
+    j_node: 15
+    material: 1
+    section: 2
+  - id: 42
+    i_node: 22
+    j_node: 16
+    material: 1
+    section: 2
+
+member_loads:
+  # Deck loads on bottom chord (left span) - reduced loading
+  - member_uid: 1
+    load_type: 3
+    wi: -0.5 kip/ft
+    wj: -0.5 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 2
+    load_type: 3
+    wi: -0.5 kip/ft
+    wj: -0.5 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 3
+    load_type: 3
+    wi: -0.5 kip/ft
+    wj: -0.5 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 4
+    load_type: 3
+    wi: -0.5 kip/ft
+    wj: -0.5 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 5
+    load_type: 3
+    wi: -0.5 kip/ft
+    wj: -0.5 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+
+  # Deck loads on bottom chord (right span) - reduced loading
+  - member_uid: 22
+    load_type: 3
+    wi: -0.5 kip/ft
+    wj: -0.5 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 23
+    load_type: 3
+    wi: -0.5 kip/ft
+    wj: -0.5 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 24
+    load_type: 3
+    wi: -0.5 kip/ft
+    wj: -0.5 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 25
+    load_type: 3
+    wi: -0.5 kip/ft
+    wj: -0.5 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 26
+    load_type: 3
+    wi: -0.5 kip/ft
+    wj: -0.5 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+
+sections:
+  - id: 1
+    area: 15.3 in^2     # W14x51 - doubled from W12x26 for chord members
+    r: 5.02 in
+  - id: 2
+    area: 13.3 in^2     # W10x45 - increased from W8x31 for verticals/diagonals
+    r: 3.93 in

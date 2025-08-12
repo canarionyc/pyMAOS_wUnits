@@ -49,6 +49,7 @@ import numpy as np
 # Configure numpy printing
 np.set_printoptions(precision=4, suppress=False, floatmode='maxprec_equal')
 
+import matplotlib.pyplot as plt
 
 # Add custom formatters for different numeric types
 def format_with_dots(x) -> str: return '.'.center(12) if abs(x) < 1e-10 else f"{x:<12.4g}"
@@ -80,6 +81,7 @@ from pyMAOS.pymaos_units import UnitManager
 
 cache_folder= os.path.expanduser("~/.cache/pyMAOS")
 unit_manager = UnitManager("imperial",cache_folder=cache_folder)
+unit_manager.ureg.setup_matplotlib(True)
 
 # import pint
 # from pint.facets import (
@@ -195,15 +197,15 @@ unit_manager.ureg.Quantity.increment_with_units = increment_with_units
 # Add references to the new modules
 from .structure2d import R2Structure
 
-print("pyMAOS package initialized with unit systems and structural analysis tools.")
+print(f"pyMAOS package initialized with {unit_manager.system_name} unit system and structural analysis tools.")
 
 __all__ = [
     'SI_UNITS', 'IMPERIAL_DISPLAY_UNITS', 'METRIC_KN_UNITS',
     'INTERNAL_FORCE_UNIT', 'INTERNAL_LENGTH_UNIT', 'INTERNAL_MOMENT_UNIT', 'INTERNAL_PRESSURE_UNIT', 'INTERNAL_DISTRIBUTED_LOAD_UNIT',
     'FORCE_DIMENSIONALITY', 'LENGTH_DIMENSIONALITY', 'MOMENT_DIMENSIONALITY', 'PRESSURE_DIMENSIONALITY', 'DISTRIBUTED_LOAD_DIMENSIONALITY',
     'R2Structure',  # The module itself
-    'pint',  # Add pint to exports
-    'pprint'  # Add pprint to exports
+    'pint',
+    'pprint',
     'debug','info','warning','error','critical','log_exception'
 ]
 # Package version

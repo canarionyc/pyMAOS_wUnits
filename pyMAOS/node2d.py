@@ -220,15 +220,15 @@ class R2Node:
         if combo.name in self.displacements:
             # Get displacement in compatible form
             raw_disp = self.displacements[combo.name][0]
-
+            
             # Handle case where displacement is stored as a plain number
             if not hasattr(raw_disp, 'to'):
                 # Convert to a quantity with appropriate units
                 raw_disp = raw_disp * pyMAOS.unit_manager.ureg(pyMAOS.INTERNAL_LENGTH_UNIT)
-
+            
             # Convert the displacement to the same unit as self.x
             disp_in_x_units = raw_disp.to(self.x.units) * scale
-
+            
             # Add using the same registry
             return self.x + disp_in_x_units
         return self.x
@@ -238,15 +238,15 @@ class R2Node:
         if combo.name in self.displacements:
             # Get displacement in compatible form
             raw_disp = self.displacements[combo.name][1]
-
+            
             # Handle case where displacement is stored as a plain number
             if not hasattr(raw_disp, 'to'):
                 # Convert to a quantity with appropriate units
                 raw_disp = raw_disp * pyMAOS.unit_manager.ureg(pyMAOS.INTERNAL_LENGTH_UNIT)
-
+            
             # Convert the displacement to the same unit as self.y
             disp_in_y_units = raw_disp.to(self.y.units) * scale
-
+            
             # Add using the same registry
             return self.y + disp_in_y_units
         return self.y

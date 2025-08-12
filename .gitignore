@@ -201,3 +201,5 @@ cython_debug/
 /.vs/pyMAOS_testing/v17/.suo
 ~*.*
 *.bin
+*.pdf
+*.rst

@@ -1,0 +1,897 @@
+# Baltimore space truss bridge example with units
+# This structure consists of two parallel Baltimore trusses connected with transverse members
+# * Creates a true 3D space truss with two parallel Baltimore trusses
+# * Adds proper transverse members connecting all corresponding nodes
+# * Includes X-bracing in horizontal planes for lateral stability
+# * Adds diagonal bracing in vertical planes for torsional stability
+# * Has proper 3D support constraints
+# * Distributes loads between both trusses
+# * Uses different section types for different structural elements
+units:
+  force: kip
+  length: ft
+  pressure: ksi
+
+nodes:
+  # First truss - Bottom chord nodes
+  - id: 1
+    x: 0 ft
+    y: 0 ft
+    z: 0 ft
+  - id: 2
+    x: 20 ft
+    y: 0 ft
+    z: 0 ft
+  - id: 3
+    x: 40 ft
+    y: 0 ft
+    z: 0 ft
+  - id: 4
+    x: 60 ft
+    y: 0 ft
+    z: 0 ft
+  - id: 5
+    x: 80 ft
+    y: 0 ft
+    z: 0 ft
+  - id: 6
+    x: 100 ft
+    y: 0 ft
+    z: 0 ft
+
+  # First truss - Top chord nodes
+  - id: 7
+    x: 0 ft
+    y: 20 ft
+    z: 0 ft
+  - id: 8
+    x: 20 ft
+    y: 20 ft
+    z: 0 ft
+  - id: 9
+    x: 40 ft
+    y: 20 ft
+    z: 0 ft
+  - id: 10
+    x: 60 ft
+    y: 20 ft
+    z: 0 ft
+  - id: 11
+    x: 80 ft
+    y: 20 ft
+    z: 0 ft
+  - id: 12
+    x: 100 ft
+    y: 20 ft
+    z: 0 ft
+
+  # First truss - Intermediate nodes for sub-diagonals
+  - id: 13
+    x: 10 ft
+    y: 10 ft
+    z: 0 ft
+  - id: 14
+    x: 30 ft
+    y: 10 ft
+    z: 0 ft
+  - id: 15
+    x: 50 ft
+    y: 10 ft
+    z: 0 ft
+  - id: 16
+    x: 70 ft
+    y: 10 ft
+    z: 0 ft
+  - id: 17
+    x: 90 ft
+    y: 10 ft
+    z: 0 ft
+
+  # Second truss - Bottom chord nodes
+  - id: 18
+    x: 0 ft
+    y: 0 ft
+    z: 20 ft
+  - id: 19
+    x: 20 ft
+    y: 0 ft
+    z: 20 ft
+  - id: 20
+    x: 40 ft
+    y: 0 ft
+    z: 20 ft
+  - id: 21
+    x: 60 ft
+    y: 0 ft
+    z: 20 ft
+  - id: 22
+    x: 80 ft
+    y: 0 ft
+    z: 20 ft
+  - id: 23
+    x: 100 ft
+    y: 0 ft
+    z: 20 ft
+
+  # Second truss - Top chord nodes
+  - id: 24
+    x: 0 ft
+    y: 20 ft
+    z: 20 ft
+  - id: 25
+    x: 20 ft
+    y: 20 ft
+    z: 20 ft
+  - id: 26
+    x: 40 ft
+    y: 20 ft
+    z: 20 ft
+  - id: 27
+    x: 60 ft
+    y: 20 ft
+    z: 20 ft
+  - id: 28
+    x: 80 ft
+    y: 20 ft
+    z: 20 ft
+  - id: 29
+    x: 100 ft
+    y: 20 ft
+    z: 20 ft
+
+  # Second truss - Intermediate nodes for sub-diagonals
+  - id: 30
+    x: 10 ft
+    y: 10 ft
+    z: 20 ft
+  - id: 31
+    x: 30 ft
+    y: 10 ft
+    z: 20 ft
+  - id: 32
+    x: 50 ft
+    y: 10 ft
+    z: 20 ft
+  - id: 33
+    x: 70 ft
+    y: 10 ft
+    z: 20 ft
+  - id: 34
+    x: 90 ft
+    y: 10 ft
+    z: 20 ft
+
+supports:
+  # First truss supports
+  - node: 1
+    ux: 1
+    uy: 1
+    uz: 1
+    rx: 0
+    ry: 0
+    rz: 0
+  - node: 6
+    ux: 0
+    uy: 1
+    uz: 1
+    rx: 0
+    ry: 0
+    rz: 0
+
+  # Second truss supports
+  - node: 18
+    ux: 1
+    uy: 1
+    uz: 1
+    rx: 0
+    ry: 0
+    rz: 0
+  - node: 23
+    ux: 0
+    uy: 1
+    uz: 1
+    rx: 0
+    ry: 0
+    rz: 0
+
+members:
+  # First truss - Bottom chord members
+  - id: 1
+    i_node: 1
+    j_node: 2
+    material: 1  # A36 Structural Steel (29000 ksi)
+    section: 1   # W12x26 (7.65 in^2, Ixx=204 in^4)
+  - id: 2
+    i_node: 2
+    j_node: 3
+    material: 1
+    section: 1
+  - id: 3
+    i_node: 3
+    j_node: 4
+    material: 1
+    section: 1
+  - id: 4
+    i_node: 4
+    j_node: 5
+    material: 1
+    section: 1
+  - id: 5
+    i_node: 5
+    j_node: 6
+    material: 1
+    section: 1
+
+  # First truss - Top chord members
+  - id: 6
+    i_node: 7
+    j_node: 8
+    material: 1  # A36 Structural Steel
+    section: 1   # W12x26
+  - id: 7
+    i_node: 8
+    j_node: 9
+    material: 1
+    section: 1
+  - id: 8
+    i_node: 9
+    j_node: 10
+    material: 1
+    section: 1
+  - id: 9
+    i_node: 10
+    j_node: 11
+    material: 1
+    section: 1
+  - id: 10
+    i_node: 11
+    j_node: 12
+    material: 1
+    section: 1
+
+  # First truss - Vertical members
+  - id: 11
+    i_node: 1
+    j_node: 7
+    material: 1  # A36 Structural Steel
+    section: 2   # W8x31 (9.13 in^2, Ixx=110 in^4)
+  - id: 12
+    i_node: 2
+    j_node: 8
+    material: 1
+    section: 2
+  - id: 13
+    i_node: 3
+    j_node: 9
+    material: 1
+    section: 2
+  - id: 14
+    i_node: 4
+    j_node: 10
+    material: 1
+    section: 2
+  - id: 15
+    i_node: 5
+    j_node: 11
+    material: 1
+    section: 2
+  - id: 16
+    i_node: 6
+    j_node: 12
+    material: 1
+    section: 2
+
+  # First truss - Diagonal members
+  - id: 17
+    i_node: 7
+    j_node: 2
+    material: 1
+    section: 2
+  - id: 18
+    i_node: 8
+    j_node: 3
+    material: 1
+    section: 2
+  - id: 19
+    i_node: 9
+    j_node: 4
+    material: 1
+    section: 2
+  - id: 20
+    i_node: 10
+    j_node: 5
+    material: 1
+    section: 2
+  - id: 21
+    i_node: 11
+    j_node: 6
+    material: 1
+    section: 2
+
+  # First truss - Sub-diagonal members
+  - id: 22
+    i_node: 2
+    j_node: 13
+    material: 1
+    section: 2
+  - id: 23
+    i_node: 13
+    j_node: 7
+    material: 1
+    section: 2
+  - id: 24
+    i_node: 3
+    j_node: 14
+    material: 1
+    section: 2
+  - id: 25
+    i_node: 14
+    j_node: 8
+    material: 1
+    section: 2
+  - id: 26
+    i_node: 4
+    j_node: 15
+    material: 1
+    section: 2
+  - id: 27
+    i_node: 15
+    j_node: 9
+    material: 1
+    section: 2
+  - id: 28
+    i_node: 5
+    j_node: 16
+    material: 1
+    section: 2
+  - id: 29
+    i_node: 16
+    j_node: 10
+    material: 1
+    section: 2
+  - id: 30
+    i_node: 6
+    j_node: 17
+    material: 1
+    section: 2
+  - id: 31
+    i_node: 17
+    j_node: 11
+    material: 1
+    section: 2
+
+  # Second truss - Bottom chord members
+  - id: 32
+    i_node: 18
+    j_node: 19
+    material: 1
+    section: 1
+  - id: 33
+    i_node: 19
+    j_node: 20
+    material: 1
+    section: 1
+  - id: 34
+    i_node: 20
+    j_node: 21
+    material: 1
+    section: 1
+  - id: 35
+    i_node: 21
+    j_node: 22
+    material: 1
+    section: 1
+  - id: 36
+    i_node: 22
+    j_node: 23
+    material: 1
+    section: 1
+
+  # Second truss - Top chord members
+  - id: 37
+    i_node: 24
+    j_node: 25
+    material: 1
+    section: 1
+  - id: 38
+    i_node: 25
+    j_node: 26
+    material: 1
+    section: 1
+  - id: 39
+    i_node: 26
+    j_node: 27
+    material: 1
+    section: 1
+  - id: 40
+    i_node: 27
+    j_node: 28
+    material: 1
+    section: 1
+  - id: 41
+    i_node: 28
+    j_node: 29
+    material: 1
+    section: 1
+
+  # Second truss - Vertical members
+  - id: 42
+    i_node: 18
+    j_node: 24
+    material: 1
+    section: 2
+  - id: 43
+    i_node: 19
+    j_node: 25
+    material: 1
+    section: 2
+  - id: 44
+    i_node: 20
+    j_node: 26
+    material: 1
+    section: 2
+  - id: 45
+    i_node: 21
+    j_node: 27
+    material: 1
+    section: 2
+  - id: 46
+    i_node: 22
+    j_node: 28
+    material: 1
+    section: 2
+  - id: 47
+    i_node: 23
+    j_node: 29
+    material: 1
+    section: 2
+
+  # Second truss - Diagonal members
+  - id: 48
+    i_node: 24
+    j_node: 19
+    material: 1
+    section: 2
+  - id: 49
+    i_node: 25
+    j_node: 20
+    material: 1
+    section: 2
+  - id: 50
+    i_node: 26
+    j_node: 21
+    material: 1
+    section: 2
+  - id: 51
+    i_node: 27
+    j_node: 22
+    material: 1
+    section: 2
+  - id: 52
+    i_node: 28
+    j_node: 23
+    material: 1
+    section: 2
+
+  # Second truss - Sub-diagonal members
+  - id: 53
+    i_node: 19
+    j_node: 30
+    material: 1
+    section: 2
+  - id: 54
+    i_node: 30
+    j_node: 24
+    material: 1
+    section: 2
+  - id: 55
+    i_node: 20
+    j_node: 31
+    material: 1
+    section: 2
+  - id: 56
+    i_node: 31
+    j_node: 25
+    material: 1
+    section: 2
+  - id: 57
+    i_node: 21
+    j_node: 32
+    material: 1
+    section: 2
+  - id: 58
+    i_node: 32
+    j_node: 26
+    material: 1
+    section: 2
+  - id: 59
+    i_node: 22
+    j_node: 33
+    material: 1
+    section: 2
+  - id: 60
+    i_node: 33
+    j_node: 27
+    material: 1
+    section: 2
+  - id: 61
+    i_node: 23
+    j_node: 34
+    material: 1
+    section: 2
+  - id: 62
+    i_node: 34
+    j_node: 28
+    material: 1
+    section: 2
+
+  # Transverse members connecting bottom chords
+  - id: 63
+    i_node: 1
+    j_node: 18
+    material: 1
+    section: 3
+  - id: 64
+    i_node: 2
+    j_node: 19
+    material: 1
+    section: 3
+  - id: 65
+    i_node: 3
+    j_node: 20
+    material: 1
+    section: 3
+  - id: 66
+    i_node: 4
+    j_node: 21
+    material: 1
+    section: 3
+  - id: 67
+    i_node: 5
+    j_node: 22
+    material: 1
+    section: 3
+  - id: 68
+    i_node: 6
+    j_node: 23
+    material: 1
+    section: 3
+
+  # Transverse members connecting top chords
+  - id: 69
+    i_node: 7
+    j_node: 24
+    material: 1
+    section: 3
+  - id: 70
+    i_node: 8
+    j_node: 25
+    material: 1
+    section: 3
+  - id: 71
+    i_node: 9
+    j_node: 26
+    material: 1
+    section: 3
+  - id: 72
+    i_node: 10
+    j_node: 27
+    material: 1
+    section: 3
+  - id: 73
+    i_node: 11
+    j_node: 28
+    material: 1
+    section: 3
+  - id: 74
+    i_node: 12
+    j_node: 29
+    material: 1
+    section: 3
+
+  # Transverse members connecting intermediate nodes
+  - id: 75
+    i_node: 13
+    j_node: 30
+    material: 1
+    section: 3
+  - id: 76
+    i_node: 14
+    j_node: 31
+    material: 1
+    section: 3
+  - id: 77
+    i_node: 15
+    j_node: 32
+    material: 1
+    section: 3
+  - id: 78
+    i_node: 16
+    j_node: 33
+    material: 1
+    section: 3
+  - id: 79
+    i_node: 17
+    j_node: 34
+    material: 1
+    section: 3
+
+  # Diagonal bracing for lateral stability - Bottom plane
+  - id: 80
+    i_node: 1
+    j_node: 19
+    material: 1
+    section: 4  # L4x4x1/2 angle for bracing
+  - id: 81
+    i_node: 18
+    j_node: 2
+    material: 1
+    section: 4
+  - id: 82
+    i_node: 2
+    j_node: 20
+    material: 1
+    section: 4
+  - id: 83
+    i_node: 19
+    j_node: 3
+    material: 1
+    section: 4
+  - id: 84
+    i_node: 3
+    j_node: 21
+    material: 1
+    section: 4
+  - id: 85
+    i_node: 20
+    j_node: 4
+    material: 1
+    section: 4
+  - id: 86
+    i_node: 4
+    j_node: 22
+    material: 1
+    section: 4
+  - id: 87
+    i_node: 21
+    j_node: 5
+    material: 1
+    section: 4
+  - id: 88
+    i_node: 5
+    j_node: 23
+    material: 1
+    section: 4
+  - id: 89
+    i_node: 22
+    j_node: 6
+    material: 1
+    section: 4
+
+  # Diagonal bracing for lateral stability - Top plane
+  - id: 90
+    i_node: 7
+    j_node: 25
+    material: 1
+    section: 4
+  - id: 91
+    i_node: 24
+    j_node: 8
+    material: 1
+    section: 4
+  - id: 92
+    i_node: 8
+    j_node: 26
+    material: 1
+    section: 4
+  - id: 93
+    i_node: 25
+    j_node: 9
+    material: 1
+    section: 4
+  - id: 94
+    i_node: 9
+    j_node: 27
+    material: 1
+    section: 4
+  - id: 95
+    i_node: 26
+    j_node: 10
+    material: 1
+    section: 4
+  - id: 96
+    i_node: 10
+    j_node: 28
+    material: 1
+    section: 4
+  - id: 97
+    i_node: 27
+    j_node: 11
+    material: 1
+    section: 4
+  - id: 98
+    i_node: 11
+    j_node: 29
+    material: 1
+    section: 4
+  - id: 99
+    i_node: 28
+    j_node: 12
+    material: 1
+    section: 4
+
+  # Diagonal bracing in the end planes
+  - id: 100
+    i_node: 1
+    j_node: 24
+    material: 1
+    section: 4
+  - id: 101
+    i_node: 7
+    j_node: 18
+    material: 1
+    section: 4
+  - id: 102
+    i_node: 6
+    j_node: 29
+    material: 1
+    section: 4
+  - id: 103
+    i_node: 12
+    j_node: 23
+    material: 1
+    section: 4
+
+  # Diagonal bracing for middle section plane
+  - id: 104
+    i_node: 3
+    j_node: 26
+    material: 1
+    section: 4
+  - id: 105
+    i_node: 9
+    j_node: 20
+    material: 1
+    section: 4
+
+member_loads:
+  # Deck loads on bottom chord of first truss
+  - member_uid: 1
+    load_type: 3
+    wi: -1.0 kip/ft
+    wj: -1.0 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 2
+    load_type: 3
+    wi: -1.0 kip/ft
+    wj: -1.0 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 3
+    load_type: 3
+    wi: -1.0 kip/ft
+    wj: -1.0 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 4
+    load_type: 3
+    wi: -1.0 kip/ft
+    wj: -1.0 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 5
+    load_type: 3
+    wi: -1.0 kip/ft
+    wj: -1.0 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+
+  # Deck loads on bottom chord of second truss
+  - member_uid: 32
+    load_type: 3
+    wi: -1.0 kip/ft
+    wj: -1.0 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 33
+    load_type: 3
+    wi: -1.0 kip/ft
+    wj: -1.0 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 34
+    load_type: 3
+    wi: -1.0 kip/ft
+    wj: -1.0 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 35
+    load_type: 3
+    wi: -1.0 kip/ft
+    wj: -1.0 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 36
+    load_type: 3
+    wi: -1.0 kip/ft
+    wj: -1.0 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+
+  # Transverse member loads
+  - member_uid: 63
+    load_type: 3
+    wi: -0.5 kip/ft
+    wj: -0.5 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 64
+    load_type: 3
+    wi: -0.5 kip/ft
+    wj: -0.5 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 65
+    load_type: 3
+    wi: -0.5 kip/ft
+    wj: -0.5 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 66
+    load_type: 3
+    wi: -0.5 kip/ft
+    wj: -0.5 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 67
+    load_type: 3
+    wi: -0.5 kip/ft
+    wj: -0.5 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+  - member_uid: 68
+    load_type: 3
+    wi: -0.5 kip/ft
+    wj: -0.5 kip/ft
+    a: 0 ft
+    b: 20 ft
+    case: D
+
+sections:
+  - id: 1
+    area: 7.65 in^2     # W12x26 - Chord members
+    r: 4.91 in
+  - id: 2
+    area: 9.13 in^2     # W8x31 - Verticals/diagonals
+    r: 3.47 in
+  - id: 3
+    area: 10.3 in^2     # W10x33 - Transverse beams
+    r: 4.19 in
+  - id: 4
+    area: 3.75 in^2     # L4x4x1/2 - Cross bracing
+    r: 1.22 in
+
+materials:
+  - id: 1
+    type: "isotropic"
+    E: 29000 ksi       # Young's modulus for structural steel
+    G: 11500 ksi       # Shear modulus
+    nu: 0.27           # Poisson's ratio
+    rho: 0.000284 kip/in^3  # Density of steel
+    alpha: 0.0000065 1/°F   # Coefficient of thermal expansion

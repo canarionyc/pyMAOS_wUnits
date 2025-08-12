@@ -18,6 +18,9 @@
       <sourceFolder url="file://$MODULE_DIR$/pyMAOS/loading/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/pyMAOS/plotting" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/pyMAOS/input" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/Stairways" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/units" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/Visual Studio 2022" />
       <excludeFolder url="file://$MODULE_DIR$/Visual Studio 2022Templates" />
       <excludeFolder url="file://$MODULE_DIR$/.Rproj.user" />

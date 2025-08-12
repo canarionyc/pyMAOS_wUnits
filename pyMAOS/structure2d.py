@@ -1330,27 +1330,27 @@ def load_structure_state(filename):
     # Debug info
     print(f"Loading structure state from: {filename}")
     print(f"Using global unit registry with id: {id(pyMAOS.unit_manager.ureg)}")
-
+    
     # Custom unpickler that converts quantities to the global registry during load
     class QuantityUnpickler(pickle.Unpickler):
         def find_class(self, module, name):
             # Get the standard class
             cls = super().find_class(module, name)
-
+            
             # If it's a Quantity class, return our conversion wrapper
             if module == 'pint.quantity' and name == 'Quantity':
                 # Create a wrapper that converts registry on unpickling
                 def quantity_factory(*args, **kwargs):
                     # Standard creation
                     obj = cls(*args, **kwargs)
-
+                    
                     # If it's using a different registry, convert it
                     if obj._REGISTRY is not pyMAOS.unit_manager.ureg:
                         print(f"Converting quantity {obj} from registry {id(obj._REGISTRY)} to global registry")
                         obj = pyMAOS.unit_manager.ureg.Quantity(obj.magnitude, str(obj.units))
-
+                    
                     return obj
-
+                
                 return quantity_factory
             return cls
 
@@ -1359,7 +1359,7 @@ def load_structure_state(filename):
         with open(filename, 'rb') as f:
             # Read compressed data
             compressed_data = f.read()
-
+            
             # Decompress data
             try:
                 pickled_data = zlib.decompress(compressed_data)
@@ -1378,14 +1378,14 @@ def load_structure_state(filename):
 
         # Add registry ID to structure for future reference
         structure.registry_id = id(pyMAOS.unit_manager.ureg)
-
+        
         # Double-check for any quantities that weren't converted during unpickling
-        # This is a safety measure in case some quantities were stored in a way
+        # This is a safety measure in case some quantities were stored in a way 
         # that bypassed our custom unpickler
         structure = convert_all_quantities(structure, pyMAOS.unit_manager.ureg)
 
         return structure
-
+    
     except Exception as e:
         print(f"Error loading structure state from {filename}: {e}")
         import traceback

@@ -9,7 +9,7 @@ def plot_deformed_structure(nodes, members, loads, scaling=None, figsize=(12, 8)
     members : list
         List of structural members
     loads : list
-        List of load objects (LinearLoadXY) with Dy2 attributes
+        List of load objects (LinearLoadXY) with Dy attributes
     scaling : dict, optional
         Dictionary with scaling factors for different response types
     figsize : tuple, optional
@@ -59,7 +59,7 @@ def plot_deformed_structure(nodes, members, loads, scaling=None, figsize=(12, 8)
         if member.uid in member_load_map:
             load = member_load_map[member.uid]
 
-            if hasattr(load, 'Dy2') and load.Dy2.ppoly is not None:
+            if hasattr(load, 'Dy') and load.Dy.ppoly is not None:
                 print(f"Processing deformation for member {member.uid}")
 
                 # Calculate length and direction cosines
@@ -75,7 +75,7 @@ def plot_deformed_structure(nodes, members, loads, scaling=None, figsize=(12, 8)
 
                 try:
                     # Get displacement values
-                    y_local = load.Dy2.evaluate_vectorized(x_local)
+                    y_local = load.Dy.evaluate_vectorized(x_local)
 
                     # Extract magnitude if it's a Quantity object
                     if hasattr(y_local, 'magnitude'):

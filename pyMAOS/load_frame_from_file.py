@@ -6,18 +6,15 @@ import pint
 from rx.subject.subject import Subject
 
 import pyMAOS
-
+from pyMAOS import structure2d, frame2d
 from pymaos_linear_elastic_material import get_materials_from_yaml
-
-
-
-
 
 # Alternative: show all imported classes
 # print_imported_classes()
 
 from pyMAOS.logger import setup_logger
 
+from pprint import pprint
 # Import all unit-related functionality from units.py module
 # from pyMAOS.units_mod import (
 #     # FORCE_UNIT, LENGTH_UNIT, MOMENT_UNIT, PRESSURE_UNIT, DISTRIBUTED_LOAD_UNIT,  # Display units
@@ -69,6 +66,7 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
     # Import the unit_manager directly from the module
     import pyMAOS
 
+    pymaos_home = os.getenv('PYMAOS_HOME'); assert os.path.isdir(pymaos_home), f"{pymaos_home} does not exist"
     # Get internal units
     internal_length_unit = pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT
     internal_force_unit = pyMAOS.unit_manager.INTERNAL_FORCE_UNIT
@@ -177,10 +175,10 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
             # Store in internal units
             nodes_dict[node_id].add_nodal_load(fx, fy, mz, "D")
             pyMAOS.info(f"Node {node_id} load: Fx={fx:.4g} {internal_force_unit}, Fy={fy:.4g} {internal_force_unit}, Mz={mz:.4g} {internal_moment_unit}")
-
+    data_dir=os.path.join(pymaos_home, "data");assert os.path.isdir(data_dir), f"{data_dir} does not exist"
     # Process materials
     try:
-        materials_yml = os.path.join(os.path.dirname(filename), "materials.yml")
+        materials_yml = os.path.join(data_dir, "materials.yml")
         if not os.path.exists(materials_yml):
             materials_yml = os.path.join("materials.yml")
         materials_dict=get_materials_from_yaml(materials_yml)
@@ -192,7 +190,7 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
     # Process sections
     sections_dict = {}
     try:
-        sections_yml = os.path.join(os.path.dirname(filename), "sections.yml")
+        sections_yml = os.path.join(data_dir, "sections.yml")
         if not os.path.exists(sections_yml):
             sections_yml = os.path.join("sections.yml")
         from pymaos_sections import get_sections_from_yaml
@@ -206,22 +204,22 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
     element_list = []
     elements_dict = {}
     for member_data in data.get("members", []):
+        print(member_data)
         member_id = member_data["id"]
         i_node = member_data["i_node"]
 
-        inode=nodes_dict[i_node]
+        inode=nodes_dict[i_node]; assert inode is not None, f"{inode} does not exist"
         inode.is_inode_of_elem_ids.append(member_id)
 
-
-        j_node = member_data["j_node"]
+        j_node = member_data["j_node"]; assert j_node is not None, f"{j_node} does not exist"
         jnode = nodes_dict[j_node]
         jnode.is_jnode_of_elem_ids.append(member_id)
 
-
         mat_id = member_data["material"]
+        assert mat_id in materials_dict, f"{mat_id} not in {materials_dict}"
         sec_id = member_data["section"]
-
-        # Create frame element
+        assert sections_dict[sec_id] is not None, f"Section {sec_id} does not exist"
+        from pyMAOS.frame2d import R2Frame
         element = R2Frame(
             uid=member_id,
             inode=nodes_dict[i_node],
@@ -238,6 +236,7 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
 
     # Process joint loads - always convert to SI units
     for joint_load in data.get("joint_loads", []):
+        print(joint_load)
         node_id = joint_load["node"]
 
         # Parse forces with potential units
@@ -278,10 +277,10 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
             # Extract load intensity parameters with unit conversion
 
             from pyMAOS import INTERNAL_LENGTH_UNIT, INTERNAL_DISTRIBUTED_LOAD_UNIT
-            w1_with_units = pyMAOS.unit_manager.parse_value(str(member_load.get("wi", 0))).to(INTERNAL_DISTRIBUTED_LOAD_UNIT)
-
+            wi=member_load.get("wi", '0 kip/ft')
+            w1_with_units = unit_manager.ureg.Quantity(wi).to(INTERNAL_DISTRIBUTED_LOAD_UNIT)
             if "wj" in member_load:
-                w2_with_units = pyMAOS.unit_manager.parse_value(str(member_load["wj"])).to(INTERNAL_DISTRIBUTED_LOAD_UNIT)
+                w2_with_units = pyMAOS.unit_manager.ureg.Quantity(member_load["wj"]).to(INTERNAL_DISTRIBUTED_LOAD_UNIT)
             else:
                 w2_with_units = w1_with_units
 
@@ -291,14 +290,14 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
                 a_with_units = a_pct / 100.0 * element.length
                 pyMAOS.info(f"  Using a_pct={a_pct}% → position a={a_with_units:.4f}")
             else:
-                a_with_units = pyMAOS.unit_manager.parse_value(str(member_load["a"])).to(INTERNAL_LENGTH_UNIT)
+                a_with_units = pyMAOS.unit_manager.ureg.Quantity(member_load.get('a', '0 ft')).to(INTERNAL_LENGTH_UNIT)
 
             if "b_pct" in member_load:
                 b_pct = float(member_load["b_pct"])
                 b_with_units = b_pct / 100.0 * element.length
                 pyMAOS.info(f"  Using b_pct={b_pct}% → position b={b_with_units:.4f}")
             else:
-                b_with_units = pyMAOS.unit_manager.parse_value(member_load.get("b", element.length)).to(INTERNAL_LENGTH_UNIT)
+                b_with_units = pyMAOS.unit_manager.ureg.Quantity(member_load.get("b", str(element.length))).to(INTERNAL_LENGTH_UNIT)
 
             element.add_distributed_load(w1_with_units, w2_with_units, a_with_units, b_with_units, load_case, direction=direction)
 
@@ -306,13 +305,13 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
             # Parse force magnitude with unit conversion
 
             from pyMAOS import INTERNAL_LENGTH_UNIT, INTERNAL_FORCE_UNIT
-            p_with_units = pyMAOS.unit_manager.parse_value(str(member_load.get("p", 0))).to(INTERNAL_FORCE_UNIT)
+            p_with_units = pyMAOS.unit_manager.ureg.Quantity(member_load.get("p", '0 kpf')).to(INTERNAL_FORCE_UNIT)
             # Parse position - use percentage value if available
             if "a_pct" in member_load:
                 a_pct = float(member_load["a_pct"])
                 a_with_units = a_pct / 100.0 * element.length
             else:
-                a_with_units = pyMAOS.unit_manager.parse_value(str(member_load["a"])).to(INTERNAL_LENGTH_UNIT)
+                a_with_units = pyMAOS.unit_manager.ureg.Quantity(member_load["a"]).to(INTERNAL_LENGTH_UNIT)
             if a_with_units > element.length:
                 pyMAOS.info(f"Warning: Point load position {a_with_units} exceeds element length {element.length}. Clamping to length.")
                 a_with_units = element.length
@@ -328,18 +327,18 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
 
         elif load_type == 2:  # Point moment
             # Parse moment magnitude with unit conversion
-            internal_length_unit = pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT
-            m_with_units = pyMAOS.unit_manager.parse_value(str(member_load.get(internal_length_unit, 0)))
+            internal_length_unit = pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT; internal_moment_unit=pyMAOS.unit_manager.INTERNAL_MOMENT_UNIT
+            m_with_units = pyMAOS.unit_manager.ureg.Quantity(member_load.get('m', '0 klbf*foot'))
 
             # Parse position - use percentage value if available
             if "a_pct" in member_load:
                 a_pct = float(member_load["a_pct"])
                 a = a_pct / 100.0 * element.length
             else:
-                a = float(member_load.get("a", 0.0))
+                a = float(member_load.get("a", '0 foot'))
 
             # Convert to SI units (N·m)
-            m = m_with_units.to('N*m').magnitude if isinstance(m_with_units, pint.Quantity) else m_with_units
+            m = m_with_units.to(internal_moment_unit).magnitude if isinstance(m_with_units, pint.Quantity) else m_with_units
 
             # Log with SI units
             pyMAOS.info(f"  Element {element_id}: Point moment m={m:.4g}, position={a:.4f}")
@@ -350,10 +349,7 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
         elif load_type == 4:  # Axial load
             internal_force_unit = pyMAOS.unit_manager.INTERNAL_FORCE_UNIT
             # Parse axial load with unit conversion
-            p_with_units = pyMAOS.unit_manager.parse_value(str(member_load.get("p", 0)))
-
-            # Convert to SI units (N)
-            p = p_with_units.to(internal_force_unit).magnitude if isinstance(p_with_units, pint.Quantity) else p_with_units
+            p = pyMAOS.unit_manager.ureg.Quantity(member_load.get("p", '0 kpf')).to(internal_force_unit)
 
             # Log with SI units
             pyMAOS.info(f"  Element {element_id}: Axial load p={p:.4g}")
@@ -509,31 +505,30 @@ if __name__ == "__main__":
         unit_manager.ureg.default_system = args.units
         unit_manager.ureg.default_preferred_units = IMPERIAL_DISPLAY_UNITS
         unit_manager.set_display_unit_system(IMPERIAL_DISPLAY_UNITS, args.units)
-        unit_manager.setup_preferred_units(system_name=args.units)
-        pyMAOS.info("Using imperial unit system")
+        # unit_manager.setup_preferred_units(system_name=args.units)
+
     elif args.units == "si":
         unit_manager.set_display_unit_system(SI_UNITS, args.units)
         pyMAOS.info("Using SI unit system")
     elif args.units == "metric_kn":
         unit_manager.set_display_unit_system(METRIC_KN_UNITS, args.units)
         pyMAOS.info("Using metric kN unit system")
-
+    pyMAOS.info(f"Using {unit_manager.system_name} unit system")
     # Get current unit system directly from the manager
-    from pprint import pprint
-    current_units = pyMAOS.unit_manager.get_current_units(); pprint(current_units)
-
-    system_name = pyMAOS.unit_manager.get_system_name(); print(system_name)
+    # from pprint import pprint
+    # current_units = pyMAOS.unit_manager.get_current_units(); pprint(current_units)
+    #
+    # system_name = pyMAOS.unit_manager.get_system_name(); print(system_name)
 
     # Import the R2Structure class
     from pyMAOS.structure2d import R2Structure  # Instead of from pyMAOS.R2Structure import R2Structure
     from frame2d import R2Frame
-    R2Frame.plot_enabled = False
+    R2Frame.plot_enabled = True
 
     loadcombo = LoadCombo("D", {"D": 1.0}, ["D"], False, "SLS")
     # Process based on file extension
     if file_ext == '.bin':
         pyMAOS.info(f"Loading structure state from binary file: {input_file}")
-
 
         from pyMAOS.structure2d import load_structure_state# ,external_verify_structure_state
         try:

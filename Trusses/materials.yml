@@ -1,0 +1,80 @@
+# Common structural engineering materials
+- !!python/object:pyMAOS.pymaos_linear_elastic_material.LinearElasticMaterial
+  uid: 1
+  type: linear
+  E: "29000 * ksi"
+  density: "0.284 * lb/in^3"
+  name: "A36 Structural Steel"
+  link: "https://www.astm.org/a0036_a0036m-19.html"
+
+- !!python/object:pyMAOS.pymaos_linear_elastic_material.LinearElasticMaterial
+  uid: 2
+  type: linear
+  E: "29000 * ksi"
+  density: "0.284 * lb/in^3"
+  name: "A992 Structural Steel"
+  link: "https://www.astm.org/a0992_a0992m-20.html"
+
+- !!python/object:pyMAOS.pymaos_linear_elastic_material.LinearElasticMaterial
+  uid: 3
+  type: linear
+  E: "3600 * ksi"
+  density: "0.087 * lb/in^3"
+  name: "Normal-weight Concrete (4000 psi)"
+  link: "https://www.concrete.org/tools/318buildingcodeportal.aspx"
+
+- !!python/object:pyMAOS.pymaos_linear_elastic_material.LinearElasticMaterial
+  uid: 4
+  type: linear
+  E: "10000 * ksi"
+  density: "0.098 * lb/in^3"
+  name: "6061-T6 Aluminum"
+  link: "https://www.aluminum.org/aluminum-advantage/aluminum-101"
+
+- !!python/object:pyMAOS.pymaos_linear_elastic_material.LinearElasticMaterial
+  uid: 5
+  type: linear
+  E: "1600 * ksi"
+  density: "0.035 * lb/in^3"
+  name: "Douglas Fir (parallel to grain)"
+  link: "https://www.awc.org/codes-standards/publications/nds-2018"
+
+- !!python/object:pyMAOS.pymaos_linear_elastic_material.LinearElasticMaterial
+  uid: 6
+  type: linear
+  E: "16000 * ksi"
+  density: "0.161 * lb/in^3"
+  name: "Grade 5 Titanium (Ti-6Al-4V)"
+  link: "https://www.astm.org/b0265-15.html"
+
+- !!python/object:pyMAOS.pymaos_linear_elastic_material.LinearElasticMaterial
+  uid: 7
+  type: linear
+  E: "28000 * ksi"
+  density: "0.290 * lb/in^3"
+  name: "304 Stainless Steel"
+  link: "https://www.astm.org/a0240_a0240m-20a.html"
+
+- !!python/object:pyMAOS.pymaos_linear_elastic_material.LinearElasticMaterial
+  uid: 8
+  type: linear
+  E: "14500 * ksi"
+  density: "0.260 * lb/in^3"
+  name: "Cast Iron (Gray)"
+  link: "https://www.astm.org/a0048-03r16.html"
+
+- !!python/object:pyMAOS.pymaos_linear_elastic_material.LinearElasticMaterial
+  uid: 9
+  type: linear
+  E: "1100 * ksi"
+  density: "0.02 * lb/in^3"
+  name: "Spruce-Pine-Fir"
+  link: "https://www.awc.org/codes-standards/publications/nds-2018"
+
+- !!python/object:pyMAOS.pymaos_linear_elastic_material.LinearElasticMaterial
+  uid: 10
+  type: linear
+  E: "4500 * ksi"
+  density: "0.105 * lb/in^3"
+  name: "Lightweight Concrete (3000 psi)"
+  link: "https://www.concrete.org/tools/318buildingcodeportal.aspx"

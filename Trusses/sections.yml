@@ -1,0 +1,58 @@
+# Standard W-shapes (Wide Flange)
+- !!python/object:pyMAOS.pymaos_sections.Section
+  uid: 1
+  name: "W12x26"
+  area: 7.65 in**2
+  Ixx: 204 in**4
+  Iyy: 54.1 in**4
+  Zx: 38.6 in**3
+  Zy: 11.8 in**3
+
+- !!python/object:pyMAOS.pymaos_sections.Section
+  uid: 2
+  name: "W8x31"
+  area: 9.13 in**2
+  Ixx: 110 in**4
+  Iyy: 37.1 in**4
+  Zx: 30.4 in**3
+  Zy: 11.5 in**3
+
+# HSS (Hollow Structural Sections)
+- !!python/object:pyMAOS.pymaos_sections.Section
+  uid: 3
+  name: "HSS6x6x3/8"
+  area: 7.58 in**2
+  Ixx: 37.4 in**4
+  Iyy: 37.4 in**4
+  Zx: 12.5 in**3
+  Zy: 12.5 in**3
+
+# Angle sections
+- !!python/object:pyMAOS.pymaos_sections.Section
+  uid: 4
+  name: "L4x4x1/2"
+  area: 3.75 in**2
+  Ixx: 5.56 in**4
+  Iyy: 5.56 in**4
+  Zx: 1.98 in**3
+  Zy: 1.98 in**3
+
+# Round HSS (pipe)
+- !!python/object:pyMAOS.pymaos_sections.Section
+  uid: 5
+  name: "HSS5.563x0.258"
+  area: 4.3 in**2
+  Ixx: 14.1 in**4
+  Iyy: 14.1 in**4
+  Zx: 5.08 in**3
+  Zy: 5.08 in**3
+
+# Channel sections
+- !!python/object:pyMAOS.pymaos_sections.Section
+  uid: 6
+  name: "C10x15.3"
+  area: 4.49 in**2
+  Ixx: 67.4 in**4
+  Iyy: 2.28 in**4
+  Zx: 13.5 in**3
+  Zy: 0.89 in**3

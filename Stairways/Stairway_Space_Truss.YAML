@@ -1,0 +1,661 @@
+design_parameters:
+  name: Cantilevered Stairway with Wall Support
+  author: Structural Design Assistant
+  description: Stairway ascending right to left, attached to wall on back side
+units:
+  force: kip
+  length: ft
+  pressure: ksi
+nodes:
+- id: 1
+  x: 0 ft
+  y: 0 ft
+  z: 0 ft
+- id: 2
+  x: 0 ft
+  y: 4.0 ft
+  z: 0 ft
+- id: 3
+  x: 5.0 ft
+  y: 0 ft
+  z: 0 ft
+- id: 4
+  x: 5.0 ft
+  y: 4.0 ft
+  z: 0 ft
+- id: 5
+  x: 5.0 ft
+  y: 0 ft
+  z: 0.0 ft
+- id: 6
+  x: 5.0 ft
+  y: 4.0 ft
+  z: 0.0 ft
+- id: 7
+  x: 5.833333333333333 ft
+  y: 0 ft
+  z: 0.5833333333333334 ft
+- id: 8
+  x: 5.833333333333333 ft
+  y: 4.0 ft
+  z: 0.5833333333333334 ft
+- id: 9
+  x: 6.666666666666667 ft
+  y: 0 ft
+  z: 1.1666666666666667 ft
+- id: 10
+  x: 6.666666666666667 ft
+  y: 4.0 ft
+  z: 1.1666666666666667 ft
+- id: 11
+  x: 7.5 ft
+  y: 0 ft
+  z: 1.75 ft
+- id: 12
+  x: 7.5 ft
+  y: 4.0 ft
+  z: 1.75 ft
+- id: 13
+  x: 8.333333333333334 ft
+  y: 0 ft
+  z: 2.3333333333333335 ft
+- id: 14
+  x: 8.333333333333334 ft
+  y: 4.0 ft
+  z: 2.3333333333333335 ft
+- id: 15
+  x: 9.166666666666668 ft
+  y: 0 ft
+  z: 2.916666666666667 ft
+- id: 16
+  x: 9.166666666666668 ft
+  y: 4.0 ft
+  z: 2.916666666666667 ft
+- id: 17
+  x: 10.0 ft
+  y: 0 ft
+  z: 3.5 ft
+- id: 18
+  x: 10.0 ft
+  y: 4.0 ft
+  z: 3.5 ft
+- id: 19
+  x: 10.833333333333334 ft
+  y: 0 ft
+  z: 4.083333333333334 ft
+- id: 20
+  x: 10.833333333333334 ft
+  y: 4.0 ft
+  z: 4.083333333333334 ft
+- id: 21
+  x: 11.666666666666668 ft
+  y: 0 ft
+  z: 4.666666666666667 ft
+- id: 22
+  x: 11.666666666666668 ft
+  y: 4.0 ft
+  z: 4.666666666666667 ft
+- id: 23
+  x: 12.5 ft
+  y: 0 ft
+  z: 5.25 ft
+- id: 24
+  x: 12.5 ft
+  y: 4.0 ft
+  z: 5.25 ft
+- id: 25
+  x: 13.333333333333334 ft
+  y: 0 ft
+  z: 5.833333333333334 ft
+- id: 26
+  x: 13.333333333333334 ft
+  y: 4.0 ft
+  z: 5.833333333333334 ft
+- id: 27
+  x: 14.166666666666668 ft
+  y: 0 ft
+  z: 6.416666666666667 ft
+- id: 28
+  x: 14.166666666666668 ft
+  y: 4.0 ft
+  z: 6.416666666666667 ft
+- id: 29
+  x: 15.0 ft
+  y: 0 ft
+  z: 7.0 ft
+- id: 30
+  x: 15.0 ft
+  y: 4.0 ft
+  z: 7.0 ft
+- id: 31
+  x: 15.0 ft
+  y: 0 ft
+  z: 7.0 ft
+- id: 32
+  x: 15.0 ft
+  y: 4.0 ft
+  z: 7.0 ft
+- id: 33
+  x: 20.0 ft
+  y: 0 ft
+  z: 7.0 ft
+- id: 34
+  x: 20.0 ft
+  y: 4.0 ft
+  z: 7.0 ft
+- id: 35
+  x: 20.0 ft
+  y: 0 ft
+  z: 0 ft
+supports:
+- node: 2
+  ux: 1
+  uy: 1
+  uz: 1
+  rx: 0
+  ry: 0
+  rz: 0
+- node: 6
+  ux: 1
+  uy: 1
+  uz: 1
+  rx: 0
+  ry: 0
+  rz: 0
+- node: 12
+  ux: 1
+  uy: 1
+  uz: 1
+  rx: 0
+  ry: 0
+  rz: 0
+- node: 18
+  ux: 1
+  uy: 1
+  uz: 1
+  rx: 0
+  ry: 0
+  rz: 0
+- node: 24
+  ux: 1
+  uy: 1
+  uz: 1
+  rx: 0
+  ry: 0
+  rz: 0
+- node: 30
+  ux: 1
+  uy: 1
+  uz: 1
+  rx: 0
+  ry: 0
+  rz: 0
+- node: 34
+  ux: 1
+  uy: 1
+  uz: 1
+  rx: 0
+  ry: 0
+  rz: 0
+- node: 35
+  ux: 1
+  uy: 1
+  uz: 1
+  rx: 0
+  ry: 0
+  rz: 0
+members:
+- id: 1
+  i_node: 1
+  j_node: 3
+  material: 1
+  section: 1
+- id: 2
+  i_node: 2
+  j_node: 4
+  material: 1
+  section: 1
+- id: 3
+  i_node: 1
+  j_node: 2
+  material: 1
+  section: 2
+- id: 4
+  i_node: 3
+  j_node: 4
+  material: 1
+  section: 2
+- id: 5
+  i_node: 5
+  j_node: 7
+  material: 1
+  section: 1
+- id: 6
+  i_node: 7
+  j_node: 9
+  material: 1
+  section: 1
+- id: 7
+  i_node: 9
+  j_node: 11
+  material: 1
+  section: 1
+- id: 8
+  i_node: 11
+  j_node: 13
+  material: 1
+  section: 1
+- id: 9
+  i_node: 13
+  j_node: 15
+  material: 1
+  section: 1
+- id: 10
+  i_node: 15
+  j_node: 17
+  material: 1
+  section: 1
+- id: 11
+  i_node: 17
+  j_node: 19
+  material: 1
+  section: 1
+- id: 12
+  i_node: 19
+  j_node: 21
+  material: 1
+  section: 1
+- id: 13
+  i_node: 21
+  j_node: 23
+  material: 1
+  section: 1
+- id: 14
+  i_node: 23
+  j_node: 25
+  material: 1
+  section: 1
+- id: 15
+  i_node: 25
+  j_node: 27
+  material: 1
+  section: 1
+- id: 16
+  i_node: 27
+  j_node: 29
+  material: 1
+  section: 1
+- id: 17
+  i_node: 6
+  j_node: 8
+  material: 1
+  section: 1
+- id: 18
+  i_node: 8
+  j_node: 10
+  material: 1
+  section: 1
+- id: 19
+  i_node: 10
+  j_node: 12
+  material: 1
+  section: 1
+- id: 20
+  i_node: 12
+  j_node: 14
+  material: 1
+  section: 1
+- id: 21
+  i_node: 14
+  j_node: 16
+  material: 1
+  section: 1
+- id: 22
+  i_node: 16
+  j_node: 18
+  material: 1
+  section: 1
+- id: 23
+  i_node: 18
+  j_node: 20
+  material: 1
+  section: 1
+- id: 24
+  i_node: 20
+  j_node: 22
+  material: 1
+  section: 1
+- id: 25
+  i_node: 22
+  j_node: 24
+  material: 1
+  section: 1
+- id: 26
+  i_node: 24
+  j_node: 26
+  material: 1
+  section: 1
+- id: 27
+  i_node: 26
+  j_node: 28
+  material: 1
+  section: 1
+- id: 28
+  i_node: 28
+  j_node: 30
+  material: 1
+  section: 1
+- id: 29
+  i_node: 5
+  j_node: 6
+  material: 1
+  section: 2
+- id: 30
+  i_node: 7
+  j_node: 8
+  material: 1
+  section: 2
+- id: 31
+  i_node: 9
+  j_node: 10
+  material: 1
+  section: 2
+- id: 32
+  i_node: 11
+  j_node: 12
+  material: 1
+  section: 2
+- id: 33
+  i_node: 13
+  j_node: 14
+  material: 1
+  section: 2
+- id: 34
+  i_node: 15
+  j_node: 16
+  material: 1
+  section: 2
+- id: 35
+  i_node: 17
+  j_node: 18
+  material: 1
+  section: 2
+- id: 36
+  i_node: 19
+  j_node: 20
+  material: 1
+  section: 2
+- id: 37
+  i_node: 21
+  j_node: 22
+  material: 1
+  section: 2
+- id: 38
+  i_node: 23
+  j_node: 24
+  material: 1
+  section: 2
+- id: 39
+  i_node: 25
+  j_node: 26
+  material: 1
+  section: 2
+- id: 40
+  i_node: 27
+  j_node: 28
+  material: 1
+  section: 2
+- id: 41
+  i_node: 29
+  j_node: 30
+  material: 1
+  section: 2
+- id: 42
+  i_node: 3
+  j_node: 5
+  material: 1
+  section: 1
+- id: 43
+  i_node: 4
+  j_node: 6
+  material: 1
+  section: 1
+- id: 44
+  i_node: 31
+  j_node: 33
+  material: 1
+  section: 1
+- id: 45
+  i_node: 32
+  j_node: 34
+  material: 1
+  section: 1
+- id: 46
+  i_node: 31
+  j_node: 32
+  material: 1
+  section: 2
+- id: 47
+  i_node: 33
+  j_node: 34
+  material: 1
+  section: 2
+- id: 48
+  i_node: 29
+  j_node: 31
+  material: 1
+  section: 1
+- id: 49
+  i_node: 30
+  j_node: 32
+  material: 1
+  section: 1
+- id: 50
+  i_node: 35
+  j_node: 33
+  material: 1
+  section: 5
+- id: 51
+  i_node: 5
+  j_node: 10
+  material: 1
+  section: 4
+- id: 52
+  i_node: 6
+  j_node: 9
+  material: 1
+  section: 4
+- id: 53
+  i_node: 9
+  j_node: 14
+  material: 1
+  section: 4
+- id: 54
+  i_node: 10
+  j_node: 13
+  material: 1
+  section: 4
+- id: 55
+  i_node: 13
+  j_node: 18
+  material: 1
+  section: 4
+- id: 56
+  i_node: 14
+  j_node: 17
+  material: 1
+  section: 4
+- id: 57
+  i_node: 17
+  j_node: 22
+  material: 1
+  section: 4
+- id: 58
+  i_node: 18
+  j_node: 21
+  material: 1
+  section: 4
+- id: 59
+  i_node: 21
+  j_node: 26
+  material: 1
+  section: 4
+- id: 60
+  i_node: 22
+  j_node: 25
+  material: 1
+  section: 4
+- id: 61
+  i_node: 25
+  j_node: 30
+  material: 1
+  section: 4
+- id: 62
+  i_node: 26
+  j_node: 29
+  material: 1
+  section: 4
+member_loads:
+- member_uid: 1
+  load_type: 3
+  wi: -0.1 kip/ft
+  wj: -0.1 kip/ft
+  a: 0 ft
+  b: 5.0 ft
+  case: L
+- member_uid: 2
+  load_type: 3
+  wi: -0.1 kip/ft
+  wj: -0.1 kip/ft
+  a: 0 ft
+  b: 5.0 ft
+  case: L
+- member_uid: 3
+  load_type: 3
+  wi: -0.1 kip/ft
+  wj: -0.1 kip/ft
+  a: 0 ft
+  b: 4.0 ft
+  case: L
+- member_uid: 4
+  load_type: 3
+  wi: -0.1 kip/ft
+  wj: -0.1 kip/ft
+  a: 0 ft
+  b: 4.0 ft
+  case: L
+- member_uid: 29
+  load_type: 3
+  wi: -0.15 kip/ft
+  wj: -0.15 kip/ft
+  a: 0 ft
+  b: 4.0 ft
+  case: L
+- member_uid: 30
+  load_type: 3
+  wi: -0.15 kip/ft
+  wj: -0.15 kip/ft
+  a: 0 ft
+  b: 4.0 ft
+  case: L
+- member_uid: 31
+  load_type: 3
+  wi: -0.15 kip/ft
+  wj: -0.15 kip/ft
+  a: 0 ft
+  b: 4.0 ft
+  case: L
+- member_uid: 32
+  load_type: 3
+  wi: -0.15 kip/ft
+  wj: -0.15 kip/ft
+  a: 0 ft
+  b: 4.0 ft
+  case: L
+- member_uid: 33
+  load_type: 3
+  wi: -0.15 kip/ft
+  wj: -0.15 kip/ft
+  a: 0 ft
+  b: 4.0 ft
+  case: L
+- member_uid: 34
+  load_type: 3
+  wi: -0.15 kip/ft
+  wj: -0.15 kip/ft
+  a: 0 ft
+  b: 4.0 ft
+  case: L
+- member_uid: 35
+  load_type: 3
+  wi: -0.15 kip/ft
+  wj: -0.15 kip/ft
+  a: 0 ft
+  b: 4.0 ft
+  case: L
+- member_uid: 36
+  load_type: 3
+  wi: -0.15 kip/ft
+  wj: -0.15 kip/ft
+  a: 0 ft
+  b: 4.0 ft
+  case: L
+- member_uid: 37
+  load_type: 3
+  wi: -0.15 kip/ft
+  wj: -0.15 kip/ft
+  a: 0 ft
+  b: 4.0 ft
+  case: L
+- member_uid: 38
+  load_type: 3
+  wi: -0.15 kip/ft
+  wj: -0.15 kip/ft
+  a: 0 ft
+  b: 4.0 ft
+  case: L
+- member_uid: 39
+  load_type: 3
+  wi: -0.15 kip/ft
+  wj: -0.15 kip/ft
+  a: 0 ft
+  b: 4.0 ft
+  case: L
+- member_uid: 40
+  load_type: 3
+  wi: -0.15 kip/ft
+  wj: -0.15 kip/ft
+  a: 0 ft
+  b: 4.0 ft
+  case: L
+- member_uid: 41
+  load_type: 3
+  wi: -0.15 kip/ft
+  wj: -0.15 kip/ft
+  a: 0 ft
+  b: 4.0 ft
+  case: L
+sections:
+- id: 1
+  area: 7.65 in^2
+  r: 4.91 in
+- id: 2
+  area: 5.61 in^2
+  r: 3.02 in
+- id: 3
+  area: 4.44 in^2
+  r: 2.48 in
+- id: 4
+  area: 3.75 in^2
+  r: 1.22 in
+- id: 5
+  area: 10.3 in^2
+  r: 4.19 in
+materials:
+- id: 1
+  type: isotropic
+  E: 29000 ksi
+  G: 11500 ksi
+  nu: 0.27
+  rho: 0.000284 kip/in^3
+  alpha: 0.0000065 1/F

@@ -169,8 +169,6 @@ class UnitManager:
         if self.system_name=="imperial" or True:
             self.INTERNAL_AREA_UNIT = f"{self.INTERNAL_LENGTH_UNIT}^2"
             self.INTERNAL_VOLUME_UNIT = f"{self.INTERNAL_LENGTH_UNIT}^3"
-            # self.INTERNAL_AREA_UNIT = IMPERIAL_DISPLAY_UNITS['area']
-            # self.INTERNAL_VOLUME_UNIT = IMPERIAL_DISPLAY_UNITS['volume']
         else:
             self.INTERNAL_AREA_UNIT = f"{self.INTERNAL_LENGTH_UNIT}^2"
             self.INTERNAL_VOLUME_UNIT = IMPERIAL_DISPLAY_UNITS['volume']
@@ -184,45 +182,6 @@ class UnitManager:
             self.INTERNAL_PRESSURE_UNIT = 'Pa'  # SI pressure unit
         self.INTERNAL_PRESSURE_UNIT_EXPANDED = f"{self.INTERNAL_FORCE_UNIT}/{self.INTERNAL_LENGTH_UNIT}^2"
         self.INTERNAL_DISTRIBUTED_LOAD_UNIT = f"{self.INTERNAL_FORCE_UNIT}/{self.INTERNAL_LENGTH_UNIT}"
-
-    # def set_internal_units(self, force=None, length=None, time=None, rotation=None, mass=None):
-    #     """
-    #     Update the internal base units and recalculate derived units
-    #
-    #     Parameters
-    #     ----------
-    #     force : str, optional
-    #         Base force unit
-    #     length : str, optional
-    #         Base length unit
-    #     time : str, optional
-    #         Base time unit
-    #     rotation : str, optional
-    #         Base rotation unit
-    #     mass : str, optional
-    #         Base mass unit
-    #     """
-    #     if force is not None:
-    #         self.INTERNAL_FORCE_UNIT = force
-    #     if length is not None:
-    #         self.INTERNAL_LENGTH_UNIT = length
-    #     if time is not None:
-    #         self.INTERNAL_TIME_UNIT = time
-    #     if rotation is not None:
-    #         self.INTERNAL_ROTATION_UNIT = rotation
-    #     if mass is not None:
-    #         self.INTERNAL_MASS_UNIT = mass
-    #
-    #     # Update derived units based on new base units
-    #     self._update_derived_units()
-    #     print(f"DEBUG: Internal base units updated - Force: {self.INTERNAL_FORCE_UNIT}, Length: {self.INTERNAL_LENGTH_UNIT}, Mass: {self.INTERNAL_MASS_UNIT}")
-    #
-    #     # Notify all registered modules of unit changes
-    #     for module_update_func in self.registered_modules:
-    #         try:
-    #             module_update_func(self.current_system)
-    #         except Exception as e:
-    #             print(f"Error updating module with new units: {e}")
 
     def get_internal_unit(self, unit_type):
         """
@@ -262,7 +221,7 @@ class UnitManager:
                 '[mass]': 'pound',
                 '[force]': 'kip',
                 '[pressure]': 'klbf/foot**2',
-                '[angle]': 'degree',
+                '[angle]': 'rad',
             }
 
             # 3. Set preferred units in the registry
@@ -295,7 +254,7 @@ class UnitManager:
         pint.Quantity
             The quantity converted to the preferred unit in the target system
         """
-        if not isinstance(quantity, self.ureg.Quantity):
+        if not isinstance(quantity, pint.Quantity):
             print(f"DEBUG: Not a quantity object: {quantity}, returning unchanged")
             return quantity
 

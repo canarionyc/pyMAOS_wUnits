@@ -118,7 +118,7 @@ def display_member_forces_in_units(forces, member_uid, force_unit=None, length_u
     Parameters
     ----------
     forces : list or ndarray
-        Vector of [Fx1, Fy1, Mz1, Fx2, Fy2, Mz2]
+        Vector of [Fx1, Fy1, Mz1, Fx2, Fy2, Mz]
     member_uid : int
         Member ID
     force_unit : str, optional

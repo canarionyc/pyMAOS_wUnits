@@ -1,7 +1,7 @@
-﻿import sys
+﻿
 import pint
-from pint import Quantity
-from typing import TYPE_CHECKING, Any
+
+from typing import TYPE_CHECKING
 # from pyMAOS.display_utils import display_node_load_vector_in_units
 import numpy as np
 from pyMAOS.loading.piecewisePolinomial import PiecewisePolynomial
@@ -13,6 +13,8 @@ from pyMAOS import (# SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS,
     FORCE_DIMENSIONALITY, LENGTH_DIMENSIONALITY, MOMENT_DIMENSIONALITY, PRESSURE_DIMENSIONALITY, DISTRIBUTED_LOAD_DIMENSIONALITY,
     unit_manager
 )
+from pyMAOS.quantity_utils import uniquify_same_unit_quantities
+import matplotlib.pyplot as plt
 
 from pprint import pprint
 
@@ -84,8 +86,8 @@ class LinearLoadXY:
                   ) / (6 * L)
 
         # Constants for the bending moment function (Mz)
-        # Use unit_manager.ureg instead of direct import
-        self.c04 = pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_MOMENT_UNIT)  # Zero moment at x=0 for fixed-end condition
+        zero_internal_moment = pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_MOMENT_UNIT)
+        self.c04 = zero_internal_moment # Zero moment at x=0 for fixed-end condition
         self.c05 = (
                 -1
                 * ((a * a * a * w2) + ((2 * a * a * a - 3 * a * a * b) * w1))
@@ -216,46 +218,30 @@ class LinearLoadXY:
         #
         # Format: [[coefficients], [domain_bounds]]
         # where coefficients = [c₀, c₁, c₂...] representing c₀ + c₁x + c₂x² + ...
-
-        # Use wrapped ndarrays for quantity arrays
-        zero_dist_load = pyMAOS.unit_manager.ureg.Quantity(np.array([0.0]), pyMAOS.unit_manager.INTERNAL_DISTRIBUTED_LOAD_UNIT)
-
+        zero_internal_length=pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT)
+        zero_internal_distributed_load=pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_DISTRIBUTED_LOAD_UNIT)
         Wy = [
-            [[zero_dist_load], [pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT), self.a]],
+            [[zero_internal_distributed_load], [zero_internal_length, self.a]],
             [
                 [
-                    pyMAOS.unit_manager.ureg.Quantity(
-                        ((-1 * self.a.magnitude * self.w2.magnitude) - (self.c.magnitude * self.w1.magnitude) - (self.a.magnitude * self.w1.magnitude))
-                        / self.c.magnitude,
-                        pyMAOS.unit_manager.INTERNAL_DISTRIBUTED_LOAD_UNIT
-                    ),
-                    pyMAOS.unit_manager.ureg.Quantity(
-                        (self.w2.magnitude - self.w1.magnitude) / self.c.magnitude,
-                        f"{pyMAOS.unit_manager.INTERNAL_DISTRIBUTED_LOAD_UNIT}/{pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT}"
-                    )
+                    ((-1 * self.a * self.w2) - (self.c * self.w1) - (self.a * self.w1))
+                    / self.c,
+                    (self.w2 - self.w1) / self.c,
                 ],
                 [self.a, self.b],
             ],
-            [[zero_dist_load], [self.b, self.L]],
+            [[zero_internal_distributed_load], [self.b, self.L]],
         ]; print("Wy:\n", Wy)
 
         Vy = [
-            [[self.c01], [unit_manager.ureg.Quantity(0, INTERNAL_LENGTH_UNIT), self.a]],
+            [[self.c01], [zero_internal_length, self.a]],
             [
                 [
                     self.c02,
-                    # Convert coefficients to use wrapped ndarrays with proper units
-                    pyMAOS.unit_manager.ureg.Quantity(
-                        np.array([
-                            self.w1.magnitude + ((self.a.magnitude * self.w1.magnitude) / self.c.magnitude)
-                            - ((self.a.magnitude * self.w2.magnitude) / self.c.magnitude)
-                        ]),
-                        self.w1.units
-                    ),
-                    pyMAOS.unit_manager.ureg.Quantity(
-                        np.array([(self.w2.magnitude / (2 * self.c.magnitude)) - (self.w1.magnitude / (2 * self.c.magnitude))]),
-                        f"{self.w2.units}/{pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT}"
-                    )
+                    self.w1
+                    + ((self.a * self.w1) / self.c)
+                    - ((self.a * self.w2) / self.c),
+                    (self.w2 / (2 * self.c)) - (self.w1 / (2 * self.c)),
                 ],
                 [self.a, self.b],
             ],
@@ -263,7 +249,7 @@ class LinearLoadXY:
         ]; print("Vy:\n", Vy)
 
         Mz = [
-            [[self.c04, self.c01], [unit_manager.ureg.Quantity(0, INTERNAL_LENGTH_UNIT), self.a]],
+            [[self.c04, self.c01], [zero_internal_length, self.a]],
             [
                 [
                     self.c05,
@@ -279,7 +265,7 @@ class LinearLoadXY:
         ]; print("Mz:\n", Mz)
 
         Sz = [
-            [[self.c07, self.c04, 0.5 * self.c01], [unit_manager.ureg.Quantity(0, INTERNAL_LENGTH_UNIT), self.a]],
+            [[self.c07, self.c04, 0.5 * self.c01], [zero_internal_length, self.a]],
             [
                 [
                     self.c08,
@@ -294,23 +280,14 @@ class LinearLoadXY:
             ],
             [[self.c09, self.c06, 0.5 * self.c03], [self.b, self.L]],
         ]
-        Sz[0][0] = pyMAOS.unit_manager.ureg.Quantity(
-            np.array([coef.magnitude for coef in Sz[0][0]]) / EI.magnitude,
-            f"{Sz[0][0][0].units}/{EI.units}"
-        )
-        Sz[1][0] = pyMAOS.unit_manager.ureg.Quantity(
-            np.array([coef.magnitude for coef in Sz[1][0]]) / EI.magnitude,
-            f"{Sz[1][0][0].units}/{EI.units}"
-        )
-        Sz[2][0] = pyMAOS.unit_manager.ureg.Quantity(
-            np.array([coef.magnitude for coef in Sz[2][0]]) / EI.magnitude,
-            f"{Sz[2][0][0].units}/{EI.units}"
-        )
+        Sz[0][0] = [i / EI for i in Sz[0][0]]
+        Sz[1][0] = [i / EI for i in Sz[1][0]]
+        Sz[2][0] = [i / EI for i in Sz[2][0]]
 
         print("Sz:\n", Sz)
 
         Dy = [
-            [[self.c10, self.c07, 0.5 * self.c04, self.c01 / 6], [unit_manager.ureg.Quantity(0, INTERNAL_LENGTH_UNIT), self.a]],
+            [[self.c10, self.c07, 0.5 * self.c04, self.c01 / 6], [zero_internal_length, self.a]],
             [
                 [
                     self.c11,
@@ -333,7 +310,7 @@ class LinearLoadXY:
         Dy[0][0] = [i / EI for i in Dy[0][0]]
         Dy[1][0] = [i / EI for i in Dy[1][0]]
         Dy[2][0] = [i / EI for i in Dy[2][0]]
-        print("Dy:\n", Dy)
+
         import inspect
         print(f"{inspect.getfile(inspect.currentframe())}:{inspect.currentframe().f_lineno}")
         print("Dy:", Dy, sep="\n")
@@ -341,12 +318,12 @@ class LinearLoadXY:
         # self.Wx = PiecewisePolynomial()  # Axial Load Function
         self.Wy = PiecewisePolynomial(Wy); print("Wy:", self.Wy, sep="\n") # Vertical Load Function
 
-        self.Ax = PiecewisePolynomial()
-        self.Dx = PiecewisePolynomial()
+        self.Ax = PiecewisePolynomial2()
+        self.Dx = PiecewisePolynomial2()
         from pprint import pprint; pprint(Vy); self.Vy = PiecewisePolynomial(Vy); print("Vy:", self.Vy, sep="\n")
-        print("Mz="); pprint(Mz, width=240); self.Mz = PiecewisePolynomial(Mz); print("Mz:", self.Mz, sep="\n") # this is a moment
-        print("Sz="); pprint(Sz, width=240); self.Sz = PiecewisePolynomial(Sz); print("Sz:", self.Sz,sep="\n") # this is an angle
-        print("Dy="); pprint(Dy, width=240); self.Dy = PiecewisePolynomial(Dy); print("Dy:", self.Dy,sep="\n")
+        # print("Mz="); pprint(Mz, width=240); self.Mz = PiecewisePolynomial(Mz); print("Mz:", self.Mz, sep="\n") # this is a moment
+        # print("Sz="); pprint(Sz, width=240); self.Sz = PiecewisePolynomial(Sz); print("Sz:", self.Sz,sep="\n") # this is an angle
+        # print("Dy="); pprint(Dy, width=240); self.Dy = PiecewisePolynomial(Dy); print("Dy:", self.Dy,sep="\n")
 
         # After creating all polynomial objects
         # fig = self.plot_all_functions()
@@ -354,21 +331,19 @@ class LinearLoadXY:
 
 
         # Create PiecewisePolynomial2 objects for each function
-        self.Wy2 = PiecewisePolynomial2(Wy)
-        self.Vy2 = PiecewisePolynomial2(Vy)
-        self.Mz2 = PiecewisePolynomial2(Mz)
-        self.Sz2 = PiecewisePolynomial2(Sz)
-        self.Dy2 = PiecewisePolynomial2(Dy)
+        self.Wy = PiecewisePolynomial2(Wy)
+        self.Vy = PiecewisePolynomial2(Vy)
+        self.Mz = PiecewisePolynomial2(Mz)
+        self.Sz = PiecewisePolynomial2(Sz)
+        self.Dy = PiecewisePolynomial2(Dy)
         # Print the PiecewisePolynomial2 objects
-        print("Wy2:", self.Wy2)
-        print("Vy2:", self.Vy2)
-        print("Mz2:", self.Mz2)
-        print("Sz2:", self.Sz2)
-        print("Dy2:", self.Dy2)
+        print("Wy:", self.Wy)
+        print("Vy:", self.Vy)
+        print("Mz:", self.Mz)
+        print("Sz:", self.Sz)
+        print("Dy:", self.Dy)
 
-        # After creating PiecewisePolynomial2 objects
-        ppoly_fig = self.plot_all_ppoly_functions()
-        ppoly_fig.show()  # If you want to display immediately
+
 
 
     def load_fef(self):
@@ -441,36 +416,9 @@ class LinearLoadXY:
         # print(f"Moments - Display: Miz={Miz_display:.3f}, Mjz={Mjz_display:.3f}")
 
         # Create zeros with appropriate units
-        zero_force = pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT)
+        zero_internal_force = pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT)
 
-        # Use numpy array with units for return value
-        ret_val = pyMAOS.unit_manager.ureg.Quantity(
-            np.array([0.0, Riy.magnitude, Miz.magnitude, 0.0, Rjy.magnitude, Mjz.magnitude]),
-            [pyMAOS.unit_manager.INTERNAL_FORCE_UNIT, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT,
-             pyMAOS.unit_manager.INTERNAL_MOMENT_UNIT, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT,
-             pyMAOS.unit_manager.INTERNAL_FORCE_UNIT, pyMAOS.unit_manager.INTERNAL_MOMENT_UNIT]
-        )
-
-        # Print forces and moments in both SI and display units
-        #from pyMAOS.units_mod import convert_to_display_units
-        from pyMAOS.pymaos_units import FORCE_DISPLAY_UNIT, MOMENT_DISPLAY_UNIT
-        # Get current unit system directly from the manager
-        # current_units = unit_manager.get_current_units()
-        # system_name = unit_manager.get_system_name()
-        # Riy_display = Riy.to(FORCE_DISPLAY_UNIT)
-        # Rjy_display = Rjy.to(FORCE_DISPLAY_UNIT)
-        # Miz_display = Miz.to(MOMENT_DISPLAY_UNIT)
-        # Mjz_display = Mjz.to(MOMENT_DISPLAY_UNIT)
-        #
-        # print(f"Vertical reactions - SI: Riy={Riy:.3f} N, Rjy={Rjy:.3f} N")
-        # print(f"Vertical reactions - Display: Riy={Riy_display:.3f}, Rjy={Rjy_display:.3f}")
-        # print(f"Moments - SI: Miz={Miz:.3f} N*m, Mjz={Mjz:.3f} N*m")
-        # print(f"Moments - Display: Miz={Miz_display:.3f}, Mjz={Mjz_display:.3f}")
-
-        # Create zeros with appropriate units
-        zero_force = pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT)
-
-        ret_val = np.array([pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT), Riy, Miz, pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS unit_manager.INTERNAL_FORCE_UNIT), Rjy, Mjz], dtype=object)
+        ret_val = np.array([zero_internal_force, Riy, Miz, zero_internal_force, Rjy, Mjz], dtype=object)
         print(f"FEF distributed load results on member {self.member_uid} for Load Case {self.loadcase}:", ret_val, sep="\n")
 
         # Final dimension check for return values
@@ -513,7 +461,6 @@ class LinearLoadXY:
             Height of ASCII charts in characters
         """
 
-        
         import numpy as np
 
         # Get current unit system directly from the manager
@@ -532,36 +479,43 @@ class LinearLoadXY:
         all_x = []
         for i, (start, end) in enumerate(regions):
             if end > start:  # Only if region has non-zero width
-                points = [start + j*(end-start)/num_points for j in range(num_points+1)]
-                # points=np.linspace(start, end, num_points+1).tolist()
+                # points = [start + j*(end-start)/num_points for j in range(num_points+1)]
+                points=np.linspace(start, end, num_points+1)
                 print(f"Region {i+1} ({region_names[i]}): {points}")
                 # Don't duplicate boundary points
                 if i > 0 and len(all_x) > 0:
                     points = points[1:]
                 all_x.extend(points)
 
+        from pyMAOS.quantity_utils import convert_to_quantity_array
+        all_x_qa = convert_to_quantity_array(all_x)
         # Convert to numpy array
-        x_array = np.array(all_x, dtype=object)
+        # x_array = np.array(all_x, dtype=object)
 
         # Calculate function values using vectorized evaluation
-        wy_values = self.Wy.evaluate_vectorized(x_array)
-        vy_values = self.Vy.evaluate_vectorized(x_array)
-        mz_values = self.Mz.evaluate_vectorized(x_array)
-        sz_values = self.Sz.evaluate_vectorized(x_array)
-        dy_values = self.Dy.evaluate_vectorized(x_array)
+        wy_values = self.Wy.evaluate_vectorized(all_x_qa)
+        vy_values = self.Vy.evaluate_vectorized(all_x_qa)
+        mz_values = self.Mz.evaluate_vectorized(all_x_qa)
+        sz_values = self.Sz.evaluate_vectorized(all_x_qa)
+        dy_values = self.Dy.evaluate_vectorized(all_x_qa)
+
+        plt.plot(all_x_qa, dy_values)
+        plt.show()
 
         # Print ASCII charts
-        self._print_ascii_chart("Distributed Load (Wy)", all_x, wy_values, regions, chart_width, chart_height)
-        self._print_ascii_chart("Shear Force (Vy)", all_x, vy_values, regions, chart_width, chart_height)
-        self._print_ascii_chart("Bending Moment (Mz)", all_x, mz_values, regions, chart_width, chart_height)
-        self._print_ascii_chart("Rotation (Sz)", all_x, sz_values, regions, chart_width, chart_height)
-        self._print_ascii_chart("Deflection (Dy)", all_x, dy_values, regions, chart_width, chart_height)
+        self._print_ascii_chart("Deflection (Dy)", all_x_qa, dy_values, regions, chart_width, chart_height)
+
+        self._print_ascii_chart("Distributed Load (Wy)", all_x_qa, wy_values, regions, chart_width, chart_height)
+        self._print_ascii_chart("Shear Force (Vy)", all_x_qa, vy_values, regions, chart_width, chart_height)
+        self._print_ascii_chart("Bending Moment (Mz)", all_x_qa, mz_values, regions, chart_width, chart_height)
+        self._print_ascii_chart("Rotation (Sz)", all_x_qa, sz_values, regions, chart_width, chart_height)
+
 
         # Print table of values at region boundaries
         print("\n===== VALUES AT KEY POINTS =====")
         print(f"{'Position':15} {'Load':15} {'Shear':15} {'Moment':15} {'Rotation':15} {'Deflection':15}")
         print("-" * 90)
-        for x in [0, self.a, self.b, self.L]:
+        for x in uniquify_same_unit_quantities([zero_length, self.a, self.b, self.L]):
             print(f"{x:15.3f} {self.Wy.evaluate(x):15.3f} {self.Vy.evaluate(x):15.3f} {self.Mz.evaluate(x):15.3f} "
                   f"{self.Sz.evaluate(x):15.3e} {self.Dy.evaluate(x):15.3e}")
     
@@ -781,16 +735,16 @@ class LinearLoadXY:
 
         # Collect all non-empty PiecewisePolynomial2 objects
         functions = []
-        if hasattr(self, 'Wy2') and self.Wy2.ppoly is not None:
-            functions.append(('Wy2', self.Wy2, 'blue', 'Distributed Load'))
-        if hasattr(self, 'Vy2') and self.Vy2.ppoly is not None:
-            functions.append(('Vy2', self.Vy2, 'red', 'Shear Force'))
-        if hasattr(self, 'Mz2') and self.Mz2.ppoly is not None:
-            functions.append(('Mz2', self.Mz2, 'green', 'Bending Moment'))
-        if hasattr(self, 'Sz2') and self.Sz2.ppoly is not None:
-            functions.append(('Sz2', self.Sz2, 'purple', 'Rotation'))
-        if hasattr(self, 'Dy2') and self.Dy2.ppoly is not None:
-            functions.append(('Dy2', self.Dy2, 'orange', 'Deflection'))
+        if hasattr(self, 'Wy') and self.Wy.ppoly is not None:
+            functions.append(('Wy', self.Wy, 'blue', 'Distributed Load'))
+        if hasattr(self, 'Vy') and self.Vy.ppoly is not None:
+            functions.append(('Vy', self.Vy, 'red', 'Shear Force'))
+        if hasattr(self, 'Mz') and self.Mz.ppoly is not None:
+            functions.append(('Mz', self.Mz, 'green', 'Bending Moment'))
+        if hasattr(self, 'Sz') and self.Sz.ppoly is not None:
+            functions.append(('Sz', self.Sz, 'purple', 'Rotation'))
+        if hasattr(self, 'Dy') and self.Dy.ppoly is not None:
+            functions.append(('Dy', self.Dy, 'orange', 'Deflection'))
 
         # Return early if no functions to plot
         if not functions:
@@ -843,4 +797,3 @@ class LinearLoadXY:
             ax.grid(True, linestyle='--', alpha=0.7)
 
         return fig
-

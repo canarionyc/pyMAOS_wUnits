@@ -28,7 +28,7 @@ def load_frame_from_file_new(filename, logger=None):
     try:
         # Import the conversion utility
         sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), "examples"))
-        from pyMAOS.convert_units import convert_json_to_si
+        from units.convert_units import convert_json_to_si
 
         # Create output filename with _SI suffix - without using Path module
         base_name = os.path.basename(filename)

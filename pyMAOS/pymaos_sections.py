@@ -1,6 +1,7 @@
 import numpy as np
 import pyMAOS
 from pyMAOS.unit_aware import UnitAwareMixin
+from quantity_utils import convert_registry
 
 from typing import Union
 import pint
@@ -113,27 +114,67 @@ class Section():
     def __setstate__(self, state):
         """
         Restore the object state during unpickling.
+
+        Parameters
+        ----------
+        state : dict
+            Dictionary containing the object state
         """
-        # Get values from state
-        uid = state.get('uid', 0)
+        # Handle Area value properly based on its type
+        area_value = state.get('Area', "1.0 in^2")
+        if isinstance(area_value, (int, float)):
+            pyMAOS.warning(f"assuming Area {area_value} is in {pyMAOS.unit_manager.INTERNAL_AREA_UNIT}")
+            area_quantity = pyMAOS.unit_manager.ureg.Quantity(area_value, pyMAOS.unit_manager.INTERNAL_AREA_UNIT)
+        elif isinstance(area_value, pint.Quantity):
+            # If it's already a Quantity object, use it directly
+            area_quantity = convert_registry(area_value, pyMAOS.unit_manager.ureg)
+        else:
+            # If it's a string, parse it with ureg
+            area_quantity = pyMAOS.unit_manager.ureg(area_value)
 
-        # Get Area - this is required
-        area = state.get('Area', "1.0 m^2")  # Use a non-zero default with units
+        # Handle Ixx value properly based on its type
+        ixx_value = state.get('Ixx', "1.0 in^4")
+        if isinstance(ixx_value, (int, float)):
+            if np.isnan(ixx_value) or ixx_value <= 0:
+                ixx_value = "1.0 in^4"  # Use a non-zero default with units
+                pyMAOS.warning(f"Invalid Ixx value detected, using default: {ixx_value}")
+            else:
+                pyMAOS.warning(f"assuming Ixx {ixx_value} is in {pyMAOS.unit_manager.INTERNAL_MOMENT_OF_INERTIA_UNIT}")
+                ixx_quantity = pyMAOS.unit_manager.ureg.Quantity(ixx_value, pyMAOS.unit_manager.INTERNAL_MOMENT_OF_INERTIA_UNIT)
+        elif isinstance(ixx_value, pint.Quantity):
+            # If it's already a Quantity object, use it directly
+            ixx_quantity = convert_registry(ixx_value, pyMAOS.unit_manager.ureg)
+        else:
+            # If it's a string, parse it with ureg
+            ixx_quantity = pyMAOS.unit_manager.ureg(ixx_value)
 
-        # For moments of inertia, use valid default values with units
-        ixx = state.get('Ixx', "1.0 in^4")
-        if isinstance(ixx, float) and (np.isnan(ixx) or ixx <= 0):
-            ixx = "1.0 in^4"  # Use a non-zero default
-
-        iyy = state.get('Iyy', "1.0 in^4")
-        if isinstance(iyy, float) and (np.isnan(iyy) or iyy <= 0):
-            iyy = "1.0 in^4"  # Use a non-zero default
+        # Handle Iyy value properly based on its type
+        iyy_value = state.get('Iyy', "1.0 in^4")
+        if isinstance(iyy_value, (int, float)):
+            if np.isnan(iyy_value) or iyy_value <= 0:
+                iyy_value = "1.0 in^4"  # Use a non-zero default with units
+                pyMAOS.warning(f"Invalid Iyy value detected, using default: {iyy_value}")
+            else:
+                pyMAOS.warning(f"assuming Iyy {iyy_value} is in {pyMAOS.unit_manager.INTERNAL_MOMENT_OF_INERTIA_UNIT}")
+                iyy_quantity = pyMAOS.unit_manager.ureg.Quantity(iyy_value, pyMAOS.unit_manager.INTERNAL_MOMENT_OF_INERTIA_UNIT)
+        elif isinstance(iyy_value, pint.Quantity):
+            # If it's already a Quantity object, use it directly
+            iyy_quantity = convert_registry(iyy_value, pyMAOS.unit_manager.ureg)
+        else:
+            # If it's a string, parse it with ureg
+            iyy_quantity = pyMAOS.unit_manager.ureg(iyy_value)
 
         # Get name if it exists
         name = state.get('name', None)
 
-        # Let __init__ handle the validation
-        self.__init__(uid=uid, Area=area, Ixx=ixx, Iyy=iyy, name=name)
+        # Pass the values directly to __init__ for validation and processing
+        self.__init__(
+            uid=state.get('uid', 0),
+            Area=area_quantity,
+            Ixx=ixx_quantity,
+            Iyy=iyy_quantity,
+            name=name
+        )
 
     def __str__(self):
         """Return string representation of the section properties"""
