@@ -3,3 +3,6 @@
 * Performance considerations: It should be optimized for dealing with structures with thousands of members
 * Use only ASCII characters, no UTF-8 nor UTF-16 in input or output
 * It is OK to have debug print statements
+* Use scientific style cell headers
+* use tabs instead of spaces when generating python code
+* dont make quick fixes, try to find the cause of the problem; avoid creating if-else and try blocks to work around a problem

@@ -2,6 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../PyFEM-main/.idea/PyFEM-main.iml" filepath="$PROJECT_DIR$/../PyFEM-main/.idea/PyFEM-main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../ifcopenshell_testing/.idea/ifcopenshell_testing.iml" filepath="$PROJECT_DIR$/../ifcopenshell_testing/.idea/ifcopenshell_testing.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/pyMAOS_testing.iml" filepath="$PROJECT_DIR$/.idea/pyMAOS_testing.iml" />
     </modules>
   </component>
