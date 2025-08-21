@@ -203,3 +203,6 @@ cython_debug/
 *.bin
 *.pdf
 *.rst
+/.idea
+/.idea
+*.html

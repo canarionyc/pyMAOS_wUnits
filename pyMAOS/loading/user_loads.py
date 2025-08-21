@@ -257,7 +257,7 @@ if __file__ == "main":
     # Define a triangular load that peaks at the center
     # q(x) = q0 * (1 - |2x/L - 1|)
     q0 = unit_manager.ureg.Quantity(5, 'kN/m')
-    load_expr = q0.magnitude * (1 - sp.Abs(2*x/L.magnitude - 1))
+    load_expr = q0.magnitude * (1 - np.abs(2*x/L.magnitude - 1))
 
     # Create the SymPy load
     load = R2_SymPy_Load(load_expr,

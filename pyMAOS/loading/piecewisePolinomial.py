@@ -122,6 +122,9 @@ class PiecewisePolynomial:
         # if isinstance(x_array, pint.Quantity):
         #     # If x_array is a single Quantity, convert to numpy array
         #     x_array = np.array([x_array.magnitude]) * x_array.units
+        if isinstance(x_array, Quantity) and isinstance(x_array.magnitude, np.ndarray):
+	        # If x_array is a Quantity with an array magnitude, convert to numpy array
+			x_array = np.array(x_array.magnitude) * x_array.units
         # Convert to numpy array if not already
         if not isinstance(x_array, np.ndarray):
             x_array = np.array(x_array, dtype=object)
