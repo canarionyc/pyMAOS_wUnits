@@ -200,7 +200,7 @@ from .structure2d import R2Structure
 print(f"pyMAOS package initialized with {unit_manager.system_name} unit system and structural analysis tools.")
 
 __all__ = [
-    'SI_UNITS', 'IMPERIAL_DISPLAY_UNITS', 'METRIC_KN_UNITS',
+#    'SI_UNITS', 'IMPERIAL_DISPLAY_UNITS', 'METRIC_KN_UNITS',
     'INTERNAL_FORCE_UNIT', 'INTERNAL_LENGTH_UNIT', 'INTERNAL_MOMENT_UNIT', 'INTERNAL_PRESSURE_UNIT', 'INTERNAL_DISTRIBUTED_LOAD_UNIT',
     'FORCE_DIMENSIONALITY', 'LENGTH_DIMENSIONALITY', 'MOMENT_DIMENSIONALITY', 'PRESSURE_DIMENSIONALITY', 'DISTRIBUTED_LOAD_DIMENSIONALITY',
     'R2Structure',  # The module itself

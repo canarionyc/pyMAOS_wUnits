@@ -15,11 +15,11 @@ from pyMAOS.loading.axial_loads import R2_Axial_Load, R2_Axial_Linear_Load
 
 # Legacy module variables for backward compatibility
 __all__ = [
-    'polynomial_evaluation',
-    'PiecewisePolynomial',
-    'R2_Point_Load',
-    'R2_Point_Moment',
-    'LinearLoadXY',
-    'R2_Axial_Load',
-    'R2_Axial_Linear_Load'
+	'polynomial_evaluation',
+	'PiecewisePolynomial',
+	'R2_Point_Load',
+	'R2_Point_Moment',
+	'LinearLoadXY',
+	'R2_Axial_Load',
+	'R2_Axial_Linear_Load'
 ]

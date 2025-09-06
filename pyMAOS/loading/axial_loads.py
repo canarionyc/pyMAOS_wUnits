@@ -250,10 +250,10 @@ class R2_Axial_Load(R2_Axial_Load_Base):
 
         # Simple End Reactions
         self.Rix = -1 * self.p
-        self.Rjx = 0
+        self.Rjx = unit_manager.ureg.Quantity(0, unit_manager.INTERNAL_FORCE_UNIT)
 
         # Constants of Integration
-        self.c1 = 0
+        self.c1 = 0 *  self.p * self.a
         self.c2 = self.p * self.a
 
         # Piecewise Functions using wrapped ndarrays
@@ -306,15 +306,7 @@ class R2_Axial_Load(R2_Axial_Load_Base):
         Rix = (p * (a - L)) / L
         Rjx = (-1 * p * a) / L
 
-        # Print forces in both SI and display units
-        from pyMAOS.pymaos_units import convert_to_display_units
-        Rix_display = convert_to_display_units(Rix, str(unit_manager.INTERNAL_FORCE_UNIT))
-        Rjx_display = convert_to_display_units(Rjx, str(unit_manager.INTERNAL_FORCE_UNIT))
-        import pyMAOS.pymaos_units as units
-        # Then use units.DISPLAY_UNITS which will reflect the current value
         print(f"Axial reactions - SI: Rix={Rix:.3f} N, Rjx={Rjx:.3f} N")
-        print(f"Axial reactions - Display: Rix={Rix_display:.3f} {units.DISPLAY_UNITS[str(unit_manager.INTERNAL_FORCE_UNIT)]}, "
-              f"Rjx={Rjx_display:.3f} {units.DISPLAY_UNITS[str(unit_manager.INTERNAL_FORCE_UNIT)]}")
 
         # Create an array of quantities first
         result_array = np.array([

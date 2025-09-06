@@ -9,7 +9,7 @@ class UnitAwarePolynomial(Polynomial):
         # Store the unit information
         self.coeffs_with_units = list(coeffs_with_units)
         c0 = coeffs_with_units[0]
-        self.y_units = c0.to_base_units().units if isinstance(c0, Quantity) else unit_manager.ureg.dimensionless
+        self.y_units = c0.units if isinstance(c0, Quantity) else unit_manager.ureg.dimensionless
         self.y_units = y_units or self.y_units
         self.x_units = x_units or unit_manager.ureg.dimensionless
         # Initialize the base class with magnitude values

@@ -401,7 +401,7 @@ class LinearLoadXY:
 
         # Print forces and moments in both SI and display units
         #from pyMAOS.units_mod import convert_to_display_units
-        from pyMAOS.pymaos_units import FORCE_DISPLAY_UNIT, MOMENT_DISPLAY_UNIT
+        # from pyMAOS import FORCE_DISPLAY_UNIT, MOMENT_DISPLAY_UNIT
         # Get current unit system directly from the manager
         # current_units = unit_manager.get_current_units()
         # system_name = unit_manager.get_system_name()
@@ -488,27 +488,27 @@ class LinearLoadXY:
                 all_x.extend(points)
 
         from pyMAOS.quantity_utils import convert_to_quantity_array
-        all_x_qa = convert_to_quantity_array(all_x)
+        all_x = convert_to_quantity_array(all_x)
         # Convert to numpy array
         # x_array = np.array(all_x, dtype=object)
 
         # Calculate function values using vectorized evaluation
-        wy_values = self.Wy.evaluate_vectorized(all_x_qa)
-        vy_values = self.Vy.evaluate_vectorized(all_x_qa)
-        mz_values = self.Mz.evaluate_vectorized(all_x_qa)
-        sz_values = self.Sz.evaluate_vectorized(all_x_qa)
-        dy_values = self.Dy.evaluate_vectorized(all_x_qa)
+        wy_values = self.Wy.evaluate_vectorized(all_x)
+        vy_values = self.Vy.evaluate_vectorized(all_x)
+        mz_values = self.Mz.evaluate_vectorized(all_x)
+        sz_values = self.Sz.evaluate_vectorized(all_x)
+        dy_values = self.Dy.evaluate_vectorized(all_x)
 
-        plt.plot(all_x_qa, dy_values)
+        plt.plot(all_x, dy_values)
         plt.show()
 
         # Print ASCII charts
-        self._print_ascii_chart("Deflection (Dy)", all_x_qa, dy_values, regions, chart_width, chart_height)
+        self._print_ascii_chart("Deflection (Dy)", all_x.m, dy_values.m, regions, chart_width, chart_height)
 
-        self._print_ascii_chart("Distributed Load (Wy)", all_x_qa, wy_values, regions, chart_width, chart_height)
-        self._print_ascii_chart("Shear Force (Vy)", all_x_qa, vy_values, regions, chart_width, chart_height)
-        self._print_ascii_chart("Bending Moment (Mz)", all_x_qa, mz_values, regions, chart_width, chart_height)
-        self._print_ascii_chart("Rotation (Sz)", all_x_qa, sz_values, regions, chart_width, chart_height)
+        self._print_ascii_chart("Distributed Load (Wy)", all_x, wy_values, regions, chart_width, chart_height)
+        self._print_ascii_chart("Shear Force (Vy)", all_x, vy_values, regions, chart_width, chart_height)
+        self._print_ascii_chart("Bending Moment (Mz)", all_x, mz_values, regions, chart_width, chart_height)
+        self._print_ascii_chart("Rotation (Sz)", all_x, sz_values, regions, chart_width, chart_height)
 
 
         # Print table of values at region boundaries
@@ -524,7 +524,7 @@ class LinearLoadXY:
         Helper method to print an ASCII chart of data with proper unit handling.
         """
         import numpy as np
-        from pint import Quantity  # Import Quantity in the method scope
+        # from pint import Quantity  # Import Quantity in the method scope
 
         if len(y_values) == 0:
             return
@@ -611,21 +611,21 @@ class LinearLoadXY:
                 continue
 
         # Draw vertical lines at region boundaries
-        for start, end in regions:
-            for boundary in [start, end]:
-                if boundary > 0 and boundary < max_x:
-                    x_pos = int(width * boundary / max_x)
-                    x_pos = min(width - 1, max(0, x_pos))
-                    for y_pos in range(height):
-                        if chart[y_pos][x_pos] != '*':  # Don't overwrite data points
-                            chart[y_pos][x_pos] = '|'
+        # for start, end in regions:
+        #     for boundary in [start, end]:
+        #         if boundary > 0 and boundary < max_x:
+        #             x_pos = int(width * boundary / max_x)
+        #             x_pos = min(width - 1, max(0, x_pos))
+        #             for y_pos in range(height):
+        #                 if chart[y_pos][x_pos] != '*':  # Don't overwrite data points
+        #                     chart[y_pos][x_pos] = '|'
 
         # Print the chart
         for row in chart:
             print(''.join(row))
 
         # Print region information
-        print(f"Region boundaries: [{unit_manager.ureg.Quantity(0, self.a.units)}, {self.a:.2f}, {self.b:.2f}, {self.L:.2f}]")
+        # print(f"Region boundaries: [{unit_manager.ureg.Quantity(0, self.a.units)}, {self.a:.2f}, {self.b:.2f}, {self.L:.2f}]")
 
     def plot_all_functions(self, figsize=(10, 12), convert_x_to=None, convert_y_to=None):
         """

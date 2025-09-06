@@ -1,5 +1,7 @@
 import pint
 from typing import TYPE_CHECKING, Any
+
+from axial_loads import zero_internal_length
 from pyMAOS.loading.piecewisePolinomial import PiecewisePolynomial
 from pprint import pprint
 from display_utils import print_quantity_nested_list
@@ -7,7 +9,7 @@ import pyMAOS
 # Use TYPE_CHECKING to avoid runtime imports
 if TYPE_CHECKING:
     from pyMAOS.frame2d import R2Frame
-
+import pyMAOS;  from pyMAOS import unit_manager
 class R2_Load_Base:
     """Base class for point loads and moments in R2 frames."""
     
@@ -319,20 +321,20 @@ class R2_Point_Moment(R2_Load_Base):
         # Simple End Reactions
         self.Riy = self.M / self.L
         self.Rjy = -1 * self.Riy
-
+        zero_internal_length=0*unit_manager.ureg(unit_manager.INTERNAL_LENGTH_UNIT)
         # Piecewise Functions
         # [co....cn x^n] [xa, xb]
-        Vy = [[[self.Riy], [0, self.a]], [[self.Riy], [self.a, self.L]]]
+        Vy = [[[self.Riy], [zero_internal_length, self.a]], [[self.Riy], [self.a, self.L]]]
         pprint(Vy)
         
         Mz = [
-            [[0, self.Riy], [0, self.a]],
+            [[0*pyMAOS.unit_manager.ureg(pyMAOS.unit_manager.INTERNAL_MOMENT_UNIT), self.Riy], [zero_internal_length, self.a]],
             [[-1 * self.M, self.Riy], [self.a, self.L]],
         ]
         pprint(Mz)
         
         Sz = [
-            [[self.c1 / self.EI, 0, self.Riy / (2 * self.EI)], [0, self.a]],
+            [[self.c1 / self.EI, 0 / unit_manager.ureg(unit_manager.INTERNAL_LENGTH_UNIT), self.Riy / (2 * self.EI)], [zero_internal_length, self.a]],
             [
                 [
                     self.c2 / self.EI,
@@ -349,10 +351,10 @@ class R2_Point_Moment(R2_Load_Base):
                 [
                     self.c3 / self.EI,
                     self.c1 / self.EI,
-                    0,
+                    0 * self.M / (1 * self.EI),
                     self.Riy / (6 * self.EI),
                 ],
-                [0, self.a],
+                [zero_internal_length, self.a],
             ],
             [
                 [
@@ -390,7 +392,7 @@ class R2_Point_Moment(R2_Load_Base):
         # Constants of Integration
         self.c1 = ((3 * M * a * a) - (6 * L * M * a) + (2 * L * L * M)) / (6 * L)
         self.c2 = ((3 * M * a * a) + (2 * L * L * M)) / (6 * L)
-        self.c3 = 0
+        self.c3 = 0*self.EI.units*zero_internal_length
         self.c4 = -1 / 2 * M * a * a
 
     def FEF(self):
