@@ -31,145 +31,67 @@ from numpy.polynomial import Polynomial
 from pyMAOS.loading.UnitAwarePolynomial import UnitAwarePolynomial
 
 
+#%% Improved PiecewisePolynomial class structure
 class PiecewisePolynomial:
-	def __init__(self, functions=None):
+	def __init__(self, functions=None, x_units=None, y_units=None):
+		"""
+		Initialize piecewise polynomial with explicit unit specification
+		"""
+		# Set default units
+		self.x_units = x_units or unit_manager.ureg.dimensionless
+		self.y_units = y_units or unit_manager.ureg.dimensionless
 
-		self.functions = []
-		self.x_units = None
-		self.y_units = None
+		# Store segments as sorted list for efficient searching
+		self.segments = []  # List of (interval_start, interval_end, polynomial)
 
 		if functions:
-			for coeffs_with_units, interval in functions:
-				# Convert all coefficients to use our registry
-				unified_coeffs = []
-				for coeff in coeffs_with_units:
-					if isinstance(coeff, Quantity) and coeff._REGISTRY != unit_manager.ureg:
-						# print("Unit registry mismatch:")
-						# print(f"Coefficient units registry: {coeff._REGISTRY}")
-						# print(f"Global ureg registry: {unit_manager.ureg}")
-						magnitude = coeff.magnitude
-						unit_str = str(coeff.units)
-						unified_coeffs.append(magnitude * unit_manager.ureg.parse_expression(unit_str))
-					else:
-						unified_coeffs.append(coeff)
+			self._add_functions(functions)
 
-				# Do the same for interval points
-				unified_interval = []
-				for point in interval:
-					if isinstance(point, Quantity) and point._REGISTRY != unit_manager.ureg:
-						magnitude = point.magnitude
-						unit_str = str(point.units)
-						unified_interval.append(magnitude * unit_manager.ureg.parse_expression(unit_str))
-					else:
-						unified_interval.append(point)
+	def _add_functions(self, functions):
+		"""Add multiple function segments with validation"""
+		for coeffs_with_units, interval in functions:
+			self.add_segment(coeffs_with_units, interval)
 
-				# Get units from unified quantities
-				segment_y_units = unified_coeffs[0].units if isinstance(unified_coeffs[0],
-				                                                        Quantity) else unit_manager.ureg.dimensionless
-				segment_x_units = unified_interval[0].units if isinstance(unified_interval[0],
-				                                                          Quantity) else unit_manager.ureg.dimensionless
+		# Sort segments by start point
+		self.segments.sort(key=lambda x: x[0])
 
-				# If this is the first segment, set the class-level units
-				if self.y_units is None:
-					# if segment_y_units.dimensionless:
-					#     raise Warning("Warning: Y units are dimensionless for the first segment.")
-					self.y_units = segment_y_units
-					self.x_units = segment_x_units
-				else:
-					# Validate units consistency
-					if segment_y_units.dimensionality != self.y_units.dimensionality:
-						raise ValueError(f"Y units mismatch: {segment_y_units} vs {self.y_units}")
-					if segment_x_units.dimensionality != self.x_units.dimensionality:
-						raise ValueError(f"X units mismatch: {segment_x_units} vs {self.x_units}")
+		# Validate no overlaps
+		self._validate_segments()
 
-				try:
-					poly = UnitAwarePolynomial(unified_coeffs, y_units=self.y_units, x_units=self.x_units)
-					print(f"poly={poly}, interval={unified_interval}, y_units={self.y_units}, x_units={self.x_units}")
-				except Exception as e:
-					print(f"Error creating UnitAwarePolynomial: {e}")
-					print(f"Coefficient types: {[type(c) for c in unified_coeffs]}")
-					print(f"Interval types: {[type(i) for i in unified_interval]}")
-					raise
-
-				self.functions.append([poly, unified_interval, self.y_units, self.x_units])
-
-			print(f"Created PiecewisePolynomial with y unit: {self.y_units} x unit: {self.x_units}")
-		else:
-			# Initialize with default units if no functions provided
-			self.y_units = unit_manager.ureg.dimensionless
-			self.x_units = unit_manager.ureg.dimensionless
-
-	def evaluate(self, x):
-		for poly, interval, y_units, x_units in self.functions:
-			if interval[0] <= x <= interval[1]:
-				# Use NumPy's polynomial evaluation
-				return poly(x)
-		return 0
+	def _validate_segments(self):
+		"""Ensure segments don't overlap"""
+		for i in range(len(self.segments) - 1):
+			if self.segments[i][1] > self.segments[i+1][0]:
+				raise ValueError(f"Overlapping segments detected between {self.segments[i]} and {self.segments[i+1]}")
 
 	def evaluate_vectorized(self, x_array):
 		"""
-		Evaluate the piecewise polynomial at multiple points simultaneously.
-		Handles mixed unit types safely.
-
-		Parameters
-		----------
-		x_array : array_like
-			Array of x values to evaluate
-
-		Returns
-		-------
-		array_like
-			Array of function values at each x
+		Vectorized evaluation using binary search for efficiency
 		"""
-		import numpy as np
-		# if isinstance(x_array, pint.Quantity):
-		#     # If x_array is a single Quantity, convert to numpy array
-		#     x_array = np.array([x_array.magnitude]) * x_array.units
-		# if isinstance(x_array, Quantity) and isinstance(x_array.magnitude, np.ndarray):
-		# 	# If x_array is a Quantity with an array magnitude, convert to numpy array
-		# 	x_array = np.array(x_array.magnitude) * x_array.units
-		# Convert to numpy array if not already
-		# if not isinstance(x_array, np.ndarray):
-		# 	x_array = np.array(x_array, dtype=object)
+		# Ensure unit consistency
+		if isinstance(x_array, Quantity):
+			x_array = x_array.to(self.x_units)
+		elif self.x_units != unit_manager.ureg.dimensionless:
+			x_array = x_array * self.x_units
 
-		# Initialize results array with proper units
-		if not self.functions:
-			return np.zeros_like(x_array)
+		# Extract interval boundaries for efficient searching
+		boundaries = [seg[0].magnitude if isinstance(seg[0], Quantity) else seg[0]
+					 for seg in self.segments]
 
-		# Get units from first function's y_units if available
-		if len(self.functions[0]) > 2:
-			y_units = self.functions[0][2]
-			results = np.zeros_like(x_array, dtype='float64') * y_units
-		else:
-			results = np.zeros_like(x_array)
+		# Initialize results
+		results = np.zeros(len(x_array)) * self.y_units
 
-		# For each point, find which function applies and evaluate
-		for i, x in enumerate(x_array):
-			for poly, interval, *unit_info in self.functions:
-				# Safe comparison with unit handling
-				lower_bound, upper_bound = interval
+		# Use searchsorted to find which segment each x belongs to
+		x_magnitudes = x_array.magnitude if isinstance(x_array, Quantity) else x_array
+		indices = np.searchsorted(boundaries, x_magnitudes, side='right') - 1
 
-				# Convert values to compatible units for comparison
-				x_compatible = x
-				lower_compatible = lower_bound
-				upper_compatible = upper_bound
-
-				# Handle case where x has units but bounds don't
-				if hasattr(x, 'units') and not hasattr(lower_bound, 'units'):
-					lower_compatible = lower_bound * x.units
-					upper_compatible = upper_bound * x.units
-
-				# Handle case where bounds have units but x doesn't
-				elif not hasattr(x, 'units') and hasattr(lower_bound, 'units'):
-					x_compatible = x * lower_bound.units
-
-				# Now do the comparison with compatible units
-				if lower_compatible <= x_compatible <= upper_compatible:
-					results[i] = poly(x)
-					break
+		# Evaluate each segment
+		for i, (start, end, poly) in enumerate(self.segments):
+			mask = (indices == i) & (x_magnitudes <= end.magnitude if isinstance(end, Quantity) else end)
+			if np.any(mask):
+				results[mask] = poly(x_array[mask])
 
 		return results
-
 	def roots(self):
 		all_roots = []
 		for poly, interval in self.functions:

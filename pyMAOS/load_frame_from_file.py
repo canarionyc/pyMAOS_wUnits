@@ -66,7 +66,7 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
 	# Import the unit_manager directly from the module
 	import pyMAOS
 
-	pymaos_home = os.getenv('PYMAOS_HOME');
+	pymaos_home = os.getenv('PYMAOS_HOME')
 	assert os.path.isdir(pymaos_home), f"{pymaos_home} does not exist"
 	# Get internal units
 	internal_length_unit = pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT
@@ -93,7 +93,7 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
 	# Load data from file based on format
 	if file_ext in ['.yml', '.yaml']:
 		try:
-			import yaml
+			import yaml as yaml  # Using PyYAML package
 			pyMAOS.info(f"Loading YAML file: {filename}")
 			with open(filename, 'r') as file:
 				data = yaml.safe_load(file)
@@ -177,7 +177,7 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
 			nodes_dict[node_id].add_nodal_load(fx, fy, mz, "D")
 			pyMAOS.info(
 				f"Node {node_id} load: Fx={fx:.4g} {internal_force_unit}, Fy={fy:.4g} {internal_force_unit}, Mz={mz:.4g} {internal_moment_unit}")
-	data_dir = os.path.join(pymaos_home, "data");
+	data_dir = os.path.join(pymaos_home, "data")
 	assert os.path.isdir(data_dir), f"{data_dir} does not exist"
 	# Process materials
 	try:
@@ -567,28 +567,29 @@ if __name__ == "__main__":
 			# Create and solve the model
 			model_structure = R2Structure(node_list, element_list)
 			pyMAOS.info("Solving linear static problem...")
-
-			try:
-				U = model_structure.solve_linear_static(loadcombo, output_dir=working_dir,
-				                                        structure_state_bin=structure_state_bin, verbose=True)
-				model_structure.set_node_displacements(loadcombo)
-				model_structure.compute_reactions(loadcombo)
-				pyMAOS.info("Linear static problem solved successfully.")
-				structure_state_bin = f"{base_name}.bin"
-				model_structure.save_structure_state(structure_state_bin)
-				pyMAOS.info(f"Structure state saved to {structure_state_bin}")
-
-			except Exception as e:
-				from pyMAOS.logger import log_exception
-
-				log_exception(logger, message=f"Error solving linear static problem: {str(e)}")
-				sys.exit(1)
-
 		except Exception as e:
 			from pyMAOS.logger import log_exception
 
 			log_exception(logger, message=f"Error loading structural model: {str(e)}")
 			sys.exit(1)
+
+		try:
+			U = model_structure.solve_linear_static(loadcombo, output_dir=working_dir,
+			                                        structure_state_bin=structure_state_bin, verbose=True)
+			model_structure.set_node_displacements(loadcombo)
+			model_structure.compute_reactions(loadcombo)
+			pyMAOS.info("Linear static problem solved successfully.")
+			structure_state_bin = f"{base_name}.bin"
+			model_structure.save_structure_state(structure_state_bin)
+			pyMAOS.info(f"Structure state saved to {structure_state_bin}")
+
+		except Exception as e:
+			from pyMAOS.logger import log_exception
+
+			log_exception(logger, message=f"Error solving linear static problem: {str(e)}")
+			sys.exit(1)
+
+
 
 	from pyMAOS.frame2d import print_member_loads_to_file
 

@@ -1,11 +1,12 @@
 # import os
 import sys
 import pint
-import numpy as np
+import numpy as np; np.set_printoptions(linewidth=999)
 import functools
 
 from pyMAOS.display_utils import display_node_load_vector_in_units
-import pyMAOS.loading as loadtypes
+# Update this import to use the correct module structure
+from pyMAOS.loading import R2_Point_Load, R2_Point_Moment, R2_Linear_Load, R2_Axial_Load, R2_Axial_Linear_Load, PiecewisePolynomial2
 from pyMAOS.elements import Element
 
 import pyMAOS
@@ -15,12 +16,12 @@ from pyMAOS import unit_manager
 # from pyMAOS.units_mod import ureg
 Q_ = pyMAOS.unit_manager.ureg.Quantity
 
-
-def convert_to_quantity(value, unit_str):
-	"""Convert a value to a quantity with units if it's not already one"""
-	if isinstance(value, pint.Quantity):
-		return value
-	return Q_(value, unit_str)
+from pyMAOS.pymaos_units import array_convert_to_unit_system
+# def convert_to_quantity(value, unit_str):
+# 	"""Convert a value to a quantity with units if it's not already one"""
+# 	if isinstance(value, pint.Quantity):
+# 		return value
+# 	return Q_(value, unit_str)
 
 
 def check_state(func):
@@ -327,18 +328,19 @@ class R2Frame(Element):
 			else:
 				pyy = -1 * s * p
 				pxx = c * p
-			loadx = loadtypes.R2_Axial_Load(pxx, a, self, loadcase=case)
-			loady = loadtypes.R2_Point_Load(pyy, a, self, loadcase=case)
+			# Use direct imports instead of loadtypes prefix
+			loadx = R2_Axial_Load(pxx, a, self, loadcase=case)
+			loady = R2_Point_Load(pyy, a, self, loadcase=case)
 			self.loads.append(loadx)
 			self.loads.append(loady)
 		else:
 			# Load is applied in the local member axis
 
 			if direction == "xx":
-				load = loadtypes.R2_Axial_Load(p, a, self, loadcase=case)
+				load = R2_Axial_Load(p, a, self, loadcase=case)
 				self.loads.append(load)
 			else:
-				load = loadtypes.R2_Point_Load(p, a, self, loadcase=case)
+				load = R2_Point_Load(p, a, self, loadcase=case)
 				self.loads.append(load)
 
 			# Only plot if plotting is enabled
@@ -419,11 +421,13 @@ class R2Frame(Element):
 				wxxj = c * wj
 			if abs(wxxi.magnitude) > 1e-10 or abs(
 					wxxj.magnitude) > 1e-10:  # Only add if at least one component is non-zero
-				load = loadtypes.R2_Axial_Linear_Load(wxxi, wxxj, a, b, self, loadcase=case);
+				# Use R2_Axial_Linear_Load instead of loadtypes.R2_Axial_Linear_Load
+				load = R2_Axial_Linear_Load(wxxi, wxxj, a, b, self, loadcase=case)
 				print(load)
 				self.loads.append(load)
 			if abs(wyyi.magnitude) > 1e-10 or abs(wyyj.magnitude) > 1e-10:  # Also check transverse load
-				load = loadtypes.LinearLoadXY(wyyi, wyyj, a, b, self, loadcase=case);
+				# Use R2_Linear_Load instead of loadtypes.LinearLoadXY
+				load = R2_Linear_Load(wyyi, wyyj, a, b, self, loadcase=case)
 				print(load)
 				load.print_detailed_analysis()
 				if self.plot_enabled:
@@ -431,13 +435,14 @@ class R2Frame(Element):
 					# After creating PiecewisePolynomial2 objects
 					ppoly_fig = load.plot_all_ppoly_functions()
 					ppoly_fig.show()  # If you want to display immediately
-				print(load)
+				# print(load)
 				self.loads.append(load)
 		else:
 			# Load is applied in the local member axis
 
 			if direction == "xx":
-				load = loadtypes.R2_Axial_Linear_Load(wi, wj, a, b, self, loadcase=case);
+				# Use R2_Axial_Linear_Load instead of loadtypes.R2_Axial_Linear_Load
+				load = R2_Axial_Linear_Load(wi, wj, a, b, self, loadcase=case)
 				print(load)
 				load.print_detailed_analysis()
 				self.loads.append(load)
@@ -445,68 +450,17 @@ class R2Frame(Element):
 				if projected:
 					wi = (self.jnode.x - self.inode.x) * wi / self.length
 					wj = (self.jnode.x - self.inode.x) * wj / self.length
-				load = loadtypes.LinearLoadXY(wi, wj, a, b, self, loadcase=case);
+				# Use R2_Linear_Load instead of loadtypes.R2_Linear_Load
+				load = R2_Linear_Load(wi, wj, a, b, self, loadcase=case)
 				print(load)
 				load.print_detailed_analysis()
 				if self.plot_enabled:
-					load.plot_all_functions()
+					ppoly_fig = load.plot_all_ppoly_functions()
+					ppoly_fig.show()
 				self.loads.append(load)
 
 		self._stations = False
 		self._loaded = True
-
-	def _parse_distributed_load_value(self, load_value):
-		"""
-		Parse a distributed load value that may be a float or string with units.
-
-		Parameters
-		----------
-		load_value : float or str
-			Distributed load value, either as a number or string with units (e.g., "0.5kip/in", "10kN/m")
-
-		Returns
-		-------
-		float
-			Distributed load value in SI units (N/m)
-		"""
-		# If it's already a number, return it as-is (assume SI units)
-		if isinstance(load_value, (int, float)):
-			return float(load_value)
-
-		# If it's a string, try to parse units
-		if isinstance(load_value, str):
-			try:
-				# Import the parse function from units_mod
-				from pyMAOS.pymaos_units import parse_value_with_units
-				import pint
-
-				# Parse the distributed load string
-				parsed_value = parse_value_with_units(load_value)
-
-				# If it has units, convert to SI units (N/m)
-				if isinstance(parsed_value, pint.Quantity):
-					try:
-						# Convert to distributed load units (N/m)
-						distributed_load_value = parsed_value.to('N/m').magnitude
-						return float(distributed_load_value)
-					except Exception as e:
-						print(f"Warning: Could not convert '{load_value}' to N/m: {e}")
-						# Fall back to magnitude if conversion fails
-						return float(parsed_value.magnitude)
-				else:
-					# No units, just return the numeric value
-					return float(parsed_value)
-
-			except Exception as e:
-				print(f"Warning: Could not parse distributed load value '{load_value}': {e}")
-				# Try to convert directly to float as fallback
-				try:
-					return float(load_value)
-				except Exception:
-					raise ValueError(f"Could not parse distributed load value: {load_value}")
-
-		# If we get here, something unexpected happened
-		raise ValueError(f"Unsupported distributed load value type: {type(load_value)}")
 
 	def add_moment_load(self, m: pint.Quantity, a: pint.Quantity, case="D", location_percent=False):
 		"""Add a concentrated moment to the frame element
@@ -541,7 +495,8 @@ class R2Frame(Element):
 		# else:
 		#     a = self._parse_position_value(a)
 
-		self.loads.append(loadtypes.R2_Point_Moment(m, a, self, loadcase=case))
+		# Use direct import instead of loadtypes prefix
+		self.loads.append(R2_Point_Moment(m, a, self, loadcase=case))
 
 		self._stations = False
 		self._loaded = True
@@ -576,13 +531,13 @@ class R2Frame(Element):
 		# Initialize fixed end forces vector
 		zero_internal_force = pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT)
 		zero_internal_moment = pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_MOMENT_UNIT)
-		fef = np.array([zero_internal_force, zero_internal_force, zero_internal_moment,
+		member_fef = np.array([zero_internal_force, zero_internal_force, zero_internal_moment,
 		                zero_internal_force, zero_internal_force, zero_internal_moment], dtype=object)
 
 		# Process each load applied to the element
-		print(f"Processing {len(self.loads)} loads on element {self.uid}:", file=sys.stdout)
+		print(f"Processing {len(self.loads)} loads on {self.type} {self.uid}:", file=sys.stdout)
 		for load_idx, load in enumerate(self.loads):
-			print(f"  Load {load_idx}: {load.kind} (case '{load.loadcase}')", file=sys.stdout)
+			print(f"  Load {load_idx}: {load.kind} (case '{load.loadcase}')", file=sys.stdout); print(load)
 			load_case = load.loadcase
 			load_factor = load_combination.factors.get(load_case, 0)
 
@@ -592,50 +547,47 @@ class R2Frame(Element):
 				continue
 
 			# Calculate FEF contribution from this load
-			load_fef = load.load_fef()
+			load_fef = load.FEF()
 
-			from pyMAOS.pymaos_units import array_convert_to_unit_system
 			_ = array_convert_to_unit_system(load_fef, "imperial")
 
-			factored_fef = np.array([load_factor * f for f in load_fef], dtype=object)
-
 			# Add to total FEF
-			fef = fef + factored_fef
+			member_fef = member_fef + ( load_fef * load_factor)
 
 		# Handle hinge conditions - these modify the fixed end forces for partial releases
 		if self.hinges == [1, 0]:  # Hinge at start node
-			Mi = fef[2]
+			Mi = member_fef[2]
 			L = self.length
 
 			print(f"  Applying hinge at start node - redistributing moment Mi={Mi}", file=sys.stdout)
-			fef[1] = fef[1] - ((3 / (2 * L)) * Mi)
-			fef[2] = zero_internal_moment  # Zero moment at hinge
-			fef[4] = fef[4] + ((3 / (2 * L)) * Mi)
-			fef[5] = fef[5] - (Mi / 2)
+			member_fef[1] = member_fef[1] - ((3 / (2 * L)) * Mi)
+			member_fef[2] = zero_internal_moment  # Zero moment at hinge
+			member_fef[4] = member_fef[4] + ((3 / (2 * L)) * Mi)
+			member_fef[5] = member_fef[5] - (Mi / 2)
 
 		elif self.hinges == [0, 1]:  # Hinge at end node
-			Mj = fef[5]
+			Mj = member_fef[5]
 			L = self.length
 
 			print(f"  Applying hinge at end node - redistributing moment Mj={Mj}", file=sys.stdout)
-			fef[1] = fef[1] - ((3 / (2 * L)) * Mj)
-			fef[2] = fef[2] - (Mj / 2)
-			fef[4] = fef[4] + ((3 / (2 * L)) * Mj)
-			fef[5] = zero_internal_moment  # Zero moment at hinge
+			member_fef[1] = member_fef[1] - ((3 / (2 * L)) * Mj)
+			member_fef[2] = member_fef[2] - (Mj / 2)
+			member_fef[4] = member_fef[4] + ((3 / (2 * L)) * Mj)
+			member_fef[5] = zero_internal_moment  # Zero moment at hinge
 
 		elif self.hinges == [1, 1]:  # Hinges at both nodes
-			Mi = fef[2]
-			Mj = fef[5]
+			Mi = member_fef[2]
+			Mj = member_fef[5]
 			L = self.length
 
 			print(f"  Applying hinges at both nodes - redistributing moments Mi={Mi}, Mj={Mj}", file=sys.stdout)
-			fef[1] = fef[1] - ((Mj + Mi) / L)
-			fef[2] = zero_internal_moment  # Zero moment at hinge
-			fef[4] = fef[4] + ((Mj + Mi) / L)
-			fef[5] = zero_internal_moment  # Zero moment at hinge
+			member_fef[1] = member_fef[1] - ((Mj + Mi) / L)
+			member_fef[2] = zero_internal_moment  # Zero moment at hinge
+			member_fef[4] = member_fef[4] + ((Mj + Mi) / L)
+			member_fef[5] = zero_internal_moment  # Zero moment at hinge
 
-		print(f"  Final FEF for element {self.uid}:\n{fef}", file=sys.stdout)
-		return fef
+		print(f"  Final FEF for {self.type} {self.uid}:", file=sys.stdout);_ = array_convert_to_unit_system(member_fef, "imperial")
+		return member_fef
 
 	@check_state
 	@check_load_combo
@@ -657,7 +609,7 @@ class R2Frame(Element):
 
 		# Get transformation matrix
 		rotation_matrix = self.set_rotation_matrix()
-
+		print(f"  Rotation matrix: {rotation_matrix}")
 		# Check if we're dealing with quantities with units
 		if isinstance(local_fef[0], pint.Quantity):
 			# Store units for each component
@@ -941,27 +893,28 @@ class R2Frame(Element):
 		                    zero_internal_force, zero_internal_force, zero_internal_moment],
 		                   dtype=object)
 
-		# Initialize all piecewise polynomial functions
-		wx = loadtypes.PiecewisePolynomial()
-		wy = loadtypes.PiecewisePolynomial()
-		ax = loadtypes.PiecewisePolynomial()
-		vy = loadtypes.PiecewisePolynomial()
-		mzx = loadtypes.PiecewisePolynomial()
-		szx = loadtypes.PiecewisePolynomial()
-		dx = loadtypes.PiecewisePolynomial()
-		dy = loadtypes.PiecewisePolynomial()
+		# Initialize all piecewise polynomial functions using the imported class
+		wx = PiecewisePolynomial2()
+		wy = PiecewisePolynomial2()
+		ax = PiecewisePolynomial2()
+		vy = PiecewisePolynomial2()
+		mzx = PiecewisePolynomial2()
+		szx = PiecewisePolynomial2()
+		dx = PiecewisePolynomial2()
+		dy = PiecewisePolynomial2()
 
 		# Get end forces if available, otherwise use zero forces
 		fend_local = self.end_forces_local.get(load_combination.name, empty_f)
 
 		# Create "loads" from the end forces
 		zero_length = unit_manager.ureg.Quantity(0, unit_manager.INTERNAL_LENGTH_UNIT)
-		fxi = loadtypes.R2_Axial_Load(fend_local[0], zero_length, self)
-		fyi = loadtypes.R2_Point_Load(fend_local[1], zero_length, self)
-		mzi = loadtypes.R2_Point_Moment(fend_local[2], zero_length, self)
-		fxj = loadtypes.R2_Axial_Load(fend_local[3], self.length, self)
-		fyj = loadtypes.R2_Point_Load(fend_local[4], self.length, self)
-		mzj = loadtypes.R2_Point_Moment(fend_local[5], self.length, self)
+		# Use direct imports instead of loadtypes prefix
+		fxi = R2_Axial_Load(fend_local[0], zero_length, self)
+		fyi = R2_Point_Load(fend_local[1], zero_length, self)
+		mzi = R2_Point_Moment(fend_local[2], zero_length, self)
+		fxj = R2_Axial_Load(fend_local[3], self.length, self)
+		fyj = R2_Point_Load(fend_local[4], self.length, self)
+		mzj = R2_Point_Moment(fend_local[5], self.length, self)
 
 		# Combine end force contributions for each function
 		# Axial force

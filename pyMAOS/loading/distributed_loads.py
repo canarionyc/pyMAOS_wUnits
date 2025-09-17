@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 # from pyMAOS.display_utils import display_node_load_vector_in_units
 import numpy as np
 from pyMAOS.loading.piecewisePolinomial import PiecewisePolynomial
-from pyMAOS.loading.PiecewisePolynomial2 import PiecewisePolynomial2
+from pyMAOS.loading.ppoly2 import PiecewisePolynomial2
 import pyMAOS
 from pyMAOS import unit_manager, INTERNAL_LENGTH_UNIT
 from pyMAOS import (# SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS,
@@ -22,7 +22,7 @@ from pprint import pprint
 if TYPE_CHECKING:
     from pyMAOS.frame2d import R2Frame
 
-class LinearLoadXY:
+class R2_Linear_Load:
     def __init__(self, w1: pint.Quantity, w2: pint.Quantity, a: pint.Quantity, b: pint.Quantity, member: "Any", loadcase="D"):
         self.w1 = w1
         self.w2 = w2
@@ -69,6 +69,7 @@ class LinearLoadXY:
                           (((2 * b * b) + ((-a - 3 * L) * b) - (a * a) + (3 * L * a)) * w2)
                           + (((b * b) + ((a - 3 * L) * b) - (2 * a * a) + (3 * L * a)) * w1)
                   ) / (6 * L)
+        print("c01:", self.c01)
         self.c02 = (
                           (
                                   (
@@ -81,24 +82,27 @@ class LinearLoadXY:
                           )
                           + (((b * b * b) - (3 * L * b * b) - (3 * a * a * b) + (2 * a * a * a)) * w1)
                   ) / (6 * L * b - 6 * L * a)
+        print("c02:", self.c02)
         self.c03 = (
                           ((2 * b * b - a * b - a * a) * w2) + ((b * b + a * b - 2 * a * a) * w1)
                   ) / (6 * L)
-
+        print("c03:", self.c03)
         # Constants for the bending moment function (Mz)
         zero_internal_moment = pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_MOMENT_UNIT)
         self.c04 = zero_internal_moment # Zero moment at x=0 for fixed-end condition
+        print("c04:", self.c04)
         self.c05 = (
                 -1
                 * ((a * a * a * w2) + ((2 * a * a * a - 3 * a * a * b) * w1))
                 / (6 * b - 6 * a)
         )
+        print("c05:", self.c05)
         self.c06 = (
                 -1
                 * ((2 * b * b - a * b - a * a) * w2 + (b * b + a * b - 2 * a * a) * w1)
                 / 6
         )
-
+        print("c06:", self.c06)
         # Constants for the slope function (Sz)
         self.c07 = (
                           (
@@ -122,6 +126,7 @@ class LinearLoadXY:
                           )
                           * w1
                   ) / (360 * L)
+        print("c07:", self.c07)
         self.c08 = (
                           (
                                   12 * b * b * b * b * b
@@ -142,6 +147,7 @@ class LinearLoadXY:
                           )
                           * w1
                   ) / (360 * L * b - 360 * L * a)
+        print("c08:", self.c08)
         self.c09 = (
                           (
                                   12 * b * b * b * b
@@ -162,9 +168,11 @@ class LinearLoadXY:
                           )
                           * w1
                   ) / (360 * L)
+        print("c09:", self.c09)
 
         # Constants for the deflection function (Dy)
         self.c10 = pyMAOS.unit_manager.ureg.Quantity(0, f"{pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT}**3 * {pyMAOS.unit_manager.INTERNAL_FORCE_UNIT}")  # Zero deflection at x=0 for fixed-end condition
+        print("c10:", self.c10)
         self.c11 = (
                 -1 /120
                 * (
@@ -173,6 +181,7 @@ class LinearLoadXY:
                 )
                 / (b - a)
         )
+        print("c11:", self.c11)
         self.c12 = (
                 -1
                 * (
@@ -195,13 +204,18 @@ class LinearLoadXY:
                 )
                 / 120
         )
+        print("c12:", self.c12)
 
         # Simple End Reactions
         self.W = 0.5 * self.c * (self.w2 + self.w1)
+        print("W:", self.W)
         self.cbar = ((self.w1 + (2 * self.w2)) / (3 * (self.w2 + self.w1))) * self.c
+        print("cbar:", self.cbar)
 
         self.Rjy = -1 * self.W * (self.a + self.cbar) * (1 / self.L)
+        print("Rjy:", self.Rjy)
         self.Riy = -1 * self.W - self.Rjy
+        print("Riy:", self.Riy)
 
         # Piecewise Functions
         # Each piecewise function represents a different structural response:
@@ -313,14 +327,14 @@ class LinearLoadXY:
 
         import inspect
         print(f"{inspect.getfile(inspect.currentframe())}:{inspect.currentframe().f_lineno}")
-        print("Dy:", Dy, sep="\n")
+        # print("Dy:", Dy, sep="\n")
         from display_utils import print_quantity_nested_list; print_quantity_nested_list(Dy,simplify_units=True)
-        # self.Wx = PiecewisePolynomial()  # Axial Load Function
-        self.Wy = PiecewisePolynomial(Wy); print("Wy:", self.Wy, sep="\n") # Vertical Load Function
-
-        self.Ax = PiecewisePolynomial2()
-        self.Dx = PiecewisePolynomial2()
-        from pprint import pprint; pprint(Vy); self.Vy = PiecewisePolynomial(Vy); print("Vy:", self.Vy, sep="\n")
+        # self.Wx = PiecewisePolynomial()
+        # self.Wy = PiecewisePolynomial(Wy); print("Wy:", self.Wy, sep="\n") # Vertical Load Function
+        #
+        # self.Ax = PiecewisePolynomial2()
+        # self.Dx = PiecewisePolynomial2()
+        # from pprint import pprint; pprint(Vy); self.Vy = PiecewisePolynomial(Vy); print("Vy:", self.Vy, sep="\n")
         # print("Mz="); pprint(Mz, width=240); self.Mz = PiecewisePolynomial(Mz); print("Mz:", self.Mz, sep="\n") # this is a moment
         # print("Sz="); pprint(Sz, width=240); self.Sz = PiecewisePolynomial(Sz); print("Sz:", self.Sz,sep="\n") # this is an angle
         # print("Dy="); pprint(Dy, width=240); self.Dy = PiecewisePolynomial(Dy); print("Dy:", self.Dy,sep="\n")
@@ -343,23 +357,20 @@ class LinearLoadXY:
         print("Sz:", self.Sz)
         print("Dy:", self.Dy)
 
-
-
-
-    def load_fef(self):
+    def FEF(self):
         """
         Compute and return the fixed and forces
         """
         L = self.L
 
-        c3 = self.c03
-        c6 = self.c06
-        c7 = self.c07
-        c9 = self.c09
+        c3 = self.c03; print("c3:", c3)
+        c6 = self.c06; print("c6:", c6)
+        c7 = self.c07; print("c7:", c7)
+        c9 = self.c09; print("c9:", c9)
 
         # Calculate fixed end moments
-        Miz = -1 * (c3 * L * L + 2 * c6 * L + 2 * c9 + 4 * c7) / L
-        Mjz = -1 * (2 * c3 * L * L + 4 * c6 * L + 4 * c9 + 2 * c7) / L
+        Miz = -1 * (c3 * L * L + 2 * c6 * L + 2 * c9 + 4 * c7) / L; print("Miz:", Miz)
+        Mjz = -1 * (2 * c3 * L * L + 4 * c6 * L + 4 * c9 + 2 * c7) / L; print("Mjz:", Mjz)
 
         # Calculate fixed end forces
         Riy = self.Riy + (Miz / L) + (Mjz / L)
@@ -445,7 +456,7 @@ class LinearLoadXY:
         return (f"Linear Load ({self.loadcase}): "
                 f"w1={self.w1:.3f}, w2={self.w2:.3f}, "
                 f"from x={self.a:.3f} to x={self.b:.3f} "
-                f"(on member of length {self.L:.3f})")
+                f"(on member {self.member_uid} of length {self.L:.3f})")
 
     def print_detailed_analysis(self, num_points=10, chart_width=60, chart_height=15):
         """
@@ -499,133 +510,133 @@ class LinearLoadXY:
         sz_values = self.Sz.evaluate_vectorized(all_x)
         dy_values = self.Dy.evaluate_vectorized(all_x)
 
-        plt.plot(all_x, dy_values)
-        plt.show()
+        # plt.plot(all_x, dy_values)
+        # plt.show()
 
         # Print ASCII charts
-        self._print_ascii_chart("Deflection (Dy)", all_x.m, dy_values.m, regions, chart_width, chart_height)
+        # self._print_ascii_chart("Deflection (Dy)", all_x.m, dy_values.m, regions, chart_width, chart_height)
 
-        self._print_ascii_chart("Distributed Load (Wy)", all_x, wy_values, regions, chart_width, chart_height)
-        self._print_ascii_chart("Shear Force (Vy)", all_x, vy_values, regions, chart_width, chart_height)
-        self._print_ascii_chart("Bending Moment (Mz)", all_x, mz_values, regions, chart_width, chart_height)
-        self._print_ascii_chart("Rotation (Sz)", all_x, sz_values, regions, chart_width, chart_height)
+        # self._print_ascii_chart("Distributed Load (Wy)", all_x, wy_values, regions, chart_width, chart_height)
+        # self._print_ascii_chart("Shear Force (Vy)", all_x, vy_values, regions, chart_width, chart_height)
+        # self._print_ascii_chart("Bending Moment (Mz)", all_x, mz_values, regions, chart_width, chart_height)
+        # self._print_ascii_chart("Rotation (Sz)", all_x, sz_values, regions, chart_width, chart_height)
 
 
         # Print table of values at region boundaries
         print("\n===== VALUES AT KEY POINTS =====")
-        print(f"{'Position':15} {'Load':15} {'Shear':15} {'Moment':15} {'Rotation':15} {'Deflection':15}")
-        print("-" * 90)
+        print(f"{'Position':30} {'Load':30} {'Shear':30} {'Moment':30} {'Rotation':30} {'Deflection':30}")
+        print("-" * 180)
         for x in uniquify_same_unit_quantities([zero_length, self.a, self.b, self.L]):
-            print(f"{x:15.3f} {self.Wy.evaluate(x):15.3f} {self.Vy.evaluate(x):15.3f} {self.Mz.evaluate(x):15.3f} "
-                  f"{self.Sz.evaluate(x):15.3e} {self.Dy.evaluate(x):15.3e}")
+            print(f"{x:30.3f} {self.Wy.evaluate(x):30.3f} {self.Vy.evaluate(x):30.3f} {self.Mz.evaluate(x):30.3f} "
+                  f"{self.Sz.evaluate(x):30.3e} {self.Dy.evaluate(x):30.3e}")
     
-    def _print_ascii_chart(self, title, x_values, y_values, regions, width=60, height=15):
-        """
-        Helper method to print an ASCII chart of data with proper unit handling.
-        """
-        import numpy as np
-        # from pint import Quantity  # Import Quantity in the method scope
-
-        if len(y_values) == 0:
-            return
-
-        print(f"\n--- {title} ---")
-
-        # Filter out NaN values before finding min/max
-        valid_indices = []
-        valid_y_values = []
-        for i, y in enumerate(y_values):
-            # Check if y is NaN (including Quantity objects with NaN magnitude)
-            is_nan = False
-            if hasattr(y, 'magnitude'):
-                is_nan = np.isnan(y.magnitude)
-            else:
-                is_nan = np.isnan(y) if isinstance(y, (int, float)) else False
-
-            if not is_nan:
-                valid_indices.append(i)
-                valid_y_values.append(y)
-
-        # If no valid values, skip plotting
-        if len(valid_y_values) == 0:
-            print("No valid data points to plot (all values are NaN)")
-            return
-
-        # Find min and max values while preserving units
-        min_y = min(valid_y_values)
-        max_y = max(valid_y_values)
-
-        # Debug print
-        print(f"Value range: {min_y:.3f} to {max_y:.3f}")
-
-        # Avoid division by zero
-        if min_y == max_y:
-            if hasattr(min_y, 'magnitude') and min_y.magnitude == 0:
-                # Create non-zero range with proper units
-                if hasattr(min_y, 'units'):
-                    min_y -= 1 * min_y.units
-                    max_y += 1 * max_y.units
-                else:
-                    min_y -= 1
-                    max_y += 1
-            else:
-                # Just create some range around the value
-                min_y = 0.9 * min_y
-                max_y = 1.1 * max_y
-
-        # Get the maximum x value for scaling
-        max_x = max(x_values)
-        range_y = max_y - min_y
-
-        # Create the chart grid
-        chart = [[' ' for _ in range(width)] for _ in range(height)]
-
-        # Draw x-axis if zero is in the range
-        if min_y <= 0 <= max_y:
-            # Calculate position while preserving units
-            axis_pos = height - int(height * (0 - min_y) / range_y)
-            axis_pos = max(0, min(height - 1, axis_pos))
-            chart[axis_pos] = ['-' for _ in range(width)]
-
-        # Plot data points
-        for i, (x, y) in enumerate(zip(x_values, y_values)):
-            # Skip NaN values
-            if hasattr(y, 'magnitude'):
-                if np.isnan(y.magnitude):
-                    continue
-            elif isinstance(y, (int, float)) and np.isnan(y):
-                continue
-
-            # Map x and y to chart coordinates while preserving units
-            x_pos = int(width * x / max_x)
-            x_pos = min(width - 1, max(0, x_pos))
-
-            # Calculate y position in chart - avoid NaN issues
-            try:
-                y_normalized = (y - min_y) / range_y
-                y_pos = height - 1 - int(y_normalized * (height - 1))
-                y_pos = min(height - 1, max(0, y_pos))
-                chart[y_pos][x_pos] = '*'
-            except (ValueError, TypeError, ZeroDivisionError) as e:
-                print(f"Warning: Could not plot point at x={x}, y={y}: {e}")
-                continue
-
-        # Draw vertical lines at region boundaries
-        # for start, end in regions:
-        #     for boundary in [start, end]:
-        #         if boundary > 0 and boundary < max_x:
-        #             x_pos = int(width * boundary / max_x)
-        #             x_pos = min(width - 1, max(0, x_pos))
-        #             for y_pos in range(height):
-        #                 if chart[y_pos][x_pos] != '*':  # Don't overwrite data points
-        #                     chart[y_pos][x_pos] = '|'
-
-        # Print the chart
-        for row in chart:
-            print(''.join(row))
-
-        # Print region information
-        # print(f"Region boundaries: [{unit_manager.ureg.Quantity(0, self.a.units)}, {self.a:.2f}, {self.b:.2f}, {self.L:.2f}]")
+    # def _print_ascii_chart(self, title, x_values, y_values, regions, width=60, height=15):
+    #     """
+    #     Helper method to print an ASCII chart of data with proper unit handling.
+    #     """
+    #     import numpy as np
+    #     # from pint import Quantity  # Import Quantity in the method scope
+    #
+    #     if len(y_values) == 0:
+    #         return
+    #
+    #     print(f"\n--- {title} ---")
+    #
+    #     # Filter out NaN values before finding min/max
+    #     valid_indices = []
+    #     valid_y_values = []
+    #     for i, y in enumerate(y_values):
+    #         # Check if y is NaN (including Quantity objects with NaN magnitude)
+    #         is_nan = False
+    #         if hasattr(y, 'magnitude'):
+    #             is_nan = np.isnan(y.magnitude)
+    #         else:
+    #             is_nan = np.isnan(y) if isinstance(y, (int, float)) else False
+    #
+    #         if not is_nan:
+    #             valid_indices.append(i)
+    #             valid_y_values.append(y)
+    #
+    #     # If no valid values, skip plotting
+    #     if len(valid_y_values) == 0:
+    #         print("No valid data points to plot (all values are NaN)")
+    #         return
+    #
+    #     # Find min and max values while preserving units
+    #     min_y = min(valid_y_values)
+    #     max_y = max(valid_y_values)
+    #
+    #     # Debug print
+    #     print(f"Value range: {min_y:.3f} to {max_y:.3f}")
+    #
+    #     # Avoid division by zero
+    #     if min_y == max_y:
+    #         if hasattr(min_y, 'magnitude') and min_y.magnitude == 0:
+    #             # Create non-zero range with proper units
+    #             if hasattr(min_y, 'units'):
+    #                 min_y -= 1 * min_y.units
+    #                 max_y += 1 * max_y.units
+    #             else:
+    #                 min_y -= 1
+    #                 max_y += 1
+    #         else:
+    #             # Just create some range around the value
+    #             min_y = 0.9 * min_y
+    #             max_y = 1.1 * max_y
+    #
+    #     # Get the maximum x value for scaling
+    #     max_x = max(x_values)
+    #     range_y = max_y - min_y
+    #
+    #     # Create the chart grid
+    #     chart = [[' ' for _ in range(width)] for _ in range(height)]
+    #
+    #     # Draw x-axis if zero is in the range
+    #     if min_y <= 0 <= max_y:
+    #         # Calculate position while preserving units
+    #         axis_pos = height - int(height * (0 - min_y) / range_y)
+    #         axis_pos = max(0, min(height - 1, axis_pos))
+    #         chart[axis_pos] = ['-' for _ in range(width)]
+    #
+    #     # Plot data points
+    #     for i, (x, y) in enumerate(zip(x_values, y_values)):
+    #         # Skip NaN values
+    #         if hasattr(y, 'magnitude'):
+    #             if np.isnan(y.magnitude):
+    #                 continue
+    #         elif isinstance(y, (int, float)) and np.isnan(y):
+    #             continue
+    #
+    #         # Map x and y to chart coordinates while preserving units
+    #         x_pos = int(width * x / max_x)
+    #         x_pos = min(width - 1, max(0, x_pos))
+    #
+    #         # Calculate y position in chart - avoid NaN issues
+    #         try:
+    #             y_normalized = (y - min_y) / range_y
+    #             y_pos = height - 1 - int(y_normalized * (height - 1))
+    #             y_pos = min(height - 1, max(0, y_pos))
+    #             chart[y_pos][x_pos] = '*'
+    #         except (ValueError, TypeError, ZeroDivisionError) as e:
+    #             print(f"Warning: Could not plot point at x={x}, y={y}: {e}")
+    #             continue
+    #
+    #     # Draw vertical lines at region boundaries
+    #     # for start, end in regions:
+    #     #     for boundary in [start, end]:
+    #     #         if boundary > 0 and boundary < max_x:
+    #     #             x_pos = int(width * boundary / max_x)
+    #     #             x_pos = min(width - 1, max(0, x_pos))
+    #     #             for y_pos in range(height):
+    #     #                 if chart[y_pos][x_pos] != '*':  # Don't overwrite data points
+    #     #                     chart[y_pos][x_pos] = '|'
+    #
+    #     # Print the chart
+    #     for row in chart:
+    #         print(''.join(row))
+    #
+    #     # Print region information
+    #     # print(f"Region boundaries: [{unit_manager.ureg.Quantity(0, self.a.units)}, {self.a:.2f}, {self.b:.2f}, {self.L:.2f}]")
 
     def plot_all_functions(self, figsize=(10, 12), convert_x_to=None, convert_y_to=None):
         """

@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 import traceback
-
+from pprint import pprint
 class ErrorFormatter(logging.Formatter):
     """Custom formatter that adds file and line info for ERROR and higher levels"""
 
@@ -50,7 +50,7 @@ def log_exception(logger, exc_info=None, message="An exception occurred"):
 
     exc_type, exc_value, exc_tb = exc_info
     tb_details = traceback.extract_tb(exc_tb)
-
+    pprint(tb_details)
     if tb_details:
         # Get the frame where the actual exception occurred
         error_frame = tb_details[-1]
@@ -59,16 +59,16 @@ def log_exception(logger, exc_info=None, message="An exception occurred"):
         function = error_frame.name
 
         # Include the error location in the message
-        error_msg = f"{message}: {exc_type.__name__} in {file_name}:{line_no} (function: {function}): {exc_value}"
-        pyMAOS.error(error_msg)
+        error_msg = f"{message}: {exc_type.__name__} in\n{error_frame.filename}:{line_no} (function: {function}): {exc_value}"
 
+        print(f"\033[91m{error_msg}\033[0m")
         # Print the entire call stack with clickable file links
         print(f"DEBUG - Full call stack for exception:")
         for i, frame in enumerate(tb_details):
-            frame_file = os.path.basename(frame.filename)
-            print(f"  Frame {i}:\n{frame_file}:{frame.lineno} in {frame.name}()")
+
+            print(f"  Frame {i}:\n{frame.filename}:{frame.lineno}\nin {frame.name}()")
             # Put clickable link at beginning of line
-            print(f"{frame.filename}:{frame.lineno}")
+            # print(f"{frame.filename}:{frame.lineno}")
             if frame.line:
                 print(f"    Code: {frame.line.strip()}")
 
@@ -76,7 +76,7 @@ def log_exception(logger, exc_info=None, message="An exception occurred"):
         tb_formatted = ''.join(traceback.format_exception(exc_type, exc_value, exc_tb))
         logger.debug(f"Full traceback:\n{tb_formatted}")
     else:
-        pyMAOS.error(f"{message}: {exc_type.__name__}: {exc_value}")
+        print(f"{message}: {exc_type.__name__}: {exc_value}")
 
 
 # Default logger instance

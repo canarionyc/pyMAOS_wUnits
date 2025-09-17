@@ -115,11 +115,11 @@ class PiecewisePolynomial2:
 							c[:, i] = padded_magnitudes  # Assign to column
 							break
 
-				print(f"Debug - c matrix shape: {c.shape}, breaks shape: {len(breaks)}")
+				# print(f"Debug - c matrix shape: {c.shape}, breaks shape: {len(breaks)}")
 				# Create the PPoly instance
 				self.ppoly = PPoly(c, breaks)
 
-				print(f"Created PiecewisePolynomial2 with y unit: {self.y_units} x unit: {self.x_units}")
+				# print(f"Created PiecewisePolynomial2 with y unit: {self.y_units} x unit: {self.x_units}")
 
 		else:
 			# Initialize with default units if no functions provided
@@ -364,3 +364,145 @@ class PiecewisePolynomial2:
 			plt.show()
 
 		return ax
+
+	def combine(self, other, LF=1, LFother=1):
+		"""
+		Combine two piecewise polynomials with load factors.
+
+		Parameters
+		----------
+		other : PiecewisePolynomial2
+			Another piecewise polynomial to combine with this one
+		LF : float, optional
+			Load factor to apply to this polynomial (default: 1)
+		LFother : float, optional
+			Load factor to apply to the other polynomial (default: 1)
+
+		Returns
+		-------
+		PiecewisePolynomial2
+			A new piecewise polynomial that combines both inputs with their load factors
+
+		Raises
+		------
+		TypeError
+			If other is not a PiecewisePolynomial2
+		ValueError
+			If polynomials have incompatible units
+		"""
+		if not isinstance(other, PiecewisePolynomial2):
+			raise TypeError("Can only combine with another PiecewisePolynomial2")
+
+		# Check if either polynomial is empty
+		if self.ppoly is None and other.ppoly is None:
+			return PiecewisePolynomial2()
+		elif self.ppoly is None:
+			# Scale the other polynomial and return a copy
+			return self._scale_polynomial(other, LFother)
+		elif other.ppoly is None:
+			# Scale this polynomial and return a copy
+			return self._scale_polynomial(self, LF)
+
+		# Check unit compatibility
+		if self.y_units.dimensionality != other.y_units.dimensionality:
+			raise ValueError(f"Y units mismatch: {self.y_units} vs {other.y_units}")
+		if self.x_units.dimensionality != other.x_units.dimensionality:
+			raise ValueError(f"X units mismatch: {self.x_units} vs {other.x_units}")
+
+		# Convert other's units to match self if needed
+		y_units = self.y_units
+		x_units = self.x_units
+
+		# Combine all break points
+		all_breaks = np.unique(np.concatenate([self.ppoly.x, other.ppoly.x]))
+
+		# Create combined functions list for the new polynomial
+		combined_functions = []
+
+		# Process each segment between break points
+		for i in range(len(all_breaks) - 1):
+			start, end = all_breaks[i], all_breaks[i + 1]
+
+			# Evaluate both polynomials at these points to determine coefficients
+			x_mid = (start + end) / 2
+
+			# Get polynomial coefficients that apply to this segment from both polynomials
+			self_coeffs = self._get_coeffs_for_interval(start, end)
+			other_coeffs = other._get_coeffs_for_interval(start, end)
+
+			# Scale coefficients by load factors
+			if self_coeffs:
+				self_coeffs = [coef * LF for coef in self_coeffs]
+
+			if other_coeffs:
+				# Convert other coeffs to self's units if needed
+				other_coeffs = [coef.to(y_units) if isinstance(coef, Quantity) else coef for coef in other_coeffs]
+				other_coeffs = [coef * LFother for coef in other_coeffs]
+
+			# Combine coefficients of the same degree
+			combined_coeffs = []
+			max_degree = max(len(self_coeffs) if self_coeffs else 0,
+							len(other_coeffs) if other_coeffs else 0)
+
+			for j in range(max_degree):
+				self_coef = self_coeffs[j] if self_coeffs and j < len(self_coeffs) else 0
+				other_coef = other_coeffs[j] if other_coeffs and j < len(other_coeffs) else 0
+				combined_coeffs.append(self_coef + other_coef)
+
+			# Add this segment to the combined functions list
+			if combined_coeffs:
+				interval = [start * x_units if x_units != unit_manager.ureg.dimensionless else start,
+						   end * x_units if x_units != unit_manager.ureg.dimensionless else end]
+				combined_functions.append([combined_coeffs, interval])
+
+		# Create new PiecewisePolynomial2 with combined functions
+		return PiecewisePolynomial2(combined_functions)
+
+	def _scale_polynomial(self, poly, factor):
+		"""Helper method to scale a polynomial by a factor"""
+		if poly.ppoly is None:
+			return PiecewisePolynomial2()
+
+		scaled_functions = []
+
+		for i in range(len(poly.ppoly.x) - 1):
+			start, end = poly.ppoly.x[i], poly.ppoly.x[i + 1]
+			coeffs = poly.ppoly.c[:, i][::-1]  # Reverse to get ascending power
+
+			# Scale coefficients
+			scaled_coeffs = [coef * factor for coef in coeffs]
+
+			# Add units
+			if poly.y_units != unit_manager.ureg.dimensionless:
+				scaled_coeffs = [coef * poly.y_units for coef in scaled_coeffs]
+
+			interval = [
+				start * poly.x_units if poly.x_units != unit_manager.ureg.dimensionless else start,
+				end * poly.x_units if poly.x_units != unit_manager.ureg.dimensionless else end
+			]
+
+			scaled_functions.append([scaled_coeffs, interval])
+
+		return PiecewisePolynomial2(scaled_functions)
+
+	def _get_coeffs_for_interval(self, start, end):
+		"""Get polynomial coefficients for a specific interval"""
+		if self.ppoly is None:
+			return []
+
+		# Find which segment contains this interval
+		for i in range(len(self.ppoly.x) - 1):
+			seg_start, seg_end = self.ppoly.x[i], self.ppoly.x[i + 1]
+
+			# Check if this segment fully contains the interval
+			if seg_start <= start and seg_end >= end:
+				coeffs = self.ppoly.c[:, i][::-1]  # Reverse to get ascending power
+
+				# Apply units
+				if self.y_units != unit_manager.ureg.dimensionless:
+					coeffs = [coef * self.y_units for coef in coeffs]
+
+				return coeffs
+
+		# No matching segment found
+		return []

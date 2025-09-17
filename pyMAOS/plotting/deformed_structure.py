@@ -9,7 +9,7 @@ def plot_deformed_structure(nodes, members, loads, scaling=None, figsize=(12, 8)
     members : list
         List of structural members
     loads : list
-        List of load objects (LinearLoadXY) with Dy attributes
+        List of load objects (R2_Linear_Load) with Dy attributes
     scaling : dict, optional
         Dictionary with scaling factors for different response types
     figsize : tuple, optional

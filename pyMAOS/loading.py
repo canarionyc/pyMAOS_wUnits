@@ -423,7 +423,7 @@
 #         return [0, Riy, Miz, 0, Rjy, Mjz]
 #
 #
-# class LinearLoadXY:
+# class R2_Linear_Load:
 #     def __init__(self, w1, w2, a, b, member, loadcase="D"):
 #
 #         self.w1 = w1

@@ -206,7 +206,7 @@
         print(f"\nProcessing {num_member_loads} member loads:")
         
         # Import the necessary load classes
-        from pyMAOS.loading import R2_Point_Load, LinearLoadXY, R2_Axial_Load, R2_Axial_Linear_Load, R2_Point_Moment
+        from pyMAOS.loading import R2_Point_Load, R2_Linear_Load, R2_Axial_Load, R2_Axial_Linear_Load, R2_Point_Moment
         
         for i in range(num_member_loads):
             if line_idx >= len(lines):

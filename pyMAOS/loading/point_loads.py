@@ -1,6 +1,6 @@
 import pint
 from typing import TYPE_CHECKING, Any
-
+import numpy as np
 from axial_loads import zero_internal_length
 from pyMAOS.loading.piecewisePolinomial import PiecewisePolynomial
 from pprint import pprint
@@ -24,123 +24,124 @@ class R2_Load_Base:
         
         self.kind = "LOAD_BASE"  # Will be overridden by child classes
         self.loadcase = loadcase
-        
+        from loading import ppoly2
+        from ppoly2 import PiecewisePolynomial2
         # Initialize piecewise polynomials to None - will be set by child classes
-        self.Wx = PiecewisePolynomial()  # Axial Load Function
-        self.Wy = PiecewisePolynomial()  # Vertical Load Function
-        self.Ax = PiecewisePolynomial()  # Axial Force Function
-        self.Dx = PiecewisePolynomial()  # Axial Displacement Function
+        self.Wx = PiecewisePolynomial2()  # Axial Load Function
+        self.Wy = PiecewisePolynomial2()  # Vertical Load Function
+        self.Ax = PiecewisePolynomial2()  # Axial Force Function
+        self.Dx = PiecewisePolynomial2()  # Axial Displacement Function
         self.Vy = None  # Shear Function
         self.Mz = None  # Moment Function
         self.Sz = None  # Rotation Function
         self.Dy = None  # Deflection Function
     
-    def _print_ascii_chart(self, title, x_values, y_values, regions, width=60, height=15):
-        """
-        Helper method to print an ASCII chart of data with proper unit handling.
-        """
-        import numpy as np
-
-        if len(y_values) == 0:
-            return
-
-        print(f"\n--- {title} ---")
-
-        # Filter out NaN values before finding min/max
-        valid_indices = []
-        valid_y_values = []
-        for i, y in enumerate(y_values):
-            # Check if y is NaN (including Quantity objects with NaN magnitude)
-            is_nan = False
-            if hasattr(y, 'magnitude'):
-                is_nan = np.isnan(y.magnitude)
-            else:
-                is_nan = np.isnan(y) if isinstance(y, (int, float)) else False
-
-            if not is_nan:
-                valid_indices.append(i)
-                valid_y_values.append(y)
-
-        # If no valid values, skip plotting
-        if len(valid_y_values) == 0:
-            print("No valid data points to plot (all values are NaN)")
-            return
-
-        # Find min and max values while preserving units
-        min_y = min(valid_y_values)
-        max_y = max(valid_y_values)
-
-        # Debug print
-        print(f"Value range: {min_y:.3f} to {max_y:.3f}")
-
-        # Avoid division by zero
-        if min_y == max_y:
-            if hasattr(min_y, 'magnitude') and min_y.magnitude == 0:
-                # Create non-zero range with proper units
-                if hasattr(min_y, 'units'):
-                    min_y -= 1 * min_y.units
-                    max_y += 1 * max_y.units
-                else:
-                    min_y -= 1
-                    max_y += 1
-            else:
-                # Just create some range around the value
-                min_y = 0.9 * min_y
-                max_y = 1.1 * max_y
-
-        # Get the maximum x value for scaling
-        max_x = max(x_values)
-        range_y = max_y - min_y
-
-        # Create the chart grid
-        chart = [[' ' for _ in range(width)] for _ in range(height)]
-
-        # Draw x-axis if zero is in the range
-        if min_y <= 0 <= max_y:
-            # Calculate position while preserving units
-            axis_pos = height - int(height * (0 - min_y) / range_y)
-            axis_pos = max(0, min(height - 1, axis_pos))
-            chart[axis_pos] = ['-' for _ in range(width)]
-
-        # Plot data points
-        for i, (x, y) in enumerate(zip(x_values, y_values)):
-            # Skip NaN values
-            if hasattr(y, 'magnitude'):
-                if np.isnan(y.magnitude):
-                    continue
-            elif isinstance(y, (int, float)) and np.isnan(y):
-                continue
-
-            # Map x and y to chart coordinates while preserving units
-            x_pos = int(width * x / max_x)
-            x_pos = min(width - 1, max(0, x_pos))
-
-            # Calculate y position in chart - avoid NaN issues
-            try:
-                y_normalized = (y - min_y) / range_y
-                y_pos = height - 1 - int(y_normalized * (height - 1))
-                y_pos = min(height - 1, max(0, y_pos))
-                chart[y_pos][x_pos] = '*'
-            except (ValueError, TypeError, ZeroDivisionError) as e:
-                print(f"Warning: Could not plot point at x={x}, y={y}: {e}")
-                continue
-
-        # Draw vertical lines at region boundaries
-        for start, end in regions:
-            for boundary in [start, end]:
-                if boundary > 0 and boundary < max_x:
-                    x_pos = int(width * boundary / max_x)
-                    x_pos = min(width - 1, max(0, x_pos))
-                    for y_pos in range(height):
-                        if chart[y_pos][x_pos] != '*':  # Don't overwrite data points
-                            chart[y_pos][x_pos] = '|'
-
-        # Print the chart
-        for row in chart:
-            print(''.join(row))
-
-        # Print region information
-        print(f"Region boundaries: [0, {self.a:.2f}, {self.L:.2f}]")
+    # def _print_ascii_chart(self, title, x_values, y_values, regions, width=60, height=15):
+    #     """
+    #     Helper method to print an ASCII chart of data with proper unit handling.
+    #     """
+    #     import numpy as np
+    #
+    #     if len(y_values) == 0:
+    #         return
+    #
+    #     print(f"\n--- {title} ---")
+    #
+    #     # Filter out NaN values before finding min/max
+    #     valid_indices = []
+    #     valid_y_values = []
+    #     for i, y in enumerate(y_values):
+    #         # Check if y is NaN (including Quantity objects with NaN magnitude)
+    #         is_nan = False
+    #         if hasattr(y, 'magnitude'):
+    #             is_nan = np.isnan(y.magnitude)
+    #         else:
+    #             is_nan = np.isnan(y) if isinstance(y, (int, float)) else False
+    #
+    #         if not is_nan:
+    #             valid_indices.append(i)
+    #             valid_y_values.append(y)
+    #
+    #     # If no valid values, skip plotting
+    #     if len(valid_y_values) == 0:
+    #         print("No valid data points to plot (all values are NaN)")
+    #         return
+    #
+    #     # Find min and max values while preserving units
+    #     min_y = min(valid_y_values)
+    #     max_y = max(valid_y_values)
+    #
+    #     # Debug print
+    #     print(f"Value range: {min_y:.3f} to {max_y:.3f}")
+    #
+    #     # Avoid division by zero
+    #     if min_y == max_y:
+    #         if hasattr(min_y, 'magnitude') and min_y.magnitude == 0:
+    #             # Create non-zero range with proper units
+    #             if hasattr(min_y, 'units'):
+    #                 min_y -= 1 * min_y.units
+    #                 max_y += 1 * max_y.units
+    #             else:
+    #                 min_y -= 1
+    #                 max_y += 1
+    #         else:
+    #             # Just create some range around the value
+    #             min_y = 0.9 * min_y
+    #             max_y = 1.1 * max_y
+    #
+    #     # Get the maximum x value for scaling
+    #     max_x = max(x_values)
+    #     range_y = max_y - min_y
+    #
+    #     # Create the chart grid
+    #     chart = [[' ' for _ in range(width)] for _ in range(height)]
+    #
+    #     # Draw x-axis if zero is in the range
+    #     if min_y <= 0 <= max_y:
+    #         # Calculate position while preserving units
+    #         axis_pos = height - int(height * (0 - min_y) / range_y)
+    #         axis_pos = max(0, min(height - 1, axis_pos))
+    #         chart[axis_pos] = ['-' for _ in range(width)]
+    #
+    #     # Plot data points
+    #     for i, (x, y) in enumerate(zip(x_values, y_values)):
+    #         # Skip NaN values
+    #         if hasattr(y, 'magnitude'):
+    #             if np.isnan(y.magnitude):
+    #                 continue
+    #         elif isinstance(y, (int, float)) and np.isnan(y):
+    #             continue
+    #
+    #         # Map x and y to chart coordinates while preserving units
+    #         x_pos = int(width * x / max_x)
+    #         x_pos = min(width - 1, max(0, x_pos))
+    #
+    #         # Calculate y position in chart - avoid NaN issues
+    #         try:
+    #             y_normalized = (y - min_y) / range_y
+    #             y_pos = height - 1 - int(y_normalized * (height - 1))
+    #             y_pos = min(height - 1, max(0, y_pos))
+    #             chart[y_pos][x_pos] = '*'
+    #         except (ValueError, TypeError, ZeroDivisionError) as e:
+    #             print(f"Warning: Could not plot point at x={x}, y={y}: {e}")
+    #             continue
+    #
+    #     # Draw vertical lines at region boundaries
+    #     for start, end in regions:
+    #         for boundary in [start, end]:
+    #             if boundary > 0 and boundary < max_x:
+    #                 x_pos = int(width * boundary / max_x)
+    #                 x_pos = min(width - 1, max(0, x_pos))
+    #                 for y_pos in range(height):
+    #                     if chart[y_pos][x_pos] != '*':  # Don't overwrite data points
+    #                         chart[y_pos][x_pos] = '|'
+    #
+    #     # Print the chart
+    #     for row in chart:
+    #         print(''.join(row))
+    #
+    #     # Print region information
+    #     print(f"Region boundaries: [0, {self.a:.2f}, {self.L:.2f}]")
     
     def print_detailed_analysis(self, num_points=10, chart_width=60, chart_height=15):
         """
@@ -175,21 +176,21 @@ class R2_Load_Base:
                 all_x.extend(points)
     
         # Calculate function values for existing functions
-        if self.Vy is not None:
-            vy_values = [self.Vy.evaluate(x) for x in all_x]
-            self._print_ascii_chart("Shear Force (Vy)", all_x, vy_values, regions, chart_width, chart_height)
-        
-        if self.Mz is not None:
-            mz_values = [self.Mz.evaluate(x) for x in all_x]
-            self._print_ascii_chart("Bending Moment (Mz)", all_x, mz_values, regions, chart_width, chart_height)
-        
-        if self.Sz is not None:
-            sz_values = [self.Sz.evaluate(x) for x in all_x]
-            self._print_ascii_chart("Rotation (Sz)", all_x, sz_values, regions, chart_width, chart_height)
-        
-        if self.Dy is not None:
-            dy_values = [self.Dy.evaluate(x) for x in all_x]
-            self._print_ascii_chart("Deflection (Dy)", all_x, dy_values, regions, chart_width, chart_height)
+        # if self.Vy is not None:
+        #     vy_values = [self.Vy.evaluate(x) for x in all_x]
+        #     self._print_ascii_chart("Shear Force (Vy)", all_x, vy_values, regions, chart_width, chart_height)
+        #
+        # if self.Mz is not None:
+        #     mz_values = [self.Mz.evaluate(x) for x in all_x]
+        #     self._print_ascii_chart("Bending Moment (Mz)", all_x, mz_values, regions, chart_width, chart_height)
+        #
+        # if self.Sz is not None:
+        #     sz_values = [self.Sz.evaluate(x) for x in all_x]
+        #     self._print_ascii_chart("Rotation (Sz)", all_x, sz_values, regions, chart_width, chart_height)
+        #
+        # if self.Dy is not None:
+        #     dy_values = [self.Dy.evaluate(x) for x in all_x]
+        #     self._print_ascii_chart("Deflection (Dy)", all_x, dy_values, regions, chart_width, chart_height)
     
         # Print table of values at key points if all functions exist
         if all(f is not None for f in [self.Vy, self.Mz, self.Sz, self.Dy]):
@@ -221,14 +222,14 @@ class R2_Load_Base:
 
         # Collect all non-empty PiecewisePolynomial2 objects
         functions = []
-        if hasattr(self, 'Vy') and self.Vy2.ppoly is not None:
-            functions.append(('Vy', self.Vy2, 'red', 'Shear Force'))
-        if hasattr(self, 'Mz') and self.Mz2.ppoly is not None:
-            functions.append(('Mz', self.Mz2, 'green', 'Bending Moment'))
-        if hasattr(self, 'Sz') and self.Sz2.ppoly is not None:
-            functions.append(('Sz', self.Sz2, 'purple', 'Rotation'))
-        if hasattr(self, 'Dy') and self.Dy2.ppoly is not None:
-            functions.append(('Dy', self.Dy2, 'orange', 'Deflection'))
+        if hasattr(self, 'Vy') and self.Vy.ppoly is not None:
+            functions.append(('Vy', self.Vy, 'red', 'Shear Force'))
+        if hasattr(self, 'Mz') and self.Mz.ppoly is not None:
+            functions.append(('Mz', self.Mz, 'green', 'Bending Moment'))
+        if hasattr(self, 'Sz') and self.Sz.ppoly is not None:
+            functions.append(('Sz', self.Sz, 'purple', 'Rotation'))
+        if hasattr(self, 'Dy') and self.Dy.ppoly is not None:
+            functions.append(('Dy', self.Dy, 'orange', 'Deflection'))
 
         # Return early if no functions to plot
         if not functions:
@@ -321,18 +322,24 @@ class R2_Point_Moment(R2_Load_Base):
         # Simple End Reactions
         self.Riy = self.M / self.L
         self.Rjy = -1 * self.Riy
+
         zero_internal_length=0*unit_manager.ureg(unit_manager.INTERNAL_LENGTH_UNIT)
         # Piecewise Functions
         # [co....cn x^n] [xa, xb]
+
+        print("Vy:")
         Vy = [[[self.Riy], [zero_internal_length, self.a]], [[self.Riy], [self.a, self.L]]]
         pprint(Vy)
-        
+
+        print("Mz:")
         Mz = [
             [[0*pyMAOS.unit_manager.ureg(pyMAOS.unit_manager.INTERNAL_MOMENT_UNIT), self.Riy], [zero_internal_length, self.a]],
             [[-1 * self.M, self.Riy], [self.a, self.L]],
         ]
         pprint(Mz)
-        
+        print_quantity_nested_list(Mz)
+
+        print("Sz:")
         Sz = [
             [[self.c1 / self.EI, 0 / unit_manager.ureg(unit_manager.INTERNAL_LENGTH_UNIT), self.Riy / (2 * self.EI)], [zero_internal_length, self.a]],
             [
@@ -345,7 +352,8 @@ class R2_Point_Moment(R2_Load_Base):
             ],
         ]
         pprint(Sz)
-        
+
+        print("Dy:")
         Dy = [
             [
                 [
@@ -367,22 +375,13 @@ class R2_Point_Moment(R2_Load_Base):
             ],
         ]
         pprint(Dy)
-        
-        # Initialize piecewise polynomials
-        self.Vy = PiecewisePolynomial(Vy)
-        self.Mz = PiecewisePolynomial(Mz)
-        self.Sz = PiecewisePolynomial(Sz)
-        self.Dy = PiecewisePolynomial(Dy)
 
         # Create PiecewisePolynomial2 instances if the class is available
-        try:
-            from pyMAOS.loading.PiecewisePolynomial2 import PiecewisePolynomial2
-            self.Vy2 = PiecewisePolynomial2(Vy)
-            self.Mz2 = PiecewisePolynomial2(Mz)
-            self.Sz2 = PiecewisePolynomial2(Sz)
-            self.Dy2 = PiecewisePolynomial2(Dy)
-        except ImportError:
-            pass
+        from pyMAOS.loading.ppoly2 import PiecewisePolynomial2
+        self.Vy = PiecewisePolynomial2(Vy)
+        self.Mz = PiecewisePolynomial2(Mz)
+        self.Sz = PiecewisePolynomial2(Sz)
+        self.Dy = PiecewisePolynomial2(Dy)
 
     def integration_constants(self):
         M = self.M
@@ -411,7 +410,7 @@ class R2_Point_Moment(R2_Load_Base):
         # Create zeros with appropriate units
         zero_force = 0 * pyMAOS.unit_manager.ureg(Riy.units)
 
-        return [zero_force, Riy, Miz, zero_force, Rjy, Mjz]
+        return np.array([zero_force, Riy, Miz, zero_force, Rjy, Mjz], dtype=object)
 
     def __str__(self):
         """
@@ -447,15 +446,22 @@ class R2_Point_Load(R2_Load_Base):
         from pyMAOS import INTERNAL_LENGTH_UNIT, INTERNAL_FORCE_UNIT, INTERNAL_MOMENT_UNIT
         self.c1 = pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_MOMENT_UNIT)
         self.c2 = -1 * p * a
+        print("c1:", self.c1, "\nc2:", self.c2)
         self.c3 = (p * a * (a - (2 * L)) * (a - L)) / (6 * L)
         self.c4 = (p * a * ((a * a) + (2 * L * L))) / (6 * L)
+        print("c3:", self.c3, "\nc4:", self.c4)
         self.c5 = pyMAOS.unit_manager.ureg.Quantity(0, f"{pyMAOS.unit_manager.INTERNAL_FORCE_UNIT} * {pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT}**3")
         self.c6 = (-1 * p * a * a * a) / 6
+        print("c5:", self.c5, "\nc6:", self.c6)
+        # self.c3 = (p * a * (a - (2 * L)) * (a - L)) / (6 * L)
+        # self.c4 = (p * a * ((a * a) + (2 * L * L))) / (6 * L)
+        # self.c5 = pyMAOS.unit_manager.ureg.Quantity(0, f"{pyMAOS.unit_manager.INTERNAL_FORCE_UNIT} * {pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT}**3")
+        # self.c6 = (-1 * p * a * a * a) / 6
 
         # Simple End Reactions
         self.Riy = self.p * ((self.a - self.L) / self.L)
         self.Rjy = -1 * self.p * self.a * (1 / self.L)
-        print(f"Riy: {self.Riy:.3f}, Rjy: {self.Rjy:.3f}")
+        print(f"Riy: {self.Riy:.3f}\nRjy: {self.Rjy:.3f}")
         
         # Piecewise Functions
         # [co....cn x^n] [xa, xb]
@@ -489,37 +495,35 @@ class R2_Point_Load(R2_Load_Base):
         Dy[0][0] = [i / self.EI for i in Dy[0][0]]
         Dy[1][0] = [i / self.EI for i in Dy[1][0]]
         print("Dy:"); print_quantity_nested_list(Dy, precision=2, width=20, simplify_units=True)
-
+        pprint(Dy,width=200)
         # Initialize piecewise polynomials
-        self.Vy = PiecewisePolynomial(Vy)
-        print("Vy:\n", self.Vy)
-        
-        self.Mz = PiecewisePolynomial(Mz)
-        print("Mz:\n", self.Mz)
-        
-        self.Sz = PiecewisePolynomial(Sz)
-        print("Sz:\n", self.Sz)
-        
-        self.Dy = PiecewisePolynomial(Dy)
-        print("Dy:\n", self.Dy)
+        # self.Vy = PiecewisePolynomial(Vy)
+        # print("Vy:\n", self.Vy)
+        #
+        # self.Mz = PiecewisePolynomial(Mz)
+        # print("Mz:\n", self.Mz)
+        #
+        # self.Sz = PiecewisePolynomial(Sz)
+        # print("Sz:\n", self.Sz)
+        #
+        # self.Dy = PiecewisePolynomial(Dy)
+        # print("Dy:\n", self.Dy)
 
         # Create PiecewisePolynomial2 instances if the class is available
-        try:
-            from pyMAOS.loading.PiecewisePolynomial2 import PiecewisePolynomial2
 
-            self.Vy2 = PiecewisePolynomial2(Vy)
-            print("Vy:", self.Vy2, sep="\n")
+        from pyMAOS.loading.ppoly2 import PiecewisePolynomial2
 
-            self.Mz2 = PiecewisePolynomial2(Mz)
-            print("Mz:", self.Mz2, sep="\n")
+        self.Vy = PiecewisePolynomial2(Vy)
+        print("Vy:", self.Vy, sep="\n")
 
-            self.Sz2 = PiecewisePolynomial2(Sz)
-            print("Sz:", self.Sz2, sep="\n")
+        self.Mz = PiecewisePolynomial2(Mz)
+        print("Mz:", self.Mz, sep="\n")
 
-            self.Dy2 = PiecewisePolynomial2(Dy)
-            print("Dy:", self.Dy2, sep="\n")
-        except ImportError:
-            pass
+        self.Sz = PiecewisePolynomial2(Sz)
+        print("Sz:", self.Sz, sep="\n")
+
+        self.Dy = PiecewisePolynomial2(Dy)
+        print("Dy:", self.Dy, sep="\n")
 
     def __str__(self):
         """
@@ -535,12 +539,12 @@ class R2_Point_Load(R2_Load_Base):
         L = self.L
 
         # Calculate fixed end moments
-        Miz = -1 * (p * a * (a - L) * (a - L)) / (L * L)
-        Mjz = -1 * (p * a * a * (a - L)) / (L * L)
+        Miz = -1 * (p * a * (a - L) * (a - L)) / (L * L); print("Miz:", Miz)
+        Mjz = -1 * (p * a * a * (a - L)) / (L * L); print("Mjz:", Mjz)
 
         # Calculate fixed end forces
-        Riy = self.Riy + (Miz / L) + (Mjz / L)
-        Rjy = self.Rjy - (Miz / L) - (Mjz / L)
+        Riy = self.Riy + (Miz / L) + (Mjz / L); print("Riy:", Riy)
+        Rjy = self.Rjy - (Miz / L) - (Mjz / L); print("Rjy:", Rjy)
 
         # Import dimension constants
         from pyMAOS import INTERNAL_MOMENT_UNIT, INTERNAL_FORCE_UNIT
@@ -550,14 +554,14 @@ class R2_Point_Load(R2_Load_Base):
         MOMENT_DIMENSIONALITY = pyMAOS.unit_manager.ureg.parse_units(pyMAOS.unit_manager.INTERNAL_MOMENT_UNIT).dimensionality
 
         # Debug prints showing actual dimensionality
-        print(f"DEBUG: Checking dimensions - Miz: {Miz.dimensionality}, Mjz: {Mjz.dimensionality}")
-        print(f"DEBUG: Checking dimensions - Riy: {Riy.dimensionality}, Rjy: {Rjy.dimensionality}")
+        # print(f"DEBUG: Checking dimensions - Miz: {Miz.dimensionality}, Mjz: {Mjz.dimensionality}")
+        # print(f"DEBUG: Checking dimensions - Riy: {Riy.dimensionality}, Rjy: {Rjy.dimensionality}")
 
         # Verify moment dimensions
         try:
             Miz.check(MOMENT_DIMENSIONALITY)
             Mjz.check(MOMENT_DIMENSIONALITY)
-            print("DEBUG: Moment dimension check passed")
+            # print("DEBUG: Moment dimension check passed")
         except pint.DimensionalityError as e:
             print(f"ERROR: Dimension error in moments: {e}")
             # Create correctly dimensioned values as fallback
@@ -574,7 +578,7 @@ class R2_Point_Load(R2_Load_Base):
             Rjy.check(FORCE_DIMENSIONALITY)
             print("DEBUG: Force dimension check passed")
         except pint.DimensionalityError as e:
-            print(f"ERROR: Dimension error in forces: {e}")
+            # print(f"ERROR: Dimension error in forces: {e}")
             # Create correctly dimensioned values as fallback
             if not Riy.check(FORCE_DIMENSIONALITY):
                 print(f"WARNING: Fixing dimensions of Riy from {Riy.dimensionality} to {FORCE_DIMENSIONALITY}")
@@ -584,7 +588,7 @@ class R2_Point_Load(R2_Load_Base):
                 Rjy = pyMAOS.unit_manager.ureg.Quantity(Rjy.magnitude, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT)
 
         # Create zeros with appropriate units
-        zero_force = pyMAOS.unit_manager.ureg.Quantity(0, Riy.units)
+        zero_force = pyMAOS.unit_manager.ureg.Quantity(0, pyMAOS.unit_manager.INTERNAL_FORCE_UNIT)
 
         # Print forces and moments for debugging
         print(f"Point load FEF - Forces: Riy={Riy:.3f}, Rjy={Rjy:.3f}")
@@ -603,7 +607,7 @@ class R2_Point_Load(R2_Load_Base):
                 print(f"ERROR: Dimensionality error in ret_val[{i}]: {e}")
                 print(f"  Actual: {val.dimensionality}, Expected: {expected_dim}")
 
-        return ret_val
+        return  np.array(ret_val, dtype=object)
 
     def print_detailed_analysis(self, num_points=10, chart_width=60, chart_height=15):
         """

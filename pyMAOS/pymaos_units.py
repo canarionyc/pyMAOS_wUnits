@@ -6,11 +6,14 @@ for structural analysis calculations. It ensures consistent use of units
 throughout the program and enables user-defined input/output unit preferences.
 """
 import re
+from typing import Any
+
 import pint
 import numpy as np
 from pprint import pprint
 
 import pyMAOS
+from pyMAOS import unit_manager
 
 global SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS
 # from pint import UnitRegistry, Quantity
@@ -646,6 +649,7 @@ def array_convert_to_unit_system(array, target_system_name, print_units=True):
 
     # Process array
     result = []
+    val: tuple[float, pint.Quantity]
     for i, val in enumerate(array):
         if isinstance(val, pint.Quantity):
             # Find unit type based on dimensionality
@@ -744,8 +748,8 @@ def process_node_data(node_data):
     x = parse_value_with_units(node_data["x"])
     y = parse_value_with_units(node_data["y"])
 
-    x_meters = convert_to_unit(x, INTERNAL_LENGTH_UNIT).magnitude if isinstance(x, pint.Quantity) else x
-    y_meters = convert_to_unit(y, INTERNAL_LENGTH_UNIT).magnitude if isinstance(y, pint.Quantity) else y
+    x_meters = convert_to_unit(x, pyMAOS.INTERNAL_LENGTH_UNIT).magnitude if isinstance(x, pint.Quantity) else x
+    y_meters = convert_to_unit(y, pyMAOS.INTERNAL_LENGTH_UNIT).magnitude if isinstance(y, pint.Quantity) else y
 
     return {"x": x_meters, "y": y_meters}
 

@@ -5,11 +5,14 @@ import numpy as np
 import pyMAOS
 from pyMAOS import unit_manager
 from pyMAOS.pymaos_units import array_convert_to_unit_system
+from quantity_utils import to_float64_ufunc
 
 np.set_printoptions(precision=4, suppress=False, floatmode='maxprec_equal', linewidth=999)
-
+from pyMAOS.quantity_utils import increment_with_units_ufunc
 import operator
+import numpy as np
 
+from pyMAOS.quantity_utils import to_float64_vec,to_float64_ufunc
 
 # # Add custom formatters with explicit type signatures
 def format_with_dots(x) -> str:
@@ -19,6 +22,7 @@ def format_with_dots(x) -> str:
 def format_double(x) -> str:
     return '.'.center(13) if abs(x) < 1e-10 else f"{x:13.8g}"  # More precision for doubles
 
+from pyMAOS.pymaos_units import array_convert_to_unit_system
 
 # Now use these type-annotated functions in the formatter dictionary
 np.set_printoptions(precision=4,
@@ -282,9 +286,9 @@ class R2Structure:
         if self._springNodes:
             for node in self._springNodes:
                 node_index = self.uid_to_index[node.uid]
-                uxposition = int(FM[(node_index) * self.NJD + 0])
-                uyposition = int(FM[(node_index) * self.NJD + 1])
-                rzposition = int(FM[(node_index) * self.NJD + 2])
+                uxposition = int(self.FM[(node_index) * self.NJD + 0])
+                uyposition = int(self.FM[(node_index) * self.NJD + 1])
+                rzposition = int(self.FM[(node_index) * self.NJD + 2])
                 kux = node._spring_stiffness[0]
                 kuy = node._spring_stiffness[1]
                 krz = node._spring_stiffness[2]
@@ -292,10 +296,10 @@ class R2Structure:
                 # KSTRUCT[uxposition, uxposition] += kux
                 # KSTRUCT[uyposition, uyposition] += kuy
                 # KSTRUCT[rzposition, rzposition] += krz
-
-                KSTRUCT.incremental_add_with_units((uxposition, uxposition), kux)
-                KSTRUCT.incremental_add_with_units((uyposition, uyposition), kuy)
-                KSTRUCT.incremental_add_with_units((rzposition, rzposition), krz)
+                from pyMAOS.quantity_utils import incremental_add_with_units
+                KSTRUCT[uxposition, uxposition] = incremental_add_with_units(KSTRUCT[uxposition, uxposition], kux)
+                KSTRUCT[uyposition, uyposition] = incremental_add_with_units(KSTRUCT[uyposition, uyposition], kuy)
+                KSTRUCT[rzposition, rzposition] = incremental_add_with_units(KSTRUCT[rzposition, rzposition], krz)
         self._Kgenerated = True
 
         if verbose:
@@ -309,9 +313,9 @@ class R2Structure:
                                 linewidth=120  # Wider output to prevent unnecessary wrapping
                                 )
             print("KSTRUCT:", KSTRUCT, sep="\n");
-            print(KSTRUCT.shape);
-            from pyMAOS.quantity_utils import print_units_matrix
-            print_units_matrix(KSTRUCT)
+            print(KSTRUCT.shape)
+            from pyMAOS.quantity_utils import print_array_with_units
+            print_array_with_units(KSTRUCT)
 
             KSTRUCT_csv = os.path.join(output_dir, 'KSTRUCT.csv')
             np.savetxt(KSTRUCT_csv, KSTRUCT, delimiter=',', fmt='%lg')
@@ -384,9 +388,9 @@ class R2Structure:
                 # Get fixed end forces in global coordinates
                 elem_fef_global = member.FEFglobal(load_combination)
                 # print("DEBUG: Ff type:", type(Ff), "shape:", np.shape(Ff))
-                from pyMAOS.pymaos_units import array_convert_to_unit_system;
+                # from pyMAOS.pymaos_units import array_convert_to_unit_system
                 # print(f"Member {member.uid} fixed end forces before conversion: {Ff.view(QuantityArray)}")
-                _ = array_convert_to_unit_system(elem_fef_global, "imperial")
+                # _ = array_convert_to_unit_system(elem_fef_global, "imperial")
 
                 i_index = self.uid_to_index[member.inode.uid]
                 j_index = self.uid_to_index[member.jnode.uid]
@@ -397,14 +401,21 @@ class R2Structure:
 
                 # Add the forces directly - with object dtype, this should work with Quantity objects
                 imap = self.FM[i_index * self.NJD:(i_index + 1) * self.NJD]
-                print(f"DEBUG: imap for i_index {i_index}: {imap}")
+                # print(f"DEBUG: imap for i_index {i_index}: {imap}")
                 from pyMAOS.quantity_utils import increment_with_units
-                # structure_fef[imap] += Ff[0:self.NJD]
-                print(elem_fef_global[0:self.NJD])
-                structure_fef[imap]= increment_with_units(structure_fef[imap], elem_fef_global[0:self.NJD])
-                # target_indices = self.FM[j_index * self.NJD:(j_index + 1) * self.NJD]
-                # source_values = Ff[self.NJD:2 * self.NJD]
-                #
+                isource_values = elem_fef_global[0:self.NJD]
+                # print(f"DEBUG: isource_values for member {member.uid}: {isource_values}")
+                # Thread the increment_with_units function over each pair of elements
+                # for i, idx in enumerate(imap):
+                #     structure_fef[idx] = increment_with_units(structure_fef[idx], isource_values[i])
+                structure_fef[imap] = increment_with_units_ufunc(structure_fef[imap], isource_values)
+                jmap = self.FM[j_index * self.NJD:(j_index + 1) * self.NJD]
+                jsource_values = elem_fef_global[self.NJD:2 * self.NJD]
+                # print(f"DEBUG: jsource_values for member {member.uid}: {jsource_values}")
+
+                # for i, idx in enumerate(jmap):
+                #     structure_fef[idx] = increment_with_units(structure_fef[idx], jsource_values[i])
+                structure_fef[jmap] = increment_with_units_ufunc(structure_fef[jmap], jsource_values)
                 # # Loop through each index and use increment_with_units
                 # for i, idx in enumerate(target_indices):
                 #     structure_fef[idx] = increment_with_units(structure_fef[idx], source_values[i])
@@ -413,17 +424,17 @@ class R2Structure:
                 # sample_idx = FM[i_index * self.NJD]
                 # print(f"DEBUG: structure_fef[{sample_idx}] type after addition: {type(structure_fef[sample_idx])}")
 
-        from pyMAOS.quantity_utils import print_units_matrix
-
-        print(f"Member {member.uid} Fixed End Force Vector PF:")
-        print_units_matrix(structure_fef)
+        # from pyMAOS.quantity_utils import print_array_with_units
+        #
+        #
+        # print_array_with_units(structure_fef)
 
         # At the end, you can extract magnitudes if needed for further calculations
         # PF_magnitudes = np.array([f.magnitude if hasattr(f, 'magnitude') else f for f in structure_fef])
         # print(f"DEBUG: Final PF_magnitudes dtype = {PF_magnitudes.dtype}")
         self.structure_fef = structure_fef
         print("Structure Fixed End Force Vector structure_fef:", structure_fef, sep="\n")
-        print("Put back in order by code numers:", structure_fef[self.FM], sep="\n")
+        # print("Put back in order by code numers:", structure_fef[self.FM], sep="\n")
         return structure_fef
 
 
@@ -458,27 +469,30 @@ class R2Structure:
 
         # Build Nodal Force Vector
         self.FG = self.nodal_force_vector(self.FM, load_combination)
-        # print("Nodal Force Vector FG:\n", self.FG); print(self.FG.shape)
-        from pyMAOS.pymaos_units import array_convert_to_unit_system; print("Structure nodal global forces")
+
+
+        print("Structure nodal global forces")
         _ = array_convert_to_unit_system(self.FG, "imperial")
         # Build Member Fixed-end-Force vector
         self.structure_fef = self.assemble_fixed_end_force(load_combination)
         # print("Structure Fixed End Force Vector:\n", structure_fef); print(structure_fef.shape)
 
-        from pymaos_units import array_convert_to_unit_system; print("Structure Fixed-end Forces")
+        print("Structure Fixed-end Forces")
         _ = array_convert_to_unit_system(self.structure_fef, "imperial")
 
         self.Kff = self.KSTRUCT[0: self.NDOF, 0: self.NDOF]; print("Kff Partition:", self.Kff, sep="\n");
         print(self.Kff.shape)  # display_stiffness_matrix_in_units(self.Kff)
         # Slice out the FGf partition from the global nodal force vector
-        self.FGf = self.FG[0: self.NDOF];  print("FGf Partition:", self.FGf, sep="\n");
-        print(self.FGf.shape);  _ = array_convert_to_unit_system(self.FGf, "imperial")
+        self.FGf = self.FG[0: self.NDOF]
+        print("FGf Partition:", self.FGf, sep="\n")
+        print(self.FGf.shape)
+        _ = array_convert_to_unit_system(self.FGf, "imperial")
         self.PFf = self.structure_fef[0: self.NDOF]
-        print("PFf Partition:", self.PFf, sep="\n");
-        print(self.PFf.shape)
-        from pyMAOS.quantity_utils import numpy_array_of_quantity_to_numpy_array_of_float64
+        print("PFf Partition:", self.PFf, sep="\n")
+        # print(self.PFf.shape)
+
         # Extract magnitudes for calculation
-        Kff_magnitudes = numpy_array_of_quantity_to_numpy_array_of_float64(self.Kff)
+        Kff_magnitudes = to_float64_vec(self.Kff)
         print("Kff_magnitudes:", Kff_magnitudes, sep="\n")
         # FGf_magnitudes = np.array([f.magnitude if hasattr(f, 'magnitude') else float(f) for f in self.FGf],
         #                           dtype=np.float64)
@@ -509,12 +523,10 @@ class R2Structure:
             # Extract original units from the right-hand side
             rhs = self.FGf - self.PFf; print(rhs)
             _ = array_convert_to_unit_system(rhs, "imperial")
-
-
-
+            print(f"DEBUG: Right-hand side (FGf - PFf): {rhs}")
             # Convert to numpy array of Quantity objects
-            from pyMAOS.quantity_utils import numpy_array_of_quantity_to_numpy_array_of_float64
-            rhs_quantities = numpy_array_of_quantity_to_numpy_array_of_float64(rhs)
+
+            rhs_quantities = to_float64_ufunc(rhs)
             print(f"DEBUG: Converted to array of Quantities with shape {rhs_quantities.shape}")
 
             # Solve using scipy.linalg
@@ -576,7 +588,7 @@ class R2Structure:
         USTRUCT[:len(self.U)] = self.U
 
         # Debug information
-        print( f"DEBUG: Created USTRUCT by padding self.U ({len(self.U)} elements) to full size ({self.DIM} elements)")
+        # print( f"DEBUG: Created USTRUCT by padding self.U ({len(self.U)} elements) to full size ({self.DIM} elements)")
 
         print("USTRUCT")
         _ = array_convert_to_unit_system(USTRUCT, "imperial")

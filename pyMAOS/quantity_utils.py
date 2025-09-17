@@ -173,11 +173,23 @@ def extract_units_from_quantities(quantity_array):
 
     return units_array
 
-def increment_with_units(self, addend):
+# Example function: extract magnitude if it's a Quantity, else return as is
+def to_float64(x):
+	# Assume x is a Pint Quantity or a float
+	return x.magnitude if hasattr(x, 'magnitude') else float(x)
+
+# Vectorize the function
+to_float64_vec = np.vectorize(to_float64)
+
+to_float64_vec.__annotations__ = {'x': 'object', 'return': 'float64'}  # type: ignore
+
+to_float64_ufunc = np.frompyfunc(to_float64, 1, 1)
+
+def increment_with_units(target, addend):
     """
     Increment a value with another value while ensuring consistent units.
 
-    If self is not a Quantity, it's promoted to a Quantity with internal units.
+    If target is not a Quantity, it's promoted to a Quantity with internal units.
     If addend is a Quantity, it's converted to internal units before adding.
 
     Parameters
@@ -192,11 +204,11 @@ def increment_with_units(self, addend):
     """
     import pint
 
-    print(f"DEBUG: Incrementing {self} with {addend}")
+    # print(f"DEBUG: Incrementing {target} with {addend}")
 
     # If addend is not a Quantity, just do regular addition
     if not isinstance(addend, pint.Quantity):
-        result = self + addend
+        result = target + addend
         print(f"DEBUG: Added non-Quantity addend, result = {result}")
         return result
 
@@ -216,30 +228,34 @@ def increment_with_units(self, addend):
     # Get the appropriate internal unit
     if unit_type:
         internal_unit = pyMAOS.unit_manager.get_internal_unit(unit_type)
-        print(f"DEBUG: Using internal unit {internal_unit} for {unit_type}")
+        # print(f"DEBUG: Using internal unit {internal_unit} for {unit_type}")
     else:
         # If we can't determine the unit type, use addend's units as fallback
         internal_unit = addend.units
-        print(f"DEBUG: Could not determine unit type, using addend units {internal_unit}")
+        # print(f"DEBUG: Could not determine unit type, using addend units {internal_unit}")
 
-    # If self is not a Quantity, promote it to a Quantity with internal units
-    if not isinstance(self, pint.Quantity):
-        self = pyMAOS.unit_manager.ureg.Quantity(self, internal_unit)
-        print(f"DEBUG: Promoted self to Quantity with internal units: {self}")
+    # If target is not a Quantity, promote it to a Quantity with internal units
+    if not isinstance(target, pint.Quantity):
+        target = pyMAOS.unit_manager.ureg.Quantity(target, internal_unit)
+        # print(f"DEBUG: Promoted target to Quantity with internal units: {target}")
 
     try:
         # Convert addend to internal units before adding
         converted_addend = addend.to(internal_unit)
-        print(f"DEBUG: Converted addend from {addend} to {converted_addend}")
+        # print(f"DEBUG: Converted addend from {addend} to {converted_addend}")
 
         # Create result with the proper internal units
-        result = type(self)(self.magnitude + converted_addend.magnitude, internal_unit)
-        print(f"DEBUG: Result after increment: {result}")
+        result = type(target)(target.magnitude + converted_addend.magnitude, internal_unit)
+        # print(f"DEBUG: Result after increment: {result}")
 
         return result
     except pint.DimensionalityError as e:
-        print(f"DEBUG: Dimensionality error - {self.dimensionality} ≠ {addend.dimensionality}")
+        print(f"DEBUG: Dimensionality error - {target.dimensionality} ≠ {addend.dimensionality}")
         raise e
+
+increment_with_units_vec = np.vectorize(increment_with_units, otypes=[object])
+
+increment_with_units_ufunc = np.frompyfunc(increment_with_units, 2, 1)
 
 def add_arrays_with_units(array1, array2):
     """
@@ -283,7 +299,7 @@ def add_arrays_with_units(array1, array2):
 
     return result
 
-def print_units_matrix(array):
+def print_array_with_units(array):
     """
     Print a matrix with its values and units.
 
@@ -591,7 +607,7 @@ def uniquify_quantities(quantities):
     return unique_quantities
 
 # Usage example
-# unique_list = uniquify_quantities([zero_length, self.a, self.b, self.L])
+# unique_list = uniquify_quantities([zero_length, target.a, target.b, target.L])
 
 def uniquify_same_unit_quantities(quantities):
     """

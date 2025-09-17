@@ -1,5 +1,5 @@
 """
-Tests for the loading module, particularly to verify LinearLoadXY
+Tests for the loading module, particularly to verify R2_Linear_Load
 behaves correctly for a uniform load case.
 """
 import os
@@ -10,11 +10,11 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 
 def test_uniform_load():
     """
-    Test that LinearLoadXY produces the expected fixed end forces
+    Test that R2_Linear_Load produces the expected fixed end forces
     for a uniform load spanning the entire element.
     """
     import numpy as np
-    from pyMAOS.loading.distributed_loads import LinearLoadXY
+    from pyMAOS.loading.distributed_loads import R2_Linear_Load
     
     # Create a simple member with length=10
     L = 10.0
@@ -30,10 +30,10 @@ def test_uniform_load():
     member = DummyMember()
     
     # Create the uniform load (w1=w2, spans entire member)
-    load = LinearLoadXY(w1=w, w2=w, a=0, b=L, member=member)
+    load = R2_Linear_Load(w1=w, w2=w, a=0, b=L, member=member)
     
     # Calculate FEF
-    fef = load.load_fef()
+    fef = load.FEF()
     
     # Expected values for uniform load of intensity w on span L
     Miz_expected = -w * L**2 / 12
