@@ -1,5 +1,6 @@
 ﻿import os
 import sys
+from dotenv import load_dotenv
 
 import pint
 
@@ -66,7 +67,10 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
 	# Import the unit_manager directly from the module
 	import pyMAOS
 
+	load_dotenv()  # reads variables from a .env file and sets them in os.environ
 	pymaos_home = os.getenv('PYMAOS_HOME')
+
+
 	assert os.path.isdir(pymaos_home), f"{pymaos_home} does not exist"
 	# Get internal units
 	internal_length_unit = pyMAOS.unit_manager.INTERNAL_LENGTH_UNIT
@@ -94,6 +98,7 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
 	if file_ext in ['.yml', '.yaml']:
 		try:
 			import yaml as yaml  # Using PyYAML package
+
 			pyMAOS.info(f"Loading YAML file: {filename}")
 			with open(filename, 'r') as file:
 				data = yaml.safe_load(file)
@@ -107,10 +112,12 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
 	else:  # Default to JSON
 		pyMAOS.info(f"Loading JSON file: {filename}")
 		import json
+
 		# Validate JSON file if schema_file is provided
 		if schema_file:
 			try:
 				from pyMAOS.json_utils import validate_input_with_schema
+
 				validate_input_with_schema(filename, schema_file=schema_file)
 				pyMAOS.info("JSON validation passed!")
 			except Exception as e:
@@ -197,6 +204,7 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
 		if not os.path.exists(sections_yml):
 			sections_yml = os.path.join("sections.yml")
 		from pymaos_sections import get_sections_from_yaml
+
 		sections_dict = get_sections_from_yaml(sections_yml, logger=logger)
 
 	except Exception as e:
@@ -225,6 +233,7 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
 		sec_id = member_data["section"]
 		assert sections_dict[sec_id] is not None, f"Section {sec_id} does not exist"
 		from pyMAOS.frame2d import R2Frame
+
 		element = R2Frame(
 			uid=member_id,
 			inode=nodes_dict[i_node],
@@ -283,6 +292,7 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
 			# Extract load intensity parameters with unit conversion
 
 			from pyMAOS import INTERNAL_LENGTH_UNIT, INTERNAL_DISTRIBUTED_LOAD_UNIT
+
 			wi = member_load.get("wi", '0 kip/ft')
 			w1_with_units = unit_manager.ureg.Quantity(wi).to(INTERNAL_DISTRIBUTED_LOAD_UNIT)
 			if "wj" in member_load:
@@ -313,6 +323,7 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
 			# Parse force magnitude with unit conversion
 
 			from pyMAOS import INTERNAL_LENGTH_UNIT, INTERNAL_FORCE_UNIT
+
 			p_with_units = pyMAOS.unit_manager.ureg.Quantity(member_load.get("p", '0 kpf')).to(INTERNAL_FORCE_UNIT)
 			# Parse position - use percentage value if available
 			if "a_pct" in member_load:
@@ -383,9 +394,9 @@ def load_frame_from_file(filename, logger=None, schema_file=None, show_vtk=False
 		else:
 			pyMAOS.info(f"  Warning: Unsupported load type {load_type}")
 
-		# except Exception as e:
-		#     pyMAOS.info(f"Error processing member load: {e}")
-		#     pyMAOS.info(f"  Details: {type(e).__name__} - {str(e)}")
+	# except Exception as e:
+	#     pyMAOS.info(f"Error processing member load: {e}")
+	#     pyMAOS.info(f"  Details: {type(e).__name__} - {str(e)}")
 
 	# Create final node list in sorted order
 	node_list = [nodes_dict[uid] for uid in sorted(nodes_dict)]
@@ -452,13 +463,14 @@ def load_linear_load_reactively(element, member_load, logger=None):
 		on_next=lambda reactions: pyMAOS.info(f"Calculated reactions: R_i={reactions[0]:.4f}, R_j={reactions[1]:.4f}")
 	)
 
-	# Subscribe to constants and use them for the element
-	# load_processor.constants.pipe(ops.first()).subscribe(
-	#     on_next=lambda constants: element.add_distributed_load(
-	#         w1, w2, a, b, member_load.get("case", "D"),
-	#         direction=member_load.get("direction", "Y").upper()
-	#     )
-	# )
+
+# Subscribe to constants and use them for the element
+# load_processor.constants.pipe(ops.first()).subscribe(
+#     on_next=lambda constants: element.add_distributed_load(
+#         w1, w2, a, b, member_load.get("case", "D"),
+#         direction=member_load.get("direction", "Y").upper()
+#     )
+# )
 
 
 from pyMAOS.structure2d_to_json import export_results_to_json
@@ -518,7 +530,7 @@ if __name__ == "__main__":
 		unit_manager.ureg.default_system = args.units
 		unit_manager.ureg.default_preferred_units = IMPERIAL_DISPLAY_UNITS
 		unit_manager.set_display_unit_system(IMPERIAL_DISPLAY_UNITS, args.units)
-		# unit_manager.setup_preferred_units(system_name=args.units)
+	# unit_manager.setup_preferred_units(system_name=args.units)
 
 	elif args.units == "si":
 		unit_manager.set_display_unit_system(SI_UNITS, args.units)
@@ -588,8 +600,6 @@ if __name__ == "__main__":
 
 			log_exception(logger, message=f"Error solving linear static problem: {str(e)}")
 			sys.exit(1)
-
-
 
 	from pyMAOS.frame2d import print_member_loads_to_file
 

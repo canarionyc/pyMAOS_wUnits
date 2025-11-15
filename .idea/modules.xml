@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/pyMAOS_testing.iml" filepath="$PROJECT_DIR$/.idea/pyMAOS_testing.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/pyMAOS_wUnits.iml" filepath="$PROJECT_DIR$/.idea/pyMAOS_wUnits.iml" />
     </modules>
   </component>
 </project>
