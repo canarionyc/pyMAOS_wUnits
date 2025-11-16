@@ -526,7 +526,7 @@ class R2Structure:
             print(f"DEBUG: Right-hand side (FGf - PFf): {rhs}")
             # Convert to numpy array of Quantity objects
 
-            rhs_quantities = to_float64_ufunc(rhs)
+            rhs_quantities = to_float64_vec(rhs)
             print(f"DEBUG: Converted to array of Quantities with shape {rhs_quantities.shape}")
 
             # Solve using scipy.linalg

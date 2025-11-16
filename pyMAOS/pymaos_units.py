@@ -13,7 +13,7 @@ import numpy as np
 from pprint import pprint
 
 import pyMAOS
-from pyMAOS import unit_manager
+
 
 global SI_UNITS, IMPERIAL_UNITS, METRIC_KN_UNITS
 # from pint import UnitRegistry, Quantity
